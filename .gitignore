@@ -5,3 +5,8 @@
 *.class
 /target/
 /target/classes/*.*
+ewa_conf.xml
+ewa_console_conf.xml
+*.properties
+.settings
+.vscode
