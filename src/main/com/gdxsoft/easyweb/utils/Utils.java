@@ -32,6 +32,16 @@ public class Utils {
 	private static long HOR = 60L * MINUTE;
 	private static long DAY = 24L * HOR;
 
+	public static String getJavascript(String s1) {
+		return "\r\n<script language=\"javascript\">\r\n" + s1 + "\r\n</script>\r\n";
+	}
+
+	public static String getAlertScript(String s1) {
+		s1 = s1.replaceAll("\r", "\\\\r").replaceAll("'", "\\\\'").replaceAll("\n", "\\\\n");
+		s1 = "alert('" + s1 + "');";
+		return getJavascript(s1);
+	}
+
 	/**
 	 * 利用随机数生成字符串
 	 * 

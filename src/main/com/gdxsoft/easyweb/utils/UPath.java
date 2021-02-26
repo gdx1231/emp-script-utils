@@ -456,8 +456,8 @@ public class UPath {
 		NodeList nl = doc.getElementsByTagName("path");
 		for (int i = 0; i < nl.getLength(); i++) {
 			Element ele = (Element) nl.item(i);
-			String name = ele.getAttribute("Name");
-			String v = ele.getAttribute("Value");
+			String name = ele.hasAttribute("name") ? ele.getAttribute("name") : ele.getAttribute("Name");
+			String v = ele.hasAttribute("value") ? ele.getAttribute("value") : ele.getAttribute("Value");
 			if (!(v.endsWith("/") || v.endsWith("\\"))) {
 				v += "/";
 			}
