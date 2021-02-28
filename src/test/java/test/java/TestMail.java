@@ -11,6 +11,7 @@ import jakarta.mail.Store;
 import jakarta.mail.internet.MimeMessage;
 
 import com.gdxsoft.easyweb.utils.UMail;
+import com.gdxsoft.easyweb.utils.UPath;
 import com.gdxsoft.easyweb.utils.Mail.Attachment;
 import com.gdxsoft.easyweb.utils.Mail.DKIMCfg;
 import com.gdxsoft.easyweb.utils.Mail.MailDecode;
@@ -29,22 +30,28 @@ public class TestMail extends TestBase {
 
 	@Test
 	public void testMail() throws Exception {
-		String host = "qd.gezz.cn"; //
+		String host = "127.0.0.1"; //
+
 		String username = "lei.guo@oneworld.cc";
-		String password = "gdx1231gdx";
+		String password = "";
 
 		DKIMCfg cfg = new DKIMCfg();
 		cfg.setDomain("oneworld.cc");
 		cfg.setSelect("gdx");
-		cfg.setPrivateKeyPath("D:\\360Downloads\\Video\\oneworld.cc.pem");
+		String der = UPath.getRealPath() + "resources/test.der";
+		System.out.println(der);
 
-		super.captionLength("send mail to gdx1231@gmail.com");
-		SendMail sm = new SendMail().setFrom(username).addTo("gdx1231@gmail.com").setSubject("发送smtp邮件").setTextContent("发送smtp邮件")
-				.setDkim(cfg);
+		cfg.setPrivateKeyPath(der);
+		super.printCaption("send mail to gdx1231@gmail.com");
 
+		SendMail sm = new SendMail().setFrom(username).addTo("gdx1231@gmail.com").setSubject("发送smtp邮件")
+				.setTextContent("发送smtp邮件").setDkim(cfg).setMessageId("<aa" + Math.random() + ">");
+
+		System.out.println(" init " + host + "," + username + ", " + password);
 		sm.initProps(host, 25, username, password);
+		System.out.println(" start send ");
 		sm.send();
-		super.captionLength("send ok");
+		super.printCaption("send ok");
 
 		/*
 		 * super.printCaption("发送smtp邮件"); this.sendMail(host, username, password);
@@ -53,7 +60,7 @@ public class TestMail extends TestBase {
 		 */
 	}
 
-	private void sendMail(String host, String username, String password) {
+	public void sendMail(String host, String username, String password) {
 		if (host == null || username == null || password == null) {
 			super.captionLength("skip test");
 			return;
@@ -62,7 +69,7 @@ public class TestMail extends TestBase {
 		UMail.sendHtmlMail(username, username, "test", "sdkfklsd");
 	}
 
-	private void readPop3Mails(String host, String username, String password) throws Exception {
+	public void readPop3Mails(String host, String username, String password) throws Exception {
 
 		if (host == null || username == null || password == null) {
 			super.captionLength("skip test");

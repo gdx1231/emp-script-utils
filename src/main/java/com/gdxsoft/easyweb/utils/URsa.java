@@ -71,6 +71,10 @@ public class URsa {
 		java.security.Security.addProvider(new BouncyCastleProvider());
 	}
 
+	/**
+	 * sign: SHA256withRSA
+	 * digest: sha-256
+	 */
 	public URsa() {
 		this.signAlgorithm = SIGNATURE_DEFAULT_ALGORITHM;
 		this.digestAlgorithm = DIGEST_ALGORITHM;
@@ -116,6 +120,28 @@ public class URsa {
 	}
 
 	/**
+	 * 更加扩展名，初始化公匙
+	 * @param publicKeyFilePath DER OR PEM 私匙文件
+	 * @return
+	 * @throws NoSuchAlgorithmException
+	 * @throws InvalidKeySpecException
+	 * @throws IOException
+	 */
+	public RSAPublicKey initPublicKey(String publicKeyFilePath)
+			throws NoSuchAlgorithmException, InvalidKeySpecException, IOException {
+		String ext = UFile.getFileExt(publicKeyFilePath);
+
+		if (ext.equalsIgnoreCase("der")) {
+			return this.initPublicDerKey(publicKeyFilePath);
+		} else if (ext.equalsIgnoreCase("pem")) {
+			return this.initPublicPemKey(publicKeyFilePath);
+		} else {
+			return null;
+		}
+
+	}
+
+	/**
 	 * 通过PEM文件初始化公匙
 	 * 
 	 * @param pemPublicKeyFilePath 公匙PEM文件
@@ -124,10 +150,25 @@ public class URsa {
 	 * @throws InvalidKeySpecException
 	 * @throws NoSuchAlgorithmException
 	 */
-	public RSAPublicKey initPublicKey(String pemPublicKeyFilePath)
+	public RSAPublicKey initPublicPemKey(String pemPublicKeyFilePath)
 			throws IOException, NoSuchAlgorithmException, InvalidKeySpecException {
 		byte[] keyBytes = this.readPemKey(pemPublicKeyFilePath);
-		return this.initPublicKey(keyBytes);
+		return this.initPublicDerKey(keyBytes);
+	}
+
+	/**
+	 * 初始化DER 公匙
+	 * 
+	 * @param derPublicKeyFilePath 公匙DER文件
+	 * @return 公匙
+	 * @throws IOException
+	 * @throws NoSuchAlgorithmException
+	 * @throws InvalidKeySpecException
+	 */
+	public RSAPublicKey initPublicDerKey(String derPublicKeyFilePath)
+			throws IOException, NoSuchAlgorithmException, InvalidKeySpecException {
+		byte[] keyBytes = UFile.readFileBytes(derPublicKeyFilePath);
+		return this.initPublicDerKey(keyBytes);
 	}
 
 	/**
@@ -138,7 +179,7 @@ public class URsa {
 	 * @throws NoSuchAlgorithmException
 	 * @throws InvalidKeySpecException
 	 */
-	public RSAPublicKey initPublicKey(byte[] keyBytes) throws NoSuchAlgorithmException, InvalidKeySpecException {
+	public RSAPublicKey initPublicDerKey(byte[] keyBytes) throws NoSuchAlgorithmException, InvalidKeySpecException {
 		X509EncodedKeySpec keySpec = new X509EncodedKeySpec(keyBytes);
 		KeyFactory keyFactory = KeyFactory.getInstance(KEY_ALGORITHM);
 		RSAPublicKey publicKey = (RSAPublicKey) keyFactory.generatePublic(keySpec);
@@ -146,6 +187,28 @@ public class URsa {
 		return publicKey;
 	}
 
+	/**
+	 * 根据文件扩展名(xxx.der / xxx.pem)初始化私匙
+	 * 
+	 * @param privateKeyFilePath PEM/ DER 私匙文件
+	 * @return 私匙
+	 * @throws IOException
+	 * @throws InvalidKeySpecException
+	 * @throws NoSuchAlgorithmException
+	 */
+	public RSAPrivateKey initPrivateKey(String  privateKeyFilePath)
+			throws IOException, NoSuchAlgorithmException, InvalidKeySpecException {
+		String ext = UFile.getFileExt(privateKeyFilePath);
+
+		if (ext.equalsIgnoreCase("der")) {
+			return this.initPrivateDerKey(privateKeyFilePath);
+		} else if (ext.equalsIgnoreCase("pem")) {
+			return this.initPrivatePemKey(privateKeyFilePath);
+		} else {
+			return null;
+		}
+	}
+	
 	/**
 	 * 通过PEM文件初始化私匙
 	 * 
@@ -155,14 +218,27 @@ public class URsa {
 	 * @throws InvalidKeySpecException
 	 * @throws NoSuchAlgorithmException
 	 */
-	public RSAPrivateKey initPrivateKey(String pemPrivateKeyFilePath)
+	public RSAPrivateKey initPrivatePemKey(String pemPrivateKeyFilePath)
 			throws IOException, NoSuchAlgorithmException, InvalidKeySpecException {
 		byte[] keyBytes = this.readPemKey(pemPrivateKeyFilePath);
 		return this.initPrivateKey(keyBytes);
 	}
-
 	/**
-	 * 初始化私匙
+	 * 通过PEM文件初始化私匙
+	 * 
+	 * @param derPrivateKeyFilePath 私匙DER文件
+	 * @return 私匙
+	 * @throws IOException
+	 * @throws InvalidKeySpecException
+	 * @throws NoSuchAlgorithmException
+	 */
+	public RSAPrivateKey initPrivateDerKey(String derPrivateKeyFilePath)
+			throws IOException, NoSuchAlgorithmException, InvalidKeySpecException {
+		byte[] keyBytes = UFile.readFileBytes(derPrivateKeyFilePath);
+		return this.initPrivateKey(keyBytes);
+	}
+	/**
+	 * 初始化私匙 DER
 	 * 
 	 * @param keyBytes 私匙二进制
 	 * @return 私匙
@@ -205,11 +281,11 @@ public class URsa {
 	 */
 	public byte[] sign(byte[] data) throws NoSuchAlgorithmException, InvalidKeyException, SignatureException {
 		// 获取信息的摘要
-		byte[] digest = this.digestMessage(data);
+		// byte[] digest = this.digestMessage(data);
 
 		Signature sig = Signature.getInstance(signAlgorithm);
 		sig.initSign(this.privateKey);
-		sig.update(digest);
+		sig.update(data);
 		byte[] signData = sig.sign();
 
 		return signData;

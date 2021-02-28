@@ -2,14 +2,9 @@
 package com.gdxsoft.easyweb.utils.Mail;
 
 import java.io.ByteArrayOutputStream;
-import java.io.DataInputStream;
-import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
-import java.security.KeyFactory;
 import java.security.PrivateKey;
 import java.security.interfaces.RSAPrivateKey;
-import java.security.spec.PKCS8EncodedKeySpec;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.Enumeration;
@@ -17,14 +12,18 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.Map.Entry;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
-import jakarta.mail.MessagingException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.gdxsoft.easyweb.utils.UDigest;
 import com.gdxsoft.easyweb.utils.URsa;
 import com.sun.mail.util.CRLFOutputStream;
+import com.sun.mail.util.QPEncoderStream;
+
+import jakarta.mail.MessagingException;
 
 /*
  *   DKIM RFC 4871.
@@ -33,6 +32,7 @@ import com.sun.mail.util.CRLFOutputStream;
 
 public class DKIMSigner {
 
+	private Logger LOGGER = LoggerFactory.getLogger(DKIMSigner.class);
 	private static int MAXHEADERLENGTH = 67;
 
 	/**
@@ -82,32 +82,19 @@ public class DKIMSigner {
 
 		this.signingDomain = signingDomain;
 		this.selector = selector.trim();
-		
+
 		DKIMAlgorithm algorithm = this.signingAlgorithm;
-		
+
 		this.rsa = new URsa();
 		this.rsa.initPrivateKey(privkeyFilename);
-		
-		// 摘要算法
-		this.rsa.setDigestAlgorithm(algorithm.getJavaHashNotation());
-		// 签名算法
-		this.rsa.setSignAlgorithm(algorithm.getJavaSecNotation());
 
-		/*
-		 * File privKeyFile = new File(privkeyFilename);
-		 * 
-		 * // read private key DER file DataInputStream dis = new DataInputStream(new
-		 * FileInputStream(privKeyFile)); byte[] privKeyBytes = new byte[(int)
-		 * privKeyFile.length()]; dis.read(privKeyBytes); dis.close();
-		 * 
-		 * KeyFactory keyFactory = KeyFactory.getInstance("RSA");
-		 * 
-		 * // decode private key PKCS8EncodedKeySpec privSpec = new
-		 * PKCS8EncodedKeySpec(privKeyBytes); RSAPrivateKey privKey = (RSAPrivateKey)
-		 * keyFactory.generatePrivate(privSpec);
-		 * 
-		 * initDKIMSigner(signingDomain, selector, privKey);
-		 */
+		this.privkey = this.rsa.getPrivateKey();
+
+		// 摘要算法, sha256 /sha1
+		this.rsa.setDigestAlgorithm(algorithm.getDigestAlorithm());
+		// 签名算法 SHA256withRSA/ SHA1withRSA
+		this.rsa.setSignAlgorithm(algorithm.getSignAlgorithm());
+
 	}
 
 	/**
@@ -120,7 +107,7 @@ public class DKIMSigner {
 	 */
 	private void initDKIMSigner(String signingDomain, String selector, PrivateKey privkey) throws Exception {
 
-		if (!DKIMUtil.isValidDomain(signingDomain)) {
+		if (!isValidDomain(signingDomain)) {
 			throw new Exception(signingDomain + " is an invalid signing domain");
 		}
 
@@ -250,57 +237,36 @@ public class DKIMSigner {
 		this.rsa = new URsa();
 		this.rsa.setPrivateKey((RSAPrivateKey) this.privkey);
 		// 摘要算法
-		this.rsa.setDigestAlgorithm(algorithm.getJavaHashNotation());
+		this.rsa.setDigestAlgorithm(algorithm.getDigestAlorithm());
 		// 签名算法
-		this.rsa.setSignAlgorithm(algorithm.getJavaSecNotation());
+		this.rsa.setSignAlgorithm(algorithm.getSignAlgorithm());
 
 		this.signingAlgorithm = algorithm;
 	}
 
 	/**
-	 * 序列号签名
+	 * 序列化签名数据
 	 * 
-	 * @param dkimSignature
+	 * @param dkimSignature 签名Map
 	 * @return
 	 */
 	private String serializeDKIMSignature(Map<String, String> dkimSignature) {
-
-		Set<Entry<String, String>> entries = dkimSignature.entrySet();
-		StringBuffer buf = new StringBuffer(), fbuf;
+		StringBuilder buf = new StringBuilder();
 		int pos = 0;
-
-		Iterator<Entry<String, String>> iter = entries.iterator();
-		while (iter.hasNext()) {
-			Entry<String, String> entry = iter.next();
-
-			// buf.append(entry.getKey()).append("=").append(entry.getValue()).append(";\t");
-
-			fbuf = new StringBuffer();
-			fbuf.append(entry.getKey()).append("=").append(entry.getValue()).append(";");
+		for (String key : dkimSignature.keySet()) {
+			String value = dkimSignature.get(key);
+			StringBuilder fbuf = new StringBuilder();
+			fbuf.append(key).append("=").append(value).append(";");
 
 			if (pos + fbuf.length() + 1 > MAXHEADERLENGTH) {
-
 				pos = fbuf.length();
-
-				// line folding : this doesn't work "sometimes" --> maybe someone likes to debug
-				// this
-				/*
-				 * int i = 0; while (i<pos) { if (fbuf.substring(i).length()>MAXHEADERLENGTH) {
-				 * buf.append("\r\n\t").append(fbuf.substring(i, i+MAXHEADERLENGTH)); i +=
-				 * MAXHEADERLENGTH; } else { buf.append("\r\n\t").append(fbuf.substring(i)); pos
-				 * -= i; break; } }
-				 */
-
 				buf.append("\r\n\t").append(fbuf);
-
 			} else {
 				buf.append(" ").append(fbuf);
 				pos += fbuf.length() + 1;
 			}
 		}
-
 		buf.append("\r\n\tb=");
-
 		return buf.toString().trim();
 	}
 
@@ -314,7 +280,7 @@ public class DKIMSigner {
 	private String foldSignedSignature(String s, int offset) {
 
 		int i = 0;
-		StringBuffer buf = new StringBuffer();
+		StringBuilder buf = new StringBuilder();
 
 		while (true) {
 			if (offset > 0 && s.substring(i).length() > MAXHEADERLENGTH - offset) {
@@ -342,39 +308,58 @@ public class DKIMSigner {
 	 * @throws MessagingException
 	 */
 	public String sign(SMTPDKIMMessage message) throws Exception {
+		long t = new Date().getTime() / 1000l;
 
 		Map<String, String> dkimSignature = new LinkedHashMap<String, String>();
 		dkimSignature.put("v", "1");
-		dkimSignature.put("a", this.signingAlgorithm.getRfc4871Notation());
+		dkimSignature.put("a", this.signingAlgorithm.getRfc4871Notation()); // rsa-sha256
 		dkimSignature.put("q", "dns/txt");
+		// relaxed/simple;
 		dkimSignature.put("c", getHeaderCanonicalization().getType() + "/" + getBodyCanonicalization().getType());
-		dkimSignature.put("t", ((long) new Date().getTime() / 1000) + "");
+		dkimSignature.put("t", t + "");
 		dkimSignature.put("s", this.selector);
 		dkimSignature.put("d", this.signingDomain);
 
 		// set identity inside signature
 		if (identity != null) {
-			dkimSignature.put("i", DKIMUtil.QuotedPrintable(identity));
+			dkimSignature.put("i", QuotedPrintable(identity));
 		}
 
-		StringBuffer headerContent = this.signHeader(message, dkimSignature);
+		StringBuilder headerContent = this.signHeader(message, dkimSignature);
 
-		this.signBody(message, dkimSignature);
+		// bh 参数 body 的 sha256 摘要
+		this.digestBody(message, dkimSignature);
 
 		// create signature
 		String serializedSignature = serializeDKIMSignature(dkimSignature);
 
-		byte[] signData = headerContent
-				.append(this.headerCanonicalization.canonicalizeHeader("DKIM-Signature", " " + serializedSignature))
-				.toString().getBytes();
+		String canonicalizeDkimSignature = this.headerCanonicalization.canonicalizeHeader("DKIM-Signature",
+				serializedSignature);
+		headerContent.append(canonicalizeDkimSignature);
 
+		// 签名算法 RSAWithSHA256
+		byte[] signData = headerContent.toString().getBytes();
 		String signedSignature = this.rsa.signBase64(signData);
+
 		// 折行
 		String foldedSign = this.foldSignedSignature(signedSignature, 3);
-		return "DKIM-Signature: " + serializedSignature + foldedSign;
+
+		String signatureHeader = "DKIM-Signature: " + serializedSignature + foldedSign;
+
+		LOGGER.debug(signatureHeader);
+
+		return signatureHeader;
 	}
 
-	private StringBuffer signHeader(SMTPDKIMMessage message, Map<String, String> dkimSignature) throws Exception {
+	/**
+	 * 头部组合签名
+	 * 
+	 * @param message
+	 * @param dkimSignature
+	 * @return
+	 * @throws Exception
+	 */
+	private StringBuilder signHeader(SMTPDKIMMessage message, Map<String, String> dkimSignature) throws Exception {
 		// 获取最小的签名包含的字段列表
 		List<String> minimumHeders = new ArrayList<String>();
 		for (int i = 0; i < miniHeaders.length; i++) {
@@ -382,9 +367,9 @@ public class DKIMSigner {
 		}
 
 		// intersect defaultHeadersToSign with available headers
-		StringBuffer headerList = new StringBuffer();
-		StringBuffer headerContent = new StringBuffer();
-		StringBuffer zParamString = new StringBuffer();
+		StringBuilder headerList = new StringBuilder();
+		StringBuilder headerContent = new StringBuilder();
+		StringBuilder zParamString = new StringBuilder();
 
 		// 获取指定名称的邮件头
 		Enumeration<String> headerLines = message.getMatchingHeaderLines(defaultHeadersToSign);
@@ -392,7 +377,7 @@ public class DKIMSigner {
 		while (headerLines.hasMoreElements()) {
 			String header = headerLines.nextElement();
 
-			String[] headerParts = DKIMUtil.splitHeader(header);
+			String[] headerParts = splitHeader(header);
 			String name = headerParts[0];
 			String value = headerParts[1];
 
@@ -408,15 +393,15 @@ public class DKIMSigner {
 			// add optional z= header list, DKIM-Quoted-Printable
 			if (this.zParam) {
 				zParamString.append("|");
-				String zv = DKIMUtil.QuotedPrintable(value.trim()).replace("|", "=7C");
+				String zv = QuotedPrintable(value.trim()).replace("|", "=7C");
 				zParamString.append(name).append(":").append(zv);
 			}
 			inc++;
 		}
 
 		if (!minimumHeders.isEmpty()) {
-			String err = "Could not find the header fields " + DKIMUtil.concatArray(minimumHeders, ", ")
-					+ " for signing";
+			String err = "Could not find the header fields " + concatArray(minimumHeders, ", ") + " for signing";
+			LOGGER.error(err);
 			throw new Exception(err);
 		}
 
@@ -426,7 +411,7 @@ public class DKIMSigner {
 		if (this.zParam) {
 			dkimSignature.put("z", zParamString.toString());
 		}
-
+		LOGGER.debug(headerContent.toString());
 		return headerContent;
 	}
 
@@ -437,7 +422,7 @@ public class DKIMSigner {
 	 * @param dkimSignature
 	 * @throws Exception
 	 */
-	private void signBody(SMTPDKIMMessage message, Map<String, String> dkimSignature) throws Exception {
+	private void digestBody(SMTPDKIMMessage message, Map<String, String> dkimSignature) throws Exception {
 		// process body
 		String body = message.getEncodedBody();
 		ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -454,10 +439,58 @@ public class DKIMSigner {
 		if (this.lengthParam) {
 			dkimSignature.put("l", body.length() + "");
 		}
-
-		String bh = UDigest.digestBase64(body.getBytes(), this.signingAlgorithm.getJavaHashNotation());
+		// sha256 or sha1
+		String bh = UDigest.digestBase64(body.getBytes(), this.signingAlgorithm.getDigestAlorithm());
 		// calculate and encode body hash
 		dkimSignature.put("bh", bh);
 
+	}
+
+	private static String[] splitHeader(String header) throws Exception {
+		int colonPos = header.indexOf(':');
+		if (colonPos == -1) {
+			throw new Exception("The header string " + header + " is no valid RFC 822 header-line");
+		}
+		return new String[] { header.substring(0, colonPos), header.substring(colonPos + 1) };
+	}
+
+	private static String concatArray(List<?> l, String separator) {
+		StringBuffer buf = new StringBuffer();
+		Iterator<?> iter = l.iterator();
+		while (iter.hasNext()) {
+			buf.append(iter.next()).append(separator);
+		}
+
+		return buf.substring(0, buf.length() - separator.length());
+	}
+
+	private static boolean isValidDomain(String domainname) {
+		Pattern pattern = Pattern.compile("(.+)\\.(.+)");
+		Matcher matcher = pattern.matcher(domainname);
+		return matcher.matches();
+	}
+
+	private static String QuotedPrintable(String s) {
+		QPEncoderStream encodeStream = null;
+		try {
+			ByteArrayOutputStream boas = new ByteArrayOutputStream();
+			encodeStream = new QPEncoderStream(boas);
+			encodeStream.write(s.getBytes());
+
+			String encoded = boas.toString();
+			encoded = encoded.replaceAll(";", "=3B");
+			encoded = encoded.replaceAll(" ", "=20");
+
+			return encoded;
+
+		} catch (IOException ioe) {
+		} finally {
+			if (encodeStream != null)
+				try {
+					encodeStream.close();
+				} catch (IOException e) {
+				}
+		}
+		return null;
 	}
 }

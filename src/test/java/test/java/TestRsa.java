@@ -1,10 +1,17 @@
 package test.java;
 
 import java.io.File;
+import java.io.IOException;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.security.spec.InvalidKeySpecException;
 
 import com.gdxsoft.easyweb.utils.UConvert;
+import com.gdxsoft.easyweb.utils.UDigest;
 import com.gdxsoft.easyweb.utils.UFile;
+import com.gdxsoft.easyweb.utils.UPath;
 import com.gdxsoft.easyweb.utils.URsa;
+import com.gdxsoft.easyweb.utils.Utils;
 
 public class TestRsa extends TestBase {
 
@@ -18,9 +25,49 @@ public class TestRsa extends TestBase {
 	}
 
 	public void testRsa() throws Throwable {
+		super.printCaption("测试 Digest");
+		this.testDigest();
+
+		super.printCaption("测试RSA - DER/PEM");
+		this.testDerAndPem();
+
 		super.printCaption("测试RSA");
 
 		this.testGenKeys();
+
+	}
+
+	public void testDigest() throws NoSuchAlgorithmException {
+		// MD2, MD5, SHA-1, SHA-256, SHA-384, SHA-512
+		this.testDigest("md2");
+		this.testDigest("md5");
+		this.testDigest("sha-1");
+		this.testDigest("sha-256");
+		this.testDigest("sha-384");
+		this.testDigest("sha-512");
+
+	}
+
+	private void testDigest(String digestName) throws NoSuchAlgorithmException {
+		byte[] data = "xxxxxxxxxxxxxxxx".getBytes();
+		MessageDigest messageDigest = MessageDigest.getInstance(digestName);
+		messageDigest.update(data);
+		byte[] digest = messageDigest.digest();
+
+		String d1 = Utils.bytes2hex(digest);
+
+		String d2 = UDigest.digestHex(data, digestName);
+
+		System.out.println(digestName + ": " + d1);
+		System.out.println(digestName + ": " + d2);
+	}
+
+	public void testDerAndPem() throws Exception {
+		String derPath = UPath.getRealPath() + "resources/test.der";
+		// String pemPath = UPath.getRealPath()+"resources/test.pem";
+
+		this.privateKeyFilePath = derPath;
+		this.publicKeyFilePath = UPath.getRealPath() + "resources/test.pub.pem";
 
 		super.printCaption("私匙加密，公匙解密");
 		this.testPrivateEncryptPublicDecrypt();
@@ -30,10 +77,9 @@ public class TestRsa extends TestBase {
 
 		super.printCaption("签名验证");
 		this.testSign();
-
 	}
 
-	private void testGenKeys() throws Throwable {
+	public void testGenKeys() throws Throwable {
 		this.rsa = new URsa();
 		rsa.generateRsaKeys(1024);
 
@@ -53,6 +99,15 @@ public class TestRsa extends TestBase {
 		UFile.createNewTextFile(publicKeyFilePath, publicKey);
 
 		System.out.println(publicKeyFilePath);
+
+		super.printCaption("私匙加密，公匙解密");
+		this.testPrivateEncryptPublicDecrypt();
+
+		super.printCaption("公匙加密，私匙解密");
+		this.testPublicEncryptPrivateDecrypt();
+
+		super.printCaption("签名验证");
+		this.testSign();
 	}
 
 	/**
@@ -66,7 +121,7 @@ public class TestRsa extends TestBase {
 		this.rsa.initPrivateKey(this.privateKeyFilePath);
 
 		String input = "私匙加密，公匙解密";
-		System.out.println(input);
+		System.out.println("加密内容-> " + input);
 
 		// 加密
 		byte[] encryptData = rsa.encryptPrivate(input.getBytes());
@@ -76,7 +131,7 @@ public class TestRsa extends TestBase {
 		// 解密
 		byte[] plainData = rsa.decryptPublic(encryptData);
 		String plainText = new String(plainData, "utf-8");
-		System.out.println(plainText);
+		System.out.println("解密----> " + plainText);
 
 	}
 
@@ -112,8 +167,7 @@ public class TestRsa extends TestBase {
 
 		boolean status = rsa.verifyBase64(data, signature);
 		System.out.println("验证情况：" + status);
-		
-		
+
 	}
 
 }

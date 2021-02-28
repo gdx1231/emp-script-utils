@@ -37,26 +37,47 @@ public class DKIMAlgorithm {
 	public final static DKIMAlgorithm rsa_sha1 = new DKIMAlgorithm("rsa-sha1", "SHA1withRSA", "sha1");
 
 	private String rfc4871Notation;
-	private String javaSecNotation;
-	private String javaHashNotation;
 
-	// 1. argument: RFC 4871 format, 2. argument: java representation, 3. argument:
-	// java hashing digest
-	public DKIMAlgorithm(String rfc4871Notation, String javaSecNotation, String javaHashNotation) {
+	private String signAlgorithm;
+	private String digestAlorithm;
+
+	/**
+	 * 
+	 * @param rfc4871Notation RFC 4871 format
+	 * @param signAlgorithm   sign
+	 * @param digestAlorithm  hashing digest
+	 */
+	public DKIMAlgorithm(String rfc4871Notation, String signAlgorithm, String digestAlorithm) {
 		this.rfc4871Notation = rfc4871Notation;
-		this.javaSecNotation = javaSecNotation;
-		this.javaHashNotation = javaHashNotation;
+		this.signAlgorithm = signAlgorithm;
+		this.digestAlorithm = digestAlorithm;
 	}
 
-	public String getJavaHashNotation() {
-		return javaHashNotation;
-	}
-
-	public String getJavaSecNotation() {
-		return javaSecNotation;
-	}
-
+	/**
+	 * rsa-sha256 / rsa-sha1
+	 * 
+	 * @return the rfc4871Notation name
+	 */
 	public String getRfc4871Notation() {
 		return rfc4871Notation;
 	}
+
+	/**
+	 * the sign algorithm
+	 * 
+	 * @return signAlgorithm
+	 */
+	public String getSignAlgorithm() {
+		return signAlgorithm;
+	}
+
+	/**
+	 * The digest digestAlorithm
+	 * 
+	 * @return digestAlorithm
+	 */
+	public String getDigestAlorithm() {
+		return digestAlorithm;
+	}
+
 }
