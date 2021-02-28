@@ -2,6 +2,7 @@ package com.gdxsoft.easyweb.utils;
 
 import java.io.UnsupportedEncodingException;
 
+import org.bouncycastle.crypto.Digest;
 import org.bouncycastle.crypto.ExtendedDigest;
 import org.bouncycastle.crypto.digests.*;
 
@@ -213,6 +214,123 @@ public class UDigest {
 		if ("md4".equalsIgnoreCase(algorithm)) {
 			MD4Digest md4 = new MD4Digest();
 			return digestGeneralDigest(data, md4);
+		}
+		return null;
+
+	}
+
+	public static Digest getDigest(String algorithm) {
+		if ("md5".equalsIgnoreCase(algorithm) || "md-5".equalsIgnoreCase(algorithm)) {
+			MD5Digest md5 = new MD5Digest();
+			return md5;
+		}
+		if ("sha1".equalsIgnoreCase(algorithm) || "sha-1".equalsIgnoreCase(algorithm)) {
+			SHA1Digest digest = new SHA1Digest();
+			return digest;
+		}
+		/*
+		 * SHA-3第三代安全散列算法(Secure Hash Algorithm
+		 * 3)，之前名为Keccak（念作/ˈkɛtʃæk/或/kɛtʃɑːk/)）算法，设计者宣称在 Intel Core 2
+		 * 的CPU上面，此算法的性能是12.5cpb（每字节周期数，cycles per byte）。不过，在硬件实做上面，这个算法比起其他算法明显的快上很多。
+		 */
+		if ("sha3".equalsIgnoreCase(algorithm) || "sha-3".equalsIgnoreCase(algorithm)) {
+			SHA3Digest digest = new SHA3Digest();
+			return digest;
+		}
+
+		if ("sha224".equalsIgnoreCase(algorithm) || "sha-224".equalsIgnoreCase(algorithm)) {
+			SHA224Digest digest = new SHA224Digest();
+			return digest;
+		}
+		if ("sha256".equalsIgnoreCase(algorithm) || "sha-256".equalsIgnoreCase(algorithm)) {
+			SHA256Digest digest = new SHA256Digest();
+			return digest;
+		}
+
+		if ("sha384".equalsIgnoreCase(algorithm) || "sha-384".equalsIgnoreCase(algorithm)) {
+			SHA384Digest digest = new SHA384Digest();
+			return digest;
+		}
+		if ("sha512".equalsIgnoreCase(algorithm) || "sha-512".equalsIgnoreCase(algorithm)) {
+			SHA512Digest digest = new SHA512Digest();
+			return digest;
+		}
+		// 国密
+		if ("SM3".equalsIgnoreCase(algorithm) || "SM-3".equalsIgnoreCase(algorithm)) {
+			SM3Digest digest = new SM3Digest();
+			return digest;
+		}
+
+		/*
+		 * RIPEMD（RACE Integrity Primitives Evaluation Message
+		 * Digest，RACE原始完整性校验消息摘要，是Hans
+		 * Dobbertin等3人在md4,md5的基础上，于1996年提出来的。算法共有4个标准128、160、256和320，其对应输出长度分别为16字节、
+		 * 20字节、32字节和40字节。不过，让人难以致信的是RIPEMD的设计者们根本就没有真正设计256和320位这2种标准，
+		 * 他们只是在128位和160位的基础上，修改了初始参数和s-box来达到输出为256和320位的目的。所以，256位的强度和128相当，
+		 * 而320位的强度和160位相当。RIPEMD建立在md的基础之上，所以，其添加数据的方式和md5完全一样。
+		 */
+		if ("RIPEMD320".equalsIgnoreCase(algorithm)) {
+			RIPEMD320Digest digest = new RIPEMD320Digest();
+			return digest;
+		}
+		if ("RIPEMD256".equalsIgnoreCase(algorithm)) {
+			RIPEMD256Digest digest = new RIPEMD256Digest();
+			return digest;
+		}
+
+		if ("RIPEMD160".equalsIgnoreCase(algorithm)) {
+			RIPEMD160Digest digest = new RIPEMD160Digest();
+			return digest;
+		}
+		if ("RIPEMD128".equalsIgnoreCase(algorithm)) {
+			RIPEMD128Digest digest = new RIPEMD128Digest();
+			return digest;
+		}
+
+		/*
+		 * 一.Gost算法 Gost(Gosudarstvennyi Standard)
+		 * 算法是一种由前苏联设计的类似DES算法的分组密码算法.她是一个64位分组及256位密钥的采用32轮简单迭代型加密算法.
+		 * DES算法中采用的是56位长密钥,在密码科学中,一个对称密码系统安全性是由算法的强度和密钥长度决定的,在确保算法足够强(
+		 * 攻击密码系统的唯一方法就是采用穷举法试探所有可能的密钥)的前提下,密钥的长度直接决定着穷举攻击的复杂度:
+		 */
+		if ("GOST3411".equalsIgnoreCase(algorithm)) {
+			GOST3411Digest digest = new GOST3411Digest();
+			return digest;
+		}
+		if ("GOST3411_2012_256".equalsIgnoreCase(algorithm)) {
+			GOST3411_2012_256Digest digest = new GOST3411_2012_256Digest();
+			return digest;
+		}
+		if ("GOST3411_2012_512".equalsIgnoreCase(algorithm)) {
+			GOST3411_2012_512Digest digest = new GOST3411_2012_512Digest();
+			return digest;
+		}
+
+		// Tiger是一种散列算法，用于生成数据的密钥。
+		// Tiger算法最早在1995年提出，运行在64位平台的192位版本，另外还有截短的128位和160位版本，它们与192位版本的初始化值没有区别，只是作了截短处理，就像是192位版本散列值的前缀。
+		if ("Tiger".equalsIgnoreCase(algorithm)) {
+			TigerDigest digest = new TigerDigest();
+			return digest;
+		}
+		// BLAKE2 系列比常见的 MD5，SHA-1，SHA-2，SHA-3 更快，同时提供不低于 SHA-3 的安全性。
+		// BLAKE2 系列从著名的 ChaCha 算法衍生而来，有两个主要版本 BLAKE2b（BLAKE2）和 BLAKE2s。
+		// BLAKE2b 为 64 位 CPU（包括 ARM Neon）优化，可以生成最长64字节的摘要；BLAKE2s 为 8-32 位 CPU
+		// 设计，可以生成最长 32 字节的摘要。
+		if ("Blake2b".equalsIgnoreCase(algorithm)) {
+			Blake2bDigest digest = new Blake2bDigest();
+			return digest;
+		}
+		if ("Blake2s".equalsIgnoreCase(algorithm)) {
+			Blake2sDigest digest = new Blake2sDigest();
+			return digest;
+		}
+		if ("md2".equalsIgnoreCase(algorithm)) {
+			MD2Digest md2 = new MD2Digest();
+			return md2;
+		}
+		if ("md4".equalsIgnoreCase(algorithm)) {
+			MD4Digest md4 = new MD4Digest();
+			return md4;
 		}
 		return null;
 

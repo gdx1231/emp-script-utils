@@ -20,21 +20,39 @@ public class TestRsa extends TestBase {
 	private String publicKeyFilePath;
 
 	public static void main(String[] a) throws Throwable {
+
 		TestRsa test = new TestRsa();
 		test.testRsa();
 	}
 
-	public void testRsa() throws Throwable {
-		super.printCaption("测试 Digest");
-		this.testDigest();
+	private TestRsa() throws NoSuchAlgorithmException, InvalidKeySpecException, IOException {
+		String privateKeyPath = UPath.getRealPath() + "resources/test.pem";
+		String publicKeyPath = UPath.getRealPath() + "resources/test.pub.pem";
+		this.privateKeyFilePath = privateKeyPath;
+		this.publicKeyFilePath = publicKeyPath;
+		
+		this.rsa = new URsa();
+		
+		this.rsa.initPrivateKey(privateKeyPath);
+		this.rsa.initPublicKey(publicKeyPath);
+	}
 
-		super.printCaption("测试RSA - DER/PEM");
+	 
+
+	public void testRsa() throws Throwable {
+		this.rsa.setUsingBc(true);
+		super.printCaption("测试RSA - DER/PEM BC");
 		this.testDerAndPem();
 
+		this.rsa.setUsingBc(false);
+		super.printCaption("测试RSA - DER/PEM java.security");
+		this.testDerAndPem();
+		
 		super.printCaption("测试RSA");
-
 		this.testGenKeys();
 
+		super.printCaption("测试 Digest");
+		this.testDigest();
 	}
 
 	public void testDigest() throws NoSuchAlgorithmException {
@@ -63,11 +81,6 @@ public class TestRsa extends TestBase {
 	}
 
 	public void testDerAndPem() throws Exception {
-		String derPath = UPath.getRealPath() + "resources/test.der";
-		// String pemPath = UPath.getRealPath()+"resources/test.pem";
-
-		this.privateKeyFilePath = derPath;
-		this.publicKeyFilePath = UPath.getRealPath() + "resources/test.pub.pem";
 
 		super.printCaption("私匙加密，公匙解密");
 		this.testPrivateEncryptPublicDecrypt();
