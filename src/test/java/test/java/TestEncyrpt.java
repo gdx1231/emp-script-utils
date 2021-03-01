@@ -39,7 +39,7 @@ public class TestEncyrpt extends TestBase {
 
 		UAes aa = new UAes(key, iv);
 
-		aa.setMethod(UAes.PKCS7Padding);
+		aa.setPaddingMethod(UAes.PKCS7Padding);
 
 		System.out.println(text);
 
@@ -57,7 +57,7 @@ public class TestEncyrpt extends TestBase {
 
 		super.printCaption("AES(默认密码，向量)");
 		UAes aes = UAes.getInstance();
-		aes.setMethod(UAes.PKCS5Padding);
+		aes.setPaddingMethod(UAes.PKCS5Padding);
 		System.out.println(text);
 
 		String mi = aes.encrypt(text);
@@ -71,7 +71,7 @@ public class TestEncyrpt extends TestBase {
 
 		super.printCaption("AES(默认密码，向量)");
 		UAes aes = UAes.getInstance();
-		aes.setMethod(UAes.PKCS7Padding);
+		aes.setPaddingMethod(UAes.PKCS7Padding);
 		System.out.println(text);
 
 		String mi = aes.encrypt(text);
