@@ -34,8 +34,9 @@ import org.bouncycastle.crypto.params.ParametersWithIV;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
 /**
+ * AES Encrypt / Decrypt Utils GCM/CCM/CBC/ECB/CFB/OFB/CTR 128, 192, 256
  */
-public class UAes {
+public class UAes implements IUSymmetricEncyrpt {
 	// GCM (Galois Counter Mode)
 	// GCM ciphers are the most widely used block ciphers worldwide. Mandatory as of
 	// TLS 1.2 (2008) and used by default by most clients.
@@ -53,16 +54,14 @@ public class UAes {
 
 	/*
 	 * 分组密码链接-消息认证码--CCM Counter with CBC-MAC
-	 * 组成CCM的关键算法是AES加密算法、CTR工作模式和CMAC认证算法，在加密和MAC算法中共用一个密钥K。
-	 * CCM加密过程的输入由三部分构成：
-	 * 1、将要被加密和认证的数据，即明文消息P数据块
-	 * 2、将要被认证，但是不需要加密的相关数据A，如协议头等。
+	 * 组成CCM的关键算法是AES加密算法、CTR工作模式和CMAC认证算法，在加密和MAC算法中共用一个密钥K。 CCM加密过程的输入由三部分构成：
+	 * 1、将要被加密和认证的数据，即明文消息P数据块 2、将要被认证，但是不需要加密的相关数据A，如协议头等。
 	 * 3、临时量N，作为负载和相关数据的补充，对每条消息N取值唯一，以防止重放攻击等。
 	 */
 	public final static String AES_128_CCM = "aes-128-ccm";
 	public final static String AES_192_CCM = "aes-192-ccm";
 	public final static String AES_256_CCM = "aes-256-ccm";
-	
+
 	// 密码分组链接模式（Cipher Block Chaining (CBC)
 	public final static String AES_128_CBC = "aes-128-cbc";
 	public final static String AES_192_CBC = "aes-192-cbc";
@@ -127,28 +126,6 @@ public class UAes {
 
 	private boolean usingBc = true;
 
-	/**
-	 * Continues a multi-part update of the Additional AuthenticationData (AAD).
-	 * Calls to this method provide AAD to the cipher when operating inmodes such as
-	 * AEAD (GCM/CCM).
-	 * 
-	 * @return the AAD
-	 */
-	public String getAdditionalAuthenticationData() {
-		return additionalAuthenticationData;
-	}
-
-	/**
-	 * Continues a multi-part update of the Additional AuthenticationData (AAD).
-	 * Calls to this method provide AAD to the cipher when operating inmodes such as
-	 * AEAD (GCM/CCM).
-	 * 
-	 * @param additionalAuthenticationData AAD
-	 */
-	public void setAdditionalAuthenticationData(String additionalAuthenticationData) {
-		this.additionalAuthenticationData = additionalAuthenticationData;
-	}
-
 	static {
 		if (Security.getProvider(BouncyCastleProvider.PROVIDER_NAME) == null) {
 			Security.addProvider(new BouncyCastleProvider());
@@ -210,8 +187,8 @@ public class UAes {
 	 */
 	public UAes(String key, String iv, String cipherName) {
 		this.cipherName = cipherName;
-		byte[] ivBuf = iv.getBytes();
-		byte[] keyBuf = key.getBytes();
+		byte[] ivBuf = iv.getBytes(StandardCharsets.UTF_8);
+		byte[] keyBuf = key.getBytes(StandardCharsets.UTF_8);
 
 		this.init(keyBuf, ivBuf);
 	}
@@ -223,6 +200,18 @@ public class UAes {
 	 * @param ivBuf  向量
 	 */
 	public UAes(byte[] keyBuf, byte[] ivBuf) {
+		this.cipherName = AES_128_CBC;
+		this.init(keyBuf, ivBuf);
+	}
+
+	/**
+	 * 初始化
+	 * 
+	 * @param keyBuf 密码
+	 * @param ivBuf  向量
+	 */
+	public UAes(byte[] keyBuf, byte[] ivBuf, String cipherName) {
+		this.cipherName = cipherName;
 		this.init(keyBuf, ivBuf);
 	}
 
@@ -446,7 +435,7 @@ public class UAes {
 		 * 将下载后的local_policy.jar和US_export_policy.jar放到jdk安装目录下的jre/lib/security/目录下，替换该目录下的同名文件
 		 */
 
-		System.out.println(keyBitLength);
+		// System.out.println(keyBitLength);
 
 		byte[] key = new byte[keyBitLength];
 		Arrays.fill(key, (byte) 0);
@@ -522,7 +511,7 @@ public class UAes {
 			}
 		} else if (blockMode.equals("GCM")) {
 			cipher.aeadBlockCipher = new GCMBlockCipher(engine);
-		}  else if (blockMode.equals("CCM")) {
+		} else if (blockMode.equals("CCM")) {
 			cipher.aeadBlockCipher = new CCMBlockCipher(engine);
 		} else {
 			// default cbc
@@ -874,6 +863,28 @@ public class UAes {
 
 	public void setUsingBc(boolean usingBc) {
 		this.usingBc = usingBc;
+	}
+
+	/**
+	 * Continues a multi-part update of the Additional AuthenticationData (AAD).
+	 * Calls to this method provide AAD to the cipher when operating inmodes such as
+	 * AEAD (GCM/CCM).
+	 * 
+	 * @return the AAD
+	 */
+	public String getAdditionalAuthenticationData() {
+		return additionalAuthenticationData;
+	}
+
+	/**
+	 * Continues a multi-part update of the Additional AuthenticationData (AAD).
+	 * Calls to this method provide AAD to the cipher when operating inmodes such as
+	 * AEAD (GCM/CCM).
+	 * 
+	 * @param additionalAuthenticationData AAD
+	 */
+	public void setAdditionalAuthenticationData(String additionalAuthenticationData) {
+		this.additionalAuthenticationData = additionalAuthenticationData;
 	}
 }
 

@@ -20,16 +20,22 @@ import com.gdxsoft.easyweb.utils.Mail.SendMail;
 import org.junit.Test;
 
 public class TestMail extends TestBase {
+	private int switchValue;
+
 	/**
 	 * PraseMimeMessage类测试
 	 */
 	public static void main(String args[]) throws Exception {
 		TestMail t = new TestMail();
+		t.switchValue = 0;
 		t.testMail();
 	}
 
 	@Test
 	public void testMail() throws Exception {
+		if (switchValue == 0) {
+			return;
+		}
 		String host = "127.0.0.1"; //
 
 		String username = "lei.guo@oneworld.cc";

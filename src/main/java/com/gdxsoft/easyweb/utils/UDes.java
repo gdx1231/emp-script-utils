@@ -7,14 +7,7 @@ import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.DESKeySpec;
 import javax.crypto.spec.IvParameterSpec;
 
-/**
- * 使用DES加密与解密,可对byte[],String类型进行加密与解密 密文可使用String,byte[]存储. 方法: void
- * getKey(String strKey)从strKey的字条生成一个Key String getEncString(String
- * strMing)对strMing进行加密,返回String密文 String getDesString(String
- * strMi)对strMin进行解密,返回String明文 byte[] getEncCode(byte[] byteS)byte[]型的加密 byte[]
- * getDesCode(byte[] byteD)byte[]型的解密
- */
-public class UDes {
+public class UDes implements IUSymmetricEncyrpt {
 	private static String DES_KEY_VALUE;
 	private static String DES_IV_VALUE;
 	private static final String ALGORITHM_DES = "DES/CBC/PKCS5Padding";
@@ -56,13 +49,13 @@ public class UDes {
 		initKeyIv(DES_KEY_VALUE, DES_IV_VALUE);
 	}
 
-
 	public UDes(String key, String iv) throws Exception {
 		this.initKeyIv(key, iv);
 	}
 
 	/**
 	 * 初始化 key, iv
+	 * 
 	 * @param key
 	 * @param iv
 	 * @throws Exception
@@ -78,7 +71,6 @@ public class UDes {
 		this.desIv = createIv(iv);
 	}
 
-	
 	/**
 	 * 创建8位的向量
 	 * 
@@ -113,7 +105,7 @@ public class UDes {
 		String strMi = "";
 		try {
 			byteMing = source.getBytes(charsetName);
-			byteMi = this.encyrptBytes(byteMing);
+			byteMi = this.encryptBytes(byteMing);
 			strMi = UConvert.ToBase64String(byteMi);
 		} catch (Exception e) {
 			throw e;
@@ -142,6 +134,7 @@ public class UDes {
 	 * @return 密文，用base64 编码
 	 * @throws Exception
 	 */
+	@Deprecated
 	public String getEncString(String strMing) throws Exception {
 		return encrypt(strMing);
 	}
@@ -189,6 +182,7 @@ public class UDes {
 	 * @return 明码
 	 * @throws Exception
 	 */
+	@Deprecated
 	public String getDesString(String base64Encrypt) throws Exception {
 		return this.decrypt(base64Encrypt);
 	}
@@ -200,7 +194,7 @@ public class UDes {
 	 * @return 密文
 	 * @throws Exception
 	 */
-	public byte[] encyrptBytes(byte[] sourceBytes) throws Exception {
+	public byte[] encryptBytes(byte[] sourceBytes) throws Exception {
 		byte[] byteFina = null;
 		Cipher cipher;
 		try {

@@ -37,7 +37,7 @@ public class TestEncyrpt extends TestBase {
 	private void testAes(String key, String iv) throws Exception {
 		super.printCaption("AES " + "密码：" + key + ", 向量：" + iv);
 
-		UAes aa = new UAes(key, iv);
+		UAes aa = new UAes(key, iv, UAes.AES_256_CCM);
 
 		aa.setPaddingMethod(UAes.PKCS7Padding);
 
@@ -46,8 +46,8 @@ public class TestEncyrpt extends TestBase {
 		String bb = aa.encrypt(text);
 		System.out.println(bb);
 
-		UAes aes1 = new UAes(key, "isdfkjskldfisdlfjsdkfsd");
-
+		UAes aes1 = new UAes(key, iv, UAes.AES_256_CCM);
+		aes1.setPaddingMethod(UAes.PKCS7Padding);
 		String cc = aes1.decrypt(bb).trim();
 		System.out.println(cc);
 
