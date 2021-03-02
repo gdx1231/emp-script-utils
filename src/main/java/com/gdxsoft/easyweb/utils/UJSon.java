@@ -5,10 +5,10 @@ import org.json.JSONObject;
 public class UJSon {
 
 	/**
-	 * 创建一个 错误返回结果 json
+	 * Create a result JSON with RST=false
 	 * 
-	 * @param err 错误
-	 * @return 返回结果 json
+	 * @param err the error message
+	 * @return the JSON with RST=false
 	 */
 	public static JSONObject rstFalse(String err) {
 		JSONObject rst = new JSONObject();
@@ -17,10 +17,10 @@ public class UJSon {
 	}
 
 	/**
-	 * 创建一个 正确返回结果 json
+	 * Create a result JSON with RST=true
 	 * 
-	 * @param msg 内容
-	 * @return 返回结果 json
+	 * @param msg the message
+	 * @return the JSON with RST=true
 	 */
 	public static JSONObject rstTrue(String msg) {
 		JSONObject rst = new JSONObject();
@@ -29,10 +29,10 @@ public class UJSon {
 	}
 
 	/**
-	 * 设置返回结果 true
+	 * Set result JSON RST=true
 	 * 
-	 * @param rst 结果 json
-	 * @param msg 内容
+	 * @param rst the result JSON
+	 * @param msg the right message
 	 */
 	public static void rstSetTrue(JSONObject rst, String msg) {
 		rst.put("RST", true);
@@ -40,10 +40,10 @@ public class UJSon {
 	}
 
 	/**
-	 * 设置返回结果 false
+	 * Set result JSON RST=false
 	 * 
-	 * @param rst 结果 json
-	 * @param err 错误信息
+	 * @param rst the result JSON
+	 * @param err error message
 	 */
 	public static void rstSetFalse(JSONObject rst, String err) {
 		rst.put("RST", false);
