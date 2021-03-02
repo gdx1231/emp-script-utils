@@ -574,24 +574,23 @@ public class SendMail {
 	 * @return SendMail
 	 */
 	public Session getMailSession() {
-		if (mailSession == null) {
-			if (props == null) {
-				// 默认的发件, ewa_conf中定义
-				mailSession = UMail.getMailSession();
-			} else {
-				if (smtp_uid != null && smtp_uid.trim().length() > 0) {
-					MailAuth auth = new MailAuth(smtp_uid, smtp_pwd);
-					props.setProperty("mail.smtp.auth", "true");
-					mailSession = Session.getInstance(props, auth);
-				} else {
-					props.setProperty("mail.smtp.auth", "false");
-					mailSession = Session.getInstance(props, null);
-				}
-			}
-			mailSession.setDebug(this.is_mail_debug_);
-
+		if (mailSession != null) {
+			return mailSession;
 		}
-
+		if (props == null) {
+			SmtpCfg cfg = SmtpCfgs.getSmtpCfgByEmail(this.getFrom().getEmail());
+			mailSession = SmtpCfgs.createMailSession(cfg); 
+		} else {
+			if (smtp_uid != null && smtp_uid.trim().length() > 0) {
+				MailAuth auth = new MailAuth(smtp_uid, smtp_pwd);
+				props.setProperty("mail.smtp.auth", "true");
+				mailSession = Session.getInstance(props, auth);
+			} else {
+				props.setProperty("mail.smtp.auth", "false");
+				mailSession = Session.getInstance(props, null);
+			}
+		}
+		mailSession.setDebug(this.is_mail_debug_);
 		return mailSession;
 	}
 
@@ -643,7 +642,7 @@ public class SendMail {
 		if (this.mimeMessage_ != null) {
 			return this.mimeMessage_;
 		}
-		
+
 		this.createMinMessage();
 		return this.mimeMessage_;
 	}
@@ -791,7 +790,7 @@ public class SendMail {
 		try {
 			mm = this.dkimSign(mm);
 			this.mimeMessage_ = mm;
-			
+
 		} catch (Exception e) {
 			log.error(e.getMessage());
 		}

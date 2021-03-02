@@ -1,55 +1,40 @@
 package com.gdxsoft.easyweb.utils;
 
 import java.io.UnsupportedEncodingException;
-import java.util.Properties;
 
-import jakarta.mail.Message;
 import jakarta.mail.MessagingException;
 import jakarta.mail.Session;
 import jakarta.mail.Transport;
+import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeMessage;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.gdxsoft.easyweb.utils.Mail.DKIMCfg;
-import com.gdxsoft.easyweb.utils.Mail.MailAuth;
 import com.gdxsoft.easyweb.utils.Mail.SendMail;
+import com.gdxsoft.easyweb.utils.Mail.SmtpCfgs;
 
 public class UMail {
 	private static Logger LOG = LoggerFactory.getLogger(UMail.class);
 
 	/**
-	 * 获取MailSession
+	 * Get the default MailSession (UPath)
 	 * 
 	 * @return MailSession
 	 */
+	@Deprecated
 	public static Session getMailSession() {
-		Properties props = new Properties();
-		props.setProperty("mail.transport.protocol", "smtp");
-		props.setProperty("mail.host", UPath.getSmtpIp());
-		if (UPath.getSmtpPort() != 25) {
-			props.setProperty("mail.smtp.port", UPath.getSmtpPort() + "");
-		}
-		Session mailSession;
-		if (UPath.getSmtpUser() != null && UPath.getSmtpUser().trim().length() > 0) {
-			props.setProperty("mail.smtp.auth", "true");
-			MailAuth auth = new MailAuth(UPath.getSmtpUser(), UPath.getSmtpPwd());
-			mailSession = Session.getDefaultInstance(props, auth);
-		} else {
-			props.setProperty("mail.smtp.auth", "false");
-			mailSession = Session.getDefaultInstance(props, null);
-		}
-		return mailSession;
+		return SmtpCfgs.createMailSession(SmtpCfgs.getDefaultSmtpCfg());
 	}
 
 	/**
-	 * 获取邮件 message
+	 * Get a mime message
 	 * 
-	 * @param from    发件人
-	 * @param to      收件人
-	 * @param subject 主题
-	 * @param content 内容
+	 * @param from    The mail from
+	 * @param to      The mail to
+	 * @param subject The mail subject
+	 * @param content The mail content
 	 * @return message
 	 * @throws UnsupportedEncodingException
 	 * @throws MessagingException
@@ -60,17 +45,18 @@ public class UMail {
 	}
 
 	/**
-	 * 获取邮件 message
+	 * Get a mime message
 	 * 
-	 * @param from     发件人
-	 * @param fromName 发件人姓名
-	 * @param to       收件人
-	 * @param toName   收件人姓名
-	 * @param subject  主题
-	 * @param content  内容
-	 * @param atts     附件
-	 * @param charset  语言
+	 * @param from     The mail from
+	 * @param fromName The mail from name
+	 * @param to       The mail to
+	 * @param toName   The mail to name
+	 * @param subject  The mail subject
+	 * @param content  The mail content
+	 * @param atts     The attachments
+	 * @param charset  The mail character set
 	 * @return message
+	 * 
 	 * @throws MessagingException
 	 * @throws UnsupportedEncodingException
 	 */
@@ -94,25 +80,26 @@ public class UMail {
 	}
 
 	/**
-	 * 创建邮件
+	 * Get a mime message
 	 * 
-	 * @param from         发件人邮件
-	 * @param fromName     发件人姓名
-	 * @param tos          收件人数组
-	 * @param toNames      收件人名称数组
-	 * @param ccs          抄送人邮件数组
-	 * @param ccNames      抄送人名称数组
-	 * @param bccs         密送人邮件数组
-	 * @param bccNames     密送人名称数组
-	 * @param replyTos     回复人邮件数组
-	 * @param replyToNames 回复人名称数组
-	 * @param sender       发件人
-	 * @param senderName   发件人名称
-	 * @param subject      邮件主题
-	 * @param content      邮件内容
-	 * @param atts         附件文件路径数组
-	 * @param charset      邮件编码
+	 * @param from         The mail from
+	 * @param fromName     The mail from name
+	 * @param tos          The mail tos
+	 * @param toNames      The mail to names
+	 * @param ccs          The mail ccs
+	 * @param ccNames      The mail cc names
+	 * @param bccs         The mail bccs
+	 * @param bccNames     The mail bcc names
+	 * @param replyTos     The mail replayTos
+	 * @param replyToNames The mail replayTo names
+	 * @param sender       The mail sender
+	 * @param senderName   The mail sender name
+	 * @param subject      The mail subject
+	 * @param content      The mail content
+	 * @param atts         The mail attachments
+	 * @param charset      The mail character set
 	 * @return message
+	 * 
 	 * @throws MessagingException
 	 * @throws UnsupportedEncodingException
 	 */
@@ -127,24 +114,24 @@ public class UMail {
 	}
 
 	/**
-	 * 创建 SendMail
+	 * Create a SendMail
 	 * 
-	 * @param from         发件人邮件
-	 * @param fromName     发件人姓名
-	 * @param tos          收件人数组
-	 * @param toNames      收件人名称数组
-	 * @param ccs          抄送人邮件数组
-	 * @param ccNames      抄送人名称数组
-	 * @param bccs         密送人邮件数组
-	 * @param bccNames     密送人名称数组
-	 * @param replyTos     回复人邮件数组
-	 * @param replyToNames 回复人名称数组
-	 * @param sender       发件人
-	 * @param senderName   发件人名称
-	 * @param subject      邮件主题
-	 * @param content      邮件内容
-	 * @param atts         附件文件路径数组
-	 * @param charset      邮件编码
+	 * @param from         The mail from
+	 * @param fromName     The mail from name
+	 * @param tos          The mail tos
+	 * @param toNames      The mail to names
+	 * @param ccs          The mail ccs
+	 * @param ccNames      The mail cc names
+	 * @param bccs         The mail bccs
+	 * @param bccNames     The mail bcc names
+	 * @param replyTos     The mail replayTos
+	 * @param replyToNames The mail replayTo names
+	 * @param sender       The mail sender
+	 * @param senderName   The mail sender name
+	 * @param subject      The mail subject
+	 * @param content      The mail content
+	 * @param atts         The mail attachments
+	 * @param charset      The mail character set
 	 * @return SendMail
 	 */
 	public static SendMail createSendMail(String from, String fromName, String[] tos, String[] toNames, String[] ccs,
@@ -170,10 +157,10 @@ public class UMail {
 	}
 
 	/**
-	 * 获取邮件的域名
+	 * Get the domain from the email
 	 * 
-	 * @param email 邮件
-	 * @return 域名
+	 * @param email The email
+	 * @return The domain
 	 */
 	public static String getEmailDomain(String email) {
 		if (email == null || email.trim().length() == 0) {
@@ -188,61 +175,46 @@ public class UMail {
 	}
 
 	/**
-	 * 根据邮件地址获取 Dkim 配置
+	 * Get the DKIMCfg from the email
 	 * 
-	 * @param email 邮件
+	 * @param email The email
 	 * @return DKIMCfg
 	 */
 	public static DKIMCfg getDKIMCfgByEmail(String email) {
-		try {
-			if (UPath.getDKIM_CFGS().size() == 0) {
-				return null;
-			}
-			String domain = getEmailDomain(email);
-			return getDKIMCfgByDomain(domain);
-		} catch (Exception err) {
-			return null;
-		}
+		String domain = getEmailDomain(email);
+		return SmtpCfgs.getDomain(domain);
+
 	}
 
 	/**
-	 * 根据域名获取 Dkim 配置
+	 * Get the DKIMCfg from the domain
 	 * 
-	 * @param domain 域名
+	 * @param domain the domain
 	 * @return DKIMCfg
 	 */
 	public static DKIMCfg getDKIMCfgByDomain(String domain) {
-		if (domain == null || domain.trim().length() == 0 || UPath.getDKIM_CFGS().size() == 0) {
-			return null;
-		}
-		String domain1 = domain.trim().toLowerCase();
-
-		if (UPath.getDKIM_CFGS().containsKey(domain1)) {
-			return UPath.getDKIM_CFGS().get(domain1);
-		} else {
-			return null;
-		}
+		return SmtpCfgs.getDomain(domain);
 	}
 
 	/**
-	 * 发送邮件
+	 * Send a email
 	 * 
-	 * @param from         发件人邮件
-	 * @param fromName     发件人姓名
-	 * @param tos          收件人数组
-	 * @param toNames      收件人名称数组
-	 * @param ccs          抄送人邮件数组
-	 * @param ccNames      抄送人名称数组
-	 * @param bccs         密送人邮件数组
-	 * @param bccNames     密送人名称数组
-	 * @param replyTos     回复人邮件数组
-	 * @param replyToNames 回复人名称数组
-	 * @param sender       发件人
-	 * @param senderName   发件人名称
-	 * @param subject      邮件主题
-	 * @param content      邮件内容
-	 * @param atts         附件文件路径数组
-	 * @param charset      邮件编码
+	 * @param from         The mail from
+	 * @param fromName     The mail from name
+	 * @param tos          The mail tos
+	 * @param toNames      The mail to names
+	 * @param ccs          The mail ccs
+	 * @param ccNames      The mail cc names
+	 * @param bccs         The mail bccs
+	 * @param bccNames     The mail bcc names
+	 * @param replyTos     The mail replayTos
+	 * @param replyToNames The mail replayTo names
+	 * @param sender       The mail sender
+	 * @param senderName   The mail sender name
+	 * @param subject      The mail subject
+	 * @param content      The mail content
+	 * @param atts         The mail attachments
+	 * @param charset      The mail character set
 	 * @return result
 	 */
 	public static String sendHtmlMail(String from, String fromName, String[] tos, String[] toNames, String[] ccs,
@@ -259,17 +231,17 @@ public class UMail {
 	}
 
 	/**
-	 * 发送邮件
+	 * Send a email
 	 * 
-	 * @param from         发件人邮件
-	 * @param fromName     发件人姓名
-	 * @param tos          收件人邮件，多个收件人用“,”分割
-	 * @param toNames      收件人姓名，多个收件人姓名用“,”分割
-	 * @param replyTos     回复人邮件，多个回复人用“,”分割
-	 * @param replyToNames 回复人姓名，多个回复人用“,”分割
-	 * @param subject      邮件标题
-	 * @param content      正文
-	 * @param atts         附件文件路径数组
+	 * @param from         The mail from
+	 * @param fromName     The mail from name
+	 * @param tos          The mail tos, separate with commas
+	 * @param toNames      The mail to names, separate with commas
+	 * @param replyTos     The mail replayTos, separate with commas
+	 * @param replyToNames The mail replayTo names separate with commas
+	 * @param subject      The mail subject
+	 * @param content      The mail content
+	 * @param atts         The mail attachments
 	 * @return result
 	 */
 	public static String sendHtmlMail(String from, String fromName, String tos, String toNames, String replyTos,
@@ -285,16 +257,16 @@ public class UMail {
 	}
 
 	/**
-	 * 发生Html邮件
+	 * Send a email
 	 * 
-	 * @param from     发件人
-	 * @param fromName 发件人姓名
-	 * @param tos      收件人姓名，多个收件人姓名用“,”分割
-	 * @param toNames  收件人姓名
-	 * @param subject  主题
-	 * @param content  内容
-	 * @param atts     附件
-	 * @param charset  语言
+	 * @param from     The mail from
+	 * @param fromName The mail from name
+	 * @param tos      The mail tos, separate with commas
+	 * @param toNames  The mail to names, separate with commas
+	 * @param subject  The mail subject
+	 * @param content  The mail content
+	 * @param atts     The mail attachments
+	 * @param charset  The character set
 	 * @return 是否成功
 	 */
 	public static String sendHtmlMail(String from, String fromName, String tos, String toNames, String subject,
@@ -303,14 +275,14 @@ public class UMail {
 	}
 
 	/**
-	 * 发送邮件
+	 * Send a email
 	 * 
-	 * @param from     发件人
-	 * @param fromName 发件人姓名
-	 * @param tos      收件人邮件，多个收件人用“,”分割
-	 * @param toNames  收件人姓名，多个收件人姓名用“,”分割
-	 * @param subject  主题
-	 * @param content  内容
+	 * @param from     The mail from
+	 * @param fromName The mail from name
+	 * @param tos      The mail tos, separate with commas
+	 * @param toNames  The mail to names, separate with commas
+	 * @param subject  The mail subject
+	 * @param content  The mail content
 	 * @return result
 	 */
 	public static String sendHtmlMail(String from, String fromName, String tos, String toNames, String subject,
@@ -319,15 +291,15 @@ public class UMail {
 	}
 
 	/**
-	 * 发送邮件
+	 * Send a email
 	 * 
-	 * @param from     发件人
-	 * @param fromName 发件人姓名
-	 * @param tos      收件人邮件，多个收件人用“,”分割
-	 * @param toNames  收件人姓名，多个收件人姓名用“,”分割
-	 * @param subject  主题
-	 * @param content  内容
-	 * @param atts     附件文件路径数组
+	 * @param from     The mail from
+	 * @param fromName The mail from name
+	 * @param tos      The mail tos, separate with commas
+	 * @param toNames  The mail to names, separate with commas
+	 * @param subject  The mail subject
+	 * @param content  The mail content
+	 * @param atts     The mail attachments
 	 * @return result
 	 */
 	public static String sendHtmlMail(String from, String fromName, String tos, String toNames, String subject,
@@ -336,13 +308,13 @@ public class UMail {
 	}
 
 	/**
-	 * 发送邮件
+	 * Send a email
 	 * 
-	 * @param from    发件人邮件
-	 * @param tos     收件人邮件，多个收件人用“,”分割
-	 * @param subject 主题
-	 * @param content 内容
-	 * @param atts    附件文件路径数组
+	 * @param from    The mail from
+	 * @param tos     The mail tos, separate with commas
+	 * @param subject The mail subject
+	 * @param content The mail content
+	 * @param atts    The mail attachments
 	 * @return result
 	 */
 	public static String sendHtmlMail(String from, String tos, String subject, String content, String[] atts) {
@@ -350,12 +322,12 @@ public class UMail {
 	}
 
 	/**
-	 * 发送邮件
+	 * Send a email
 	 * 
-	 * @param from    发件人邮件
-	 * @param tos     收件人邮件，多个收件人用“,”分割
-	 * @param subject 主题
-	 * @param content 内容
+	 * @param from    The mail from
+	 * @param tos     The mail tos, separate with commas
+	 * @param subject The mail subject
+	 * @param content The mail content
 	 * @return result
 	 */
 	public static String sendHtmlMail(String from, String tos, String subject, String content) {
@@ -363,22 +335,32 @@ public class UMail {
 	}
 
 	/**
-	 * 发送邮件
+	 * Send a email
 	 * 
-	 * @param mm
+	 * @param message The email message
 	 * @return result
 	 */
-	public static String sendMail(Message mm) {
-		Session mailSession = getMailSession();
+	public static String sendMail(MimeMessage message) {
+		Session mailSession = null;
+		try {
+			// 根据已经地址获取 mailSession
+			InternetAddress from = (InternetAddress) message.getFrom()[0];
+			String fromEmail = from.getAddress();
+			mailSession = SmtpCfgs.createMailSession(SmtpCfgs.getSmtpCfgByEmail(fromEmail));
+		} catch (MessagingException e1) {
+			mailSession = SmtpCfgs.createMailSession(SmtpCfgs.getDefaultSmtpCfg());
+			LOG.error(e1.getMessage());
+		}
 		try {
 			Transport transport = mailSession.getTransport();
 			transport.connect();
-			Transport.send(mm, mm.getAllRecipients());
+			Transport.send(message, message.getAllRecipients());
 			transport.close();
 			return null;
 		} catch (Exception e) {
-			System.err.println(e.getMessage());
+			LOG.error(e.getMessage());
 			return e.getMessage();
 		}
 	}
+
 }

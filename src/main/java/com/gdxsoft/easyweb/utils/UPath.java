@@ -8,7 +8,7 @@ import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
-import com.gdxsoft.easyweb.utils.Mail.DKIMCfg;
+import com.gdxsoft.easyweb.utils.Mail.SmtpCfgs;
 import com.gdxsoft.easyweb.utils.msnet.MTableStr;
 
 import org.slf4j.Logger;
@@ -26,18 +26,6 @@ public class UPath {
 	private static Document CFG_XML_DOC;
 
 	private static HashMap<String, String> RV_GLOBALS;
-
-	private static HashMap<String, DKIMCfg> DKIM_CFGS;
-
-	/**
-	 * 获取邮件DKIM签名的配置
-	 * 
-	 * @return 邮件DKIM签名的配置
-	 */
-	public static HashMap<String, DKIMCfg> getDKIM_CFGS() {
-		initPath();
-		return DKIM_CFGS;
-	}
 
 	/**
 	 * 放到 RequestValue 的全局变量
@@ -100,15 +88,10 @@ public class UPath {
 	private static String PATH_CONFIG = "";
 	private static String PATH_MANAGMENT = "";
 
-	private static String SYSTEM_DB_PATH = "";
-	private static String SYSTEM_DB_PASSWORD = "";
 	private static long PROP_TIME = -1231;
 	private static String PATH_GROUP = ""; // 用于组件的生成和导入目录
 
-	private static String SMTP_IP = "127.0.0.1";
-	private static int SMTP_PORT = 25;
-	private static String SMTP_USER;
-	private static String SMTP_PWD;
+ 
 
 	private static MTableStr DEBUG_IPS; // 用于页面显示跟踪的IP地址
 	private static boolean IS_DEBUG_SQL;
@@ -269,28 +252,7 @@ public class UPath {
 		return PATH_REAL;
 	}
 
-	/**
-	 * 获取EMP SCRIPT的系统的Database目录
-	 * 
-	 * @return EMP SCRIPT的系统的Database目录
-	 */
-	@Deprecated
-	public static String getSystemDbPath() {
-		initPath();
-		return SYSTEM_DB_PATH;
-	}
-
-	/**
-	 * 获取EMP SCRIPT的系统的Database密码
-	 * 
-	 * @return EMP SCRIPT的系统的Database密码
-	 */
-	@Deprecated
-	public static String getSystemDbPassword() {
-		initPath();
-		return SYSTEM_DB_PASSWORD;
-	}
-
+	 
 	/**
 	 * 项目路径
 	 * 
@@ -665,58 +627,7 @@ public class UPath {
 	 * @param doc
 	 */
 	private static void initSmtpParas(Document doc) {
-		DKIM_CFGS = new HashMap<String, DKIMCfg>();
-		// smtp
-		NodeList nl = doc.getElementsByTagName("smtp");
-		if (nl.getLength() > 0) {
-			Element eleSmtp = (Element) nl.item(0);
-			for (int i = 0; i < eleSmtp.getAttributes().getLength(); i++) {
-				Node att = eleSmtp.getAttributes().item(i);
-				String name = att.getNodeName();
-				String val = att.getNodeValue();
-				if (name.equals("ip")) {
-					SMTP_IP = val;
-				} else if (name.equals("port")) {
-					SMTP_PORT = Integer.parseInt(val);
-				} else if (name.equals("user")) {
-					SMTP_USER = val;
-				} else if (name.equals("pwd")) {
-					SMTP_PWD = val;
-				}
-			}
-
-			// <dkim dkimDomain="oneworld.cc"
-			// dkimKey="/var/keys/dkims/oneworld.cc.der"
-			// dkimSelect="gdx" />
-			NodeList nlDkims = eleSmtp.getElementsByTagName("dkim");
-			for (int p = 0; p < nlDkims.getLength(); p++) {
-				Element itemDkim = (Element) nlDkims.item(p);
-				DKIMCfg cfg = new DKIMCfg();
-				for (int i = 0; i < itemDkim.getAttributes().getLength(); i++) {
-					Node att = itemDkim.getAttributes().item(i);
-					String name = att.getNodeName();
-					String val = att.getNodeValue();
-					if (name.equals("dkimDomain")) {
-						cfg.setDomain(val.toLowerCase().trim());
-					} else if (name.equals("dkimKey")) {
-						cfg.setPrivateKeyPath(val);
-					} else if (name.equals("dkimSelect")) {
-						cfg.setSelect(val);
-					}
-				}
-				if (cfg.getDomain() != null && cfg.getPrivateKeyPath() != null) {
-					String domain = cfg.getDomain();
-					DKIM_CFGS.put(domain, cfg);
-				}
-			}
-
-		}
-		if (SMTP_IP == null || SMTP_IP.length() == 0) {
-			SMTP_IP = "127.0.0.1";
-		}
-		if (SMTP_PORT <= 0) {
-			SMTP_PORT = 25;
-		}
+		SmtpCfgs.initCfgs(doc);
 	}
 
 	/**
@@ -737,36 +648,7 @@ public class UPath {
 		}
 	}
 
-	/*
-	 * 已经作废 private synchronized static void initPath(String propName) {
-	 * java.io.FileInputStream fi = null; try { fi = new
-	 * java.io.FileInputStream(propName); java.util.Properties props = new
-	 * java.util.Properties(); props.load(fi); if (props.getProperty("config_path")
-	 * != null) { PATH_CONFIG = props.getProperty("config_path").trim() + "/"; } if
-	 * (props.getProperty("script_path") != null) { PATH_SCRIPT =
-	 * props.getProperty("script_path").trim() + "/"; } if
-	 * (props.getProperty("management_path") != null) { PATH_MANAGMENT =
-	 * props.getProperty("management_path").trim() + "/"; } if
-	 * (props.getProperty("system_db_path") != null) { SYSTEM_DB_PATH =
-	 * props.getProperty("system_db_path").trim(); } if
-	 * (props.getProperty("system_db_password") != null) { SYSTEM_DB_PASSWORD =
-	 * props.getProperty("system_db_password").trim(); } if
-	 * (props.getProperty("group_path") != null) { PATH_GROUP =
-	 * props.getProperty("group_path").trim(); } if
-	 * (props.getProperty("cached_path") != null) { PATH_CACHED =
-	 * props.getProperty("cached_path").trim(); } else { PATH_CACHED = PATH_REAL +
-	 * "/ewa_temp/cached/"; } if (props.getProperty("smtp_ip") != null) { SMTP_IP =
-	 * props.getProperty("smtp_ip").trim(); } if (props.getProperty("smtp_port") !=
-	 * null) { SMTP_PORT = Integer.parseInt(props.getProperty("smtp_port").trim());
-	 * } if (props.getProperty("smtp_user") != null) { SMTP_USER =
-	 * props.getProperty("smtp_user").trim(); } if (props.getProperty("smtp_pwd") !=
-	 * null) { SMTP_PWD = props.getProperty("smtp_pwd").trim(); }
-	 * 
-	 * } catch (Exception e) { } finally { if (fi != null) { try { fi.close(); }
-	 * catch (Exception e) {
-	 * 
-	 * } } } }
-	 */
+	 
 	/**
 	 * 获取项目WebRoot所在的物理目录
 	 * 
@@ -777,46 +659,7 @@ public class UPath {
 		return s1.split("WEB-INF")[0];
 	}
 
-	/**
-	 * 邮件发送地址
-	 * 
-	 * @return the sMTP_IP
-	 */
-	public static String getSmtpIp() {
-		initPath();
-		return SMTP_IP;
-	}
-
-	/**
-	 * 端口
-	 * 
-	 * @return the sMTP_PORT
-	 */
-	public static int getSmtpPort() {
-		initPath();
-		return SMTP_PORT;
-	}
-
-	/**
-	 * 用户
-	 * 
-	 * @return the sMTP_USER
-	 */
-	public static String getSmtpUser() {
-		initPath();
-		return SMTP_USER;
-	}
-
-	/**
-	 * 密码
-	 * 
-	 * @return the sMTP_PWD
-	 */
-	public static String getSmtpPwd() {
-		initPath();
-		return SMTP_PWD;
-	}
-
+	 
 	/**
 	 * 流程部门列表
 	 * 

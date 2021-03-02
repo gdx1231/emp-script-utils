@@ -13,6 +13,16 @@ public class DKIMCfg {
 	private String select_ = "default";
 	private String privateKeyPath_;
 
+	private boolean dkim_;
+
+	public boolean isDkim() {
+		return dkim_;
+	}
+
+	public void setDkim(boolean dkim) {
+		this.dkim_ = dkim;
+	}
+
 	/**
 	 * DKIM签名的域名
 	 * 
@@ -73,5 +83,6 @@ public class DKIMCfg {
 	 */
 	public void setPrivateKeyPath(String privateKeyPath) {
 		this.privateKeyPath_ = privateKeyPath;
+		dkim_ = true;
 	}
 }
