@@ -30,10 +30,10 @@ import com.gdxsoft.easyweb.utils.msnet.MStr;
 public class UFile {
 
 	/**
-	 * 根据二进制流，获取文件扩展名
+	 * Get the extension from the bytes of the file
 	 * 
-	 * @param buf
-	 * @return 文件扩展名
+	 * @param buf the bytes of the file
+	 * @return the file extension
 	 */
 	public static String getExtFromFileBytes(byte[] buf) {
 		if (buf.length < 120) {
@@ -64,7 +64,7 @@ public class UFile {
 			// D0-CF-11-E0-A1-B1-1A-E1 doc,ppt,xls...
 			byte[] bytesDoc = new byte[8];
 			System.arraycopy(buf, 0, bytesDoc, 0, bytesDoc.length);
-			String hex = Utils.byte2hex(bytesDoc).toUpperCase();
+			String hex = Utils.bytes2hex(bytesDoc).toUpperCase();
 			if (hex.indexOf("FFD8FF") == 0) {
 				return "jpg";
 			} else if (hex.equals("D0CF11E0A1B11AE1")) {
@@ -77,10 +77,10 @@ public class UFile {
 	}
 
 	/**
-	 * 删除文件
+	 * Delete a file
 	 * 
-	 * @param name
-	 * @return 删除结果
+	 * @param the file path and name
+	 * @return result
 	 */
 	public static boolean delete(String name) {
 		if (name == null || name.trim().length() == 0) {
@@ -99,10 +99,10 @@ public class UFile {
 	}
 
 	/**
-	 * 获取文件扩展名
+	 * Get the extension form the file name
 	 * 
-	 * @param name
-	 * @return 扩展名
+	 * @param name the file name
+	 * @return the extension
 	 */
 	public static String getFileExt(String name) {
 		int m = name.lastIndexOf(".");
@@ -117,10 +117,10 @@ public class UFile {
 	}
 
 	/**
-	 * 获取文件名，没有扩展名
+	 * Get the file name without extension
 	 * 
-	 * @param name
-	 * @return 文件名，没有扩展名
+	 * @param name the file name
+	 * @return the file name without extension
 	 */
 	public static String getFileNoExt(String name) {
 		File f = new File(name);
@@ -134,11 +134,11 @@ public class UFile {
 	}
 
 	/**
-	 * 替换文件名的扩展名
+	 * Change the file extension
 	 * 
-	 * @param name   文件名包括目录
-	 * @param newExt 扩展名
-	 * @return 替换文件名的扩展名
+	 * @param name   the file's name and path
+	 * @param newExt new extension
+	 * @return new file name and path
 	 */
 	public static String changeFileExt(String name, String newExt) {
 		File f = new File(name);
@@ -149,11 +149,12 @@ public class UFile {
 	}
 
 	/**
-	 * 根据过滤器，获取文件
+	 * Get the files in the parent directory according to the filter, excluding sub
+	 * directories
 	 * 
-	 * @param rootPath 父级目录
-	 * @param filter   过滤器
-	 * @return 获取文件数组
+	 * @param rootPath the parent directory
+	 * @param filter   filter
+	 * @return the files
 	 */
 	public static File[] getFiles(String rootPath, String[] filter) {
 		File f = new File(rootPath);
@@ -166,56 +167,63 @@ public class UFile {
 	}
 
 	/**
-	 * 读取文件并转换为 GZIP 压缩的base64字符串
+	 * Convert the file to GZIP compressed base64 string
 	 * 
-	 * @param path 文件路径
-	 * @return 转换为 GZIP 压缩的base64字符串
+	 * @param path the file name and path
+	 * @return the result
 	 * @throws IOException
 	 */
 	public static String readFileGzipBase64(String path) throws IOException {
 		int BUFFER = 4096;
 		BufferedInputStream origin = null;
 		ByteArrayOutputStream bytesStream = new ByteArrayOutputStream();
-		GZIPOutputStream gzipOut = new GZIPOutputStream(bytesStream);
+		GZIPOutputStream gzipOut;
 		byte data[] = new byte[BUFFER];
-
 		File f = new File(path);
+		try {
+			gzipOut = new GZIPOutputStream(bytesStream);
+			FileInputStream fi = new FileInputStream(f);
+			origin = new BufferedInputStream(fi, BUFFER);
 
-		FileInputStream fi = new FileInputStream(f);
-		origin = new BufferedInputStream(fi, BUFFER);
+			int count;
 
-		int count;
+			while ((count = origin.read(data, 0, BUFFER)) != -1) {
+				gzipOut.write(data, 0, count);
+			}
+			origin.close();
+			gzipOut.close();
 
-		while ((count = origin.read(data, 0, BUFFER)) != -1) {
-			gzipOut.write(data, 0, count);
+			String s1 = UConvert.ToBase64String(bytesStream.toByteArray());
+
+			return s1;
+		} catch (IOException e) {
+			throw e;
+		} finally {
+			try {
+				bytesStream.close();
+			} catch (IOException e) {
+			}
 		}
-		origin.close();
-		gzipOut.close();
-
-		String s1 = UConvert.ToBase64String(bytesStream.toByteArray());
-
-		bytesStream.close();
-		return s1;
 	}
 
 	/**
-	 * 读取文件并转换为 base64字符串
+	 * Convert the file to base64 string
 	 * 
-	 * @param path 文件路径
-	 * @return 文件的base64字符串
+	 * @param path the file name and path
+	 * @return the result;
 	 * @throws Exception
 	 */
-	public static String readFileBase64(String path) throws Exception {
+	public static String readFileBase64(String path) throws IOException {
 		byte[] buf = readFileBytes(path);
 		String s1 = UConvert.ToBase64String(buf);
 		return s1;
 	}
 
 	/**
-	 * 读取二进制文件内容
+	 * Read the binary contents of the file
 	 * 
-	 * @param path 文件路径
-	 * @return 文件二进制
+	 * @param path the file name and path
+	 * @return binary contents
 	 * @throws IOException
 	 */
 	public static byte[] readFileBytes(String path) throws IOException {
@@ -230,7 +238,7 @@ public class UFile {
 			byte[] b = new byte[f.available()];
 			f.read(b);
 			return b;
-		} catch (Exception err) {
+		} catch (IOException err) {
 			throw err;
 		} finally {
 			if (f != null) {
@@ -245,34 +253,22 @@ public class UFile {
 	}
 
 	/**
-	 * 读取UTF8格式的文件内容
+	 * Read the file contents(UTF8)
 	 * 
-	 * @param filePath 文件路径
-	 * @return 文本
+	 * @param filePath the file name and path
+	 * @return the file contents (UTF8)
 	 * @throws IOException
 	 */
 	public static String readFileText(String filePath) throws Exception {
 		byte[] buf = readFileBytes(filePath);
 		return new String(buf, "UTF-8");
-		/*
-		 * BufferedReader br = null; try { FileInputStream fis = new FileInputStream(
-		 * filePath); InputStreamReader isr = new InputStreamReader(fis);
-		 * 
-		 * br = new BufferedReader(isr);
-		 * 
-		 * String data = null; StringBuilder sb = new StringBuilder(); while ((data =
-		 * br.readLine()) != null) { sb.append(data); sb.append("\n"); } return
-		 * sb.toString(); } catch (FileNotFoundException e) { throw e; } finally { if
-		 * (br != null) { try { br.close(); } catch (IOException e) {
-		 * System.err.println(e.toString()); } } }
-		 */
 	}
 
 	/**
-	 * 复制文件
+	 * Copy file
 	 * 
-	 * @param fileFrom 源文件路径
-	 * @param fileTo   目标文件路径
+	 * @param fileFrom from
+	 * @param fileTo   to
 	 * @throws IOException
 	 */
 	public static void copyFile(String fileFrom, String fileTo) throws IOException {
@@ -290,10 +286,10 @@ public class UFile {
 	}
 
 	/**
-	 * ZIP 压缩文件
+	 * Compress the file with ZIP
 	 * 
-	 * @param filePath 文件路径
-	 * @return zip文件
+	 * @param filePath the file name and path
+	 * @return the ZIP file name and path
 	 * @throws IOException
 	 */
 	public static String zipFile(String filePath) throws IOException {
@@ -319,10 +315,10 @@ public class UFile {
 	}
 
 	/**
-	 * 压缩目录，只支持一级目录
+	 * Compress the path with ZIP, exclude sub directories
 	 * 
-	 * @param path 目录
-	 * @return zipFileName
+	 * @param path the path
+	 * @return zipFileName the ZIP file name and path
 	 * @throws IOException
 	 */
 	public static String zipPath(String path) throws IOException {
@@ -335,6 +331,13 @@ public class UFile {
 		return zipFileName;
 	}
 
+	/**
+	 * Compress the files with ZIP
+	 * 
+	 * @param files       the file path and name array
+	 * @param zipFileName the ZIP file path and name
+	 * @throws IOException
+	 */
 	public static void zipFiles(String[] files, String zipFileName) throws IOException {
 		File[] file = new File[files.length];
 		for (int i = 0; i < files.length; i++) {
@@ -344,10 +347,10 @@ public class UFile {
 	}
 
 	/**
-	 * 压缩目录及所有文件
+	 * Compress all files in the root directory, including sub directories
 	 * 
-	 * @param pathRoot    根目录
-	 * @param zipFileName zip文件
+	 * @param pathRoot    the root directory
+	 * @param zipFileName the compressed ZIP file path and name
 	 * @throws IOException
 	 */
 	public static void zipPaths(String pathRoot, String zipFileName) throws IOException {
@@ -359,42 +362,47 @@ public class UFile {
 	}
 
 	/**
-	 * 递归压缩目录文件
+	 * Compress path and files, include sub directories
 	 * 
-	 * @param out      ZipOutputStream
-	 * @param parent   根目录
-	 * @param rootPath 在zip文件里根目录
+	 * @param out                ZipOutputStream
+	 * @param parent             the root path
+	 * @param zipReplaceRootPath replace the ZIP entry name prefix
 	 * @throws IOException
 	 */
-	private static void zipPathFiles(ZipOutputStream out, File parent, String rootPath) throws IOException {
+	private static void zipPathFiles(ZipOutputStream out, File parent, String zipReplaceRootPath) throws IOException {
 		int BUFFER = 1024 * 100;// 100k
 		byte data[] = new byte[BUFFER];
 		File[] files = parent.listFiles();
 		for (int i = 0; i < files.length; i++) {
 			File f1 = files[i];
 			if (f1.isDirectory()) {
-
-				zipPathFiles(out, f1, rootPath);
-			} else {
-				FileInputStream fi = new FileInputStream(f1);
-				BufferedInputStream origin = new BufferedInputStream(fi, BUFFER);
-				String entryName = f1.getAbsolutePath().replace(rootPath + File.separator, "");
-				ZipEntry entry = new ZipEntry(entryName);
-				out.putNextEntry(entry);
-				int count;
-				while ((count = origin.read(data, 0, BUFFER)) != -1) {
-					out.write(data, 0, count);
-				}
-				origin.close();
+				// Recursive
+				zipPathFiles(out, f1, zipReplaceRootPath);
+				continue;
 			}
+			FileInputStream fi = new FileInputStream(f1);
+			BufferedInputStream origin = new BufferedInputStream(fi, BUFFER);
+			String entryName = f1.getAbsolutePath().replace(zipReplaceRootPath + File.separator, "");
+
+			if (File.separator.equals("\\")) {
+				// 替换windows目录格式为unix
+				entryName = entryName.replace("\\", "/");
+			}
+			ZipEntry entry = new ZipEntry(entryName);
+			out.putNextEntry(entry);
+			int count;
+			while ((count = origin.read(data, 0, BUFFER)) != -1) {
+				out.write(data, 0, count);
+			}
+			origin.close();
 		}
 	}
 
 	/**
-	 * 压缩文件
+	 * Compress files
 	 * 
-	 * @param files       文件数组
-	 * @param zipFileName 输出的zip文件名
+	 * @param files       the files array
+	 * @param zipFileName the compressed ZIP file path and name
 	 * @throws IOException
 	 */
 	public static void zipFiles(File[] files, String zipFileName) throws IOException {
@@ -422,10 +430,10 @@ public class UFile {
 	}
 
 	/**
-	 * 解压ZIP格式文件
+	 * Unzip file
 	 * 
-	 * @param zipFilePath zip文件路径
-	 * @return 解压后的文件
+	 * @param zipFilePath the zip file path and name
+	 * @return list of unziped files
 	 * @throws IOException
 	 */
 	public static List<String> unZipFile(String zipFilePath) throws IOException {
@@ -446,7 +454,7 @@ public class UFile {
 		}
 
 		if (unzipPath.length() == 0) {
-			throw new IOException("不能建立解压缩目录！");
+			throw new IOException("Unable to create unzip directory");
 		}
 		String path = unzipPath + File.separator;
 
@@ -489,13 +497,13 @@ public class UFile {
 	}
 
 	/**
-	 * 修改文件名
+	 * Rename the file
 	 * 
-	 * @param path    原始文件名（包含路径）
-	 * @param newName 新文件名（不包含路径）
+	 * @param sourcePathAndName the source file name and path
+	 * @param newName           new file name (exclude path)
 	 */
-	public static void renameFile(String path, String newName) {
-		String from = UPath.getScriptPath() + path.replace("|", "/");
+	public static void renameFile(String sourcePathAndName, String newName) {
+		String from = UPath.getScriptPath() + sourcePathAndName.replace("|", "/");
 		File fFrom = new File(from);
 		String to = fFrom.getParent() + "/" + newName;
 		File fTo = new File(to);
@@ -503,13 +511,13 @@ public class UFile {
 	}
 
 	/**
-	 * 根据文本内容生成文本文件
+	 * Create a hash file based on the content
 	 * 
-	 * @param content     文本内容
-	 * @param ext         扩展名
-	 * @param path        路径
-	 * @param isOverWrite 是否覆盖
-	 * @return 生成的文件名（不包含路径）
+	 * @param content     the content
+	 * @param ext         the hash file extension
+	 * @param path        the directory where the hash file is saved
+	 * @param isOverWrite whether to overwrite the hash file
+	 * @return the hash file name, exclude path
 	 * @throws Exception
 	 */
 	public static String createHashTextFile(String content, String ext, String path, boolean isOverWrite)
@@ -518,7 +526,7 @@ public class UFile {
 		path = path.trim() + "/";
 
 		if (!buildPaths(path)) {
-			throw new Exception("目录不能建立 (" + path + ")");
+			throw new Exception("Can't create the directory (" + path + ")");
 		}
 
 		String fileName = hash + "." + ext.trim().toLowerCase();
@@ -531,10 +539,10 @@ public class UFile {
 	}
 
 	/**
-	 * 生成新的文本文件
+	 * Create a new text file
 	 * 
-	 * @param fileName 文件名
-	 * @param content  内容
+	 * @param fileName the saved file name and directory
+	 * @param content  the saved text content (UTF8)
 	 * @throws IOException
 	 */
 	public static void createNewTextFile(String fileName, String content) throws IOException {
@@ -552,18 +560,22 @@ public class UFile {
 			throw e;
 		} finally {
 			if (os != null)
-				os.close();
+				try {
+					os.close();
+				} catch (IOException e) {
+				}
 		}
 	}
 
 	/**
-	 * 根据二进制md5, 生成二进制文件，
+	 * Create a binary file based on the MD5 of the binary content, and the saved
+	 * file name is MD5 + extension
 	 * 
-	 * @param bytes       二进制
-	 * @param ext         扩展名
-	 * @param path        路径
-	 * @param isOverWrite 是否覆盖文件
-	 * @return 生成的文件名（不包含路径）
+	 * @param bytes       The binary content
+	 * @param ext         The saved file extension
+	 * @param path        The saved directory
+	 * @param isOverWrite Whether to overwrite
+	 * @return The saved file name (MD5 + extension), exclude directory
 	 * @throws Exception
 	 */
 	public static String createMd5File(byte[] bytes, String ext, String path, boolean isOverWrite) throws Exception {
@@ -573,10 +585,37 @@ public class UFile {
 	}
 
 	/**
-	 * 得到文件的md5标记
+	 * Create a binary file based on the MD5 of the binary content, and the saved
+	 * file name is MD5 + extension
 	 * 
-	 * @param file 文件
-	 * @return md5
+	 * @param bytes       The binary content
+	 * @param md5         The md5
+	 * @param ext         The saved file extension
+	 * @param path        The saved directory
+	 * @param isOverWrite Whether to overwrite
+	 * @return The saved file name (MD5 + extension), exclude directory
+	 * @throws Exception
+	 */
+	public static String createMd5File(byte[] bytes, String md5, String ext, String path, boolean isOverWrite)
+			throws Exception {
+
+		path = path.trim() + "/";
+
+		if (!buildPaths(path)) {
+			throw new Exception("Can't create the directory (" + path + ")");
+		}
+
+		String fileName = md5 + "." + ext.trim().toLowerCase();
+		String filePath = path + fileName;
+		createBinaryFile(filePath, bytes, isOverWrite);
+		return fileName;
+	}
+
+	/**
+	 * Get the MD5 of the file
+	 * 
+	 * @param file the file name and directory
+	 * @return the MD5 of the file
 	 */
 	public static String createMd5(File file) {
 		try {
@@ -588,37 +627,11 @@ public class UFile {
 	}
 
 	/**
-	 * 创建 二进制文件，文件名是文件的md5
+	 * Create a binary file
 	 * 
-	 * @param bytes       二进制
-	 * @param md5         文件的md5
-	 * @param ext         扩展名
-	 * @param path        路径
-	 * @param isOverWrite 是否覆盖
-	 * @return 创建的文件名 md5 + "." + ext
-	 * @throws Exception
-	 */
-	public static String createMd5File(byte[] bytes, String md5, String ext, String path, boolean isOverWrite)
-			throws Exception {
-
-		path = path.trim() + "/";
-
-		if (!buildPaths(path)) {
-			throw new Exception("目录不能建立 (" + path + ")");
-		}
-
-		String fileName = md5 + "." + ext.trim().toLowerCase();
-		String filePath = path + fileName;
-		createBinaryFile(filePath, bytes, isOverWrite);
-		return fileName;
-	}
-
-	/**
-	 * 生成二进制文件
-	 * 
-	 * @param path        路径
-	 * @param bytes       二进制
-	 * @param isOverWrite 是否覆盖
+	 * @param path        The file name and path to be created
+	 * @param bytes       The saved binary
+	 * @param isOverWrite Whether to overwrite
 	 * @throws Exception
 	 */
 	public static void createBinaryFile(String path, byte[] bytes, boolean isOverWrite) throws Exception {
@@ -639,13 +652,13 @@ public class UFile {
 	}
 
 	/**
-	 * 将GZIP压缩的BASE64编码的字符串转换成文件
+	 * Convert GZIP compressed BASE64 encoded string into a file
 	 * 
-	 * @param base64String
-	 * @param ext
-	 * @param path
-	 * @param isOverWrite
-	 * @return 根据BASE64哈希值生成文件名（不包含）
+	 * @param base64String the BASE64 encoded string
+	 * @param ext          The file extension
+	 * @param path         The directory of the file is saved
+	 * @param isOverWrite  Whether to overwrite
+	 * @return the create file name, exclude path
 	 * @throws Exception
 	 */
 	public static String createUnGZipHashFile(String base64String, String ext, String path, boolean isOverWrite)
@@ -681,11 +694,11 @@ public class UFile {
 	}
 
 	/**
-	 * 根据名称分割文件名或目录名称
+	 * Split file name or directory name based on the name
 	 * 
-	 * @param name 原始文件名
-	 * @param len  分割长度
-	 * @return 分割后的名称
+	 * @param name name
+	 * @param len  split length
+	 * @return the result
 	 */
 	public static String createSplitDirPath(String name, int len) {
 		if (name == null || name.length() <= len) {
@@ -715,10 +728,10 @@ public class UFile {
 	}
 
 	/**
-	 * 建立路径
+	 * Create the paths
 	 * 
-	 * @param path 路径
-	 * @return 是否建立成功
+	 * @param path the path
+	 * @return result
 	 */
 	public static boolean buildPaths(String path) {
 		File dir = new File(path);

@@ -17,7 +17,8 @@ import org.slf4j.LoggerFactory;
  */
 public class UCookies {
 	private static Logger LOGGER = LoggerFactory.getLogger(UCookies.class);
-	public static String COOKIE_NAME_PREFIX = "__EWA__"; // cookie加密的名称后缀
+
+	public static String COOKIE_NAME_PREFIX = "__EWA__"; // the encrypted cookie prefix
 
 	private String domain;
 	private String path;
