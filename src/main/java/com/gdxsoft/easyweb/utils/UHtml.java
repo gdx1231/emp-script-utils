@@ -4,7 +4,8 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.MatchResult;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -15,14 +16,12 @@ import org.json.JSONObject;
 public class UHtml {
 
 	private static String CACHE_FILE;
-	public static HashMap<Integer, Integer> MAP_COMBINE_FILES;
-	public static String JS_LIB = "/Users/admin/java/workspace/EmpScriptV2/WebRoot/EWA_STYLE/js/js_jquery/compiler.jar";
-	public static String CSS_LIB = "/Users/admin/java/workspace/EmpScriptV2/WebRoot/EWA_STYLE/skins/yuicompressor-2.4.8.jar";
+	public static Map<Integer, Integer> MAP_COMBINE_FILES;
 
 	static {
 		CACHE_FILE = UPath.getCachedPath() + "/uhtml_cached.json";
-		MAP_COMBINE_FILES = new HashMap<Integer, Integer>();
-		System.out.println(CACHE_FILE);
+		MAP_COMBINE_FILES = new ConcurrentHashMap<Integer, Integer>();
+		// System.out.println(CACHE_FILE);
 		try {
 			String cnt = UFile.readFileText(CACHE_FILE);
 			JSONArray obj = new JSONArray(cnt);
@@ -112,19 +111,34 @@ public class UHtml {
 		}
 	}
 
-	 
-
 	/**
-	 * 获取提交的无参数模式的内容
+	 * Get http body content
 	 * 
-	 * @param request
-	 * @return 内容
+	 * @param request HttpServletRequest (javax)
+	 * @return the http body string(UTF8)
 	 * @throws IOException
 	 */
 	public static String getHttpBody(javax.servlet.http.HttpServletRequest request) throws IOException {
-		byte[] bytes = new byte[1024 * 1024];
 		InputStream is = request.getInputStream();
+		String str = getHttpBody(is);
+		return str;
+	}
 
+	/**
+	 * Get http body content (jakarta, TOMCAT10)
+	 * 
+	 * @param request HttpServletRequest (jakarta)
+	 * @return the http body string(UTF8)
+	 * @throws IOException
+	 */
+	public static String getHttpBody(jakarta.servlet.http.HttpServletRequest request) throws IOException {
+		InputStream is = request.getInputStream();
+		String str = getHttpBody(is);
+		return str;
+	}
+
+	private static String getHttpBody(InputStream is) throws IOException {
+		byte[] bytes = new byte[1024 * 1024];
 		int nRead = 1;
 		int nTotalRead = 0;
 		while (nRead > 0) {
@@ -138,10 +152,10 @@ public class UHtml {
 	}
 
 	/**
-	 * 获取Http的Base
+	 * Get the base url from the HttpServletRequest
 	 * 
-	 * @param request
-	 * @return Http的Base
+	 * @param request the HttpServletRequest
+	 * @return the base url
 	 */
 	public static String getHttpBase(javax.servlet.http.HttpServletRequest request) {
 		String port = ":" + request.getServerPort();
@@ -163,22 +177,63 @@ public class UHtml {
 				break;
 			}
 		}
-
-		// String __base = scheme + "://" + request.getServerName() + port + ""
-		// + ctx;
 		String __base = "//" + request.getServerName() + port + "" + ctx;
 		return __base;
 	}
 
 	/**
-	 * 获取Http的Base
+	 * Get the base url from the HttpServletRequest
 	 * 
-	 * @param request
-	 * @param baseAdd 附加的地址
-	 * @return Http的Base
+	 * @param request the HttpServletRequest
+	 * @param baseAdd the path of attachment
+	 * @return the base url
 	 */
 	public static String getHttpBase(javax.servlet.http.HttpServletRequest request, String baseAdd) {
 
+		String __base = getHttpBase(request);
+		if (baseAdd != null) {
+			__base = __base + "/" + baseAdd;
+		}
+		return __base;
+	}
+
+	/**
+	 * Get request base url from HttpServletRequest (Jakarta TOMCAT10)
+	 * 
+	 * @param request the HttpServletRequest
+	 * @return the base url
+	 */
+	public static String getHttpBase(jakarta.servlet.http.HttpServletRequest request) {
+		String port = ":" + request.getServerPort();
+		String scheme = request.getHeader("x-forwarded-protocol");
+		if (scheme == null) {
+			scheme = request.getScheme();
+		}
+		if (request.getServerPort() == 80 || request.getServerPort() == 443) {
+			port = "";
+		}
+
+		String ctx = request.getContextPath();
+		int inc = 0;
+		while (ctx.startsWith("//")) {
+			ctx = ctx.replace("//", "/");
+			inc++;
+			if (inc > 500) {
+				break;
+			}
+		}
+		String __base = "//" + request.getServerName() + port + "" + ctx;
+		return __base;
+	}
+
+	/**
+	 * Get request base (Jakarta TOMCAT10)
+	 * 
+	 * @param request the HttpServletRequest
+	 * @param baseAdd the path of attachment
+	 * @return the base url
+	 */
+	public static String getHttpBase(jakarta.servlet.http.HttpServletRequest request, String baseAdd) {
 		String __base = getHttpBase(request);
 		if (baseAdd != null) {
 			__base = __base + "/" + baseAdd;
@@ -259,11 +314,11 @@ public class UHtml {
 	}
 
 	/**
-	 * 去除html的 标签 例如 iframe script ..., 用于Html编辑器粘贴后去除
+	 * Remote the html tag
 	 * 
-	 * @param html
-	 * @param tagName 标签 例如 iframe script
-	 * @return 去除html的 标签 例如 iframe script ..., 用于Html编辑器粘贴后去除
+	 * @param html    the html string
+	 * @param tagName the tag to delete (iframe, script ...)
+	 * @return the result
 	 */
 	public static String removeHtmlTag(String html, String tagName) {
 		if (html == null || html.length() == 0) {
@@ -296,13 +351,14 @@ public class UHtml {
 	}
 
 	/**
-	 * 创建类似BBS类型的分页
+	 * Create a pagination div
 	 * 
-	 * @param iCurPage      当前页
-	 * @param iPageSize     每页记录数
-	 * @param iTotalRecords 总记录数
-	 * @param pageUrlRoot   连接表达式 例如：../bbs/xxx/yy/{EXP}.html {EXP}是页码替换
-	 * @return 分页
+	 * @param iCurPage      the current page
+	 * @param iPageSize     the page size
+	 * @param iTotalRecords the total records
+	 * @param pageUrlRoot   the page url (../bbs/xxx/yy/{EXP}.html) the {EXP} is the
+	 *                      page number replacement
+	 * @return the pagination html
 	 */
 	public static String createListSplit(int iCurPage, int iPageSize, int iTotalRecords, String pageUrlRoot) {
 		if (iTotalRecords <= iPageSize) {
@@ -361,13 +417,14 @@ public class UHtml {
 	}
 
 	/**
-	 * 创建类似BBS类型的分页(table输出，兼容IE6)
+	 * Create a pagination table
 	 * 
-	 * @param iCurPage      当前页
-	 * @param iPageSize     每页记录数
-	 * @param iTotalRecords 总记录数
-	 * @param pageUrlRoot   连接表达式 例如：../bbs/xxx/yy/{EXP}.html {EXP}是页码替换
-	 * @return 分页
+	 * @param iCurPage      the current page
+	 * @param iPageSize     the page size
+	 * @param iTotalRecords the total records
+	 * @param pageUrlRoot   the page url (../bbs/xxx/yy/{EXP}.html) the {EXP} is the
+	 *                      page number replacement
+	 * @return the pagination html(table)
 	 */
 	public static String createListSplitTable(int iCurPage, int iPageSize, int iTotalRecords, String pageUrlRoot) {
 		if (iTotalRecords <= iPageSize) {

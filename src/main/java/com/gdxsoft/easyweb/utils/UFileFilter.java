@@ -3,23 +3,29 @@ package com.gdxsoft.easyweb.utils;
 import java.io.File;
 import java.io.FilenameFilter;
 import java.util.ArrayList;
+import java.util.List;
 
 /**
- * 文件查询过滤器
- * 
- * @author admin
- *
+ * Find file filter
  */
 public class UFileFilter implements FilenameFilter {
 
+	/**
+	 * Get a images filter instance
+	 * @return
+	 */
 	public static UFileFilter getImageInstance() {
 		UFileFilter f = new UFileFilter();
-		String[] ff = { ".png", ".gif", ".jpg" };
+		String[] ff = { ".png", ".gif", ".jpg", ".bmp", ".jiff", ".jpeg" };
 		f.addFilter(ff);
 
 		return f;
 	}
 
+	/**
+	 * Get a zip filter instance
+	 * @return
+	 */
 	public static UFileFilter getZipInstance() {
 		UFileFilter f = new UFileFilter();
 		String[] ff = { ".zip" };
@@ -28,6 +34,11 @@ public class UFileFilter implements FilenameFilter {
 		return f;
 	}
 
+	/**
+	 * Get the filter 
+	 * @param ff The filter array
+	 * @return
+	 */
 	public static UFileFilter getInstance(String[] ff) {
 		UFileFilter f = new UFileFilter();
 		f.addFilter(ff);
@@ -35,7 +46,7 @@ public class UFileFilter implements FilenameFilter {
 		return f;
 	}
 
-	private ArrayList<String> _Filters = new ArrayList<String>();
+	private List<String> _Filters = new ArrayList<String>();
 
 	public boolean accept(File arg0, String arg1) {
 		if (this._Filters.size() == 0) {
