@@ -43,22 +43,20 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * 处理图片
- * 
- * @author admin
+ * The image utils
  *
  */
 public class UImages {
 	private static Logger LOGGER = LoggerFactory.getLogger(UImages.class);
 
 	/**
-	 * 图片附加 带圆角和描边的logo
+	 * Add a logo in the middle of a image
 	 * 
-	 * @param originalImage 原始图片
-	 * @param logo          logo图片
-	 * @param logoMaxWidth  最大宽度
-	 * @param logoMaxHeight 最大高度
-	 * @return 添加logo的图片
+	 * @param originalImage The original image
+	 * @param logo          The logo image
+	 * @param logoMaxWidth  The logo max width
+	 * @param logoMaxHeight The logo max height
+	 * @return the image with the logo
 	 * @throws IOException
 	 */
 	public static BufferedImage appendLogo(BufferedImage originalImage, BufferedImage logo, int logoMaxWidth,
@@ -98,13 +96,13 @@ public class UImages {
 	}
 
 	/**
-	 * 图片设置圆角
+	 * Set the rounded corners of the image
 	 * 
-	 * @param srcImage 来源图
-	 * @param radius   圆角长度
-	 * @param border   边宽
-	 * @param padding  填充
-	 * @return 处理后的 图片
+	 * @param srcImage The source image
+	 * @param radius   The radius size
+	 * @param border   The border width
+	 * @param padding  The padding size
+	 * @return The result
 	 * @throws IOException
 	 */
 	public static BufferedImage setRadius(BufferedImage srcImage, int radius, int border, int padding)
@@ -141,13 +139,13 @@ public class UImages {
 	}
 
 	/**
-	 * 创建背景图？
+	 * Create a background image
 	 * 
-	 * @param srcImage 图片
-	 * @param radius   圆角
-	 * @param border   边宽
-	 * @param padding  填充
-	 * @return 图
+	 * @param srcImage The source image
+	 * @param radius   The radius size
+	 * @param border   The border width
+	 * @param padding  The padding size
+	 * @return The result
 	 */
 	public static BufferedImage createBackground(BufferedImage srcImage, int radius, int border, int padding) {
 		int width = srcImage.getWidth();
@@ -177,11 +175,11 @@ public class UImages {
 	}
 
 	/**
-	 * 图片切圆角
+	 * Set image radius
 	 * 
-	 * @param srcImage 原始图
-	 * @param radius   圆角
-	 * @return 图
+	 * @param srcImage The source image
+	 * @param radius   The radius size
+	 * @return the result
 	 */
 	public static BufferedImage setClip(BufferedImage srcImage, int radius) {
 		int width = srcImage.getWidth();
@@ -197,12 +195,12 @@ public class UImages {
 	}
 
 	/**
-	 * 创建缩率图
+	 * Create the image thumbnail
 	 * 
-	 * @param imgPath   图片路径
-	 * @param maxwidth  最大宽度
-	 * @param maxheight 最大高度
-	 * @return 缩率图文件路径
+	 * @param imgPath   The image path and name
+	 * @param maxwidth  The maximum width
+	 * @param maxheight The maximum height
+	 * @return The thumbnail image path and name
 	 */
 	public static String createSmallImage(String imgPath, int maxwidth, int maxheight) {
 		java.awt.Dimension[] d = new java.awt.Dimension[1];
@@ -224,14 +222,14 @@ public class UImages {
 	}
 
 	/**
-	 * 用java原生创建缩略图
+	 * Create the image thumbnail (Using java)
 	 * 
-	 * @param imgPath 图片路径
-	 * @param d       图片尺寸数组(800x600, 400x300)...
-	 * @return 创建后的图片文件的数组
+	 * @param imgPath       The image path and name
+	 * @param thumbnilsSize The thumbnail sizes (800x600, 400x300)...
+	 * @return The thumbnail files array
 	 * @throws Exception
 	 */
-	public static File[] createResizedByJava(String imgPath, java.awt.Dimension[] d) throws Exception {
+	public static File[] createResizedByJava(String imgPath, java.awt.Dimension[] thumbnilsSize) throws Exception {
 		if (!(imgPath.toUpperCase().endsWith(".JPG") || imgPath.toUpperCase().endsWith(".JPEG")
 				|| imgPath.toUpperCase().endsWith(".PNG") || imgPath.toUpperCase().endsWith(".BMP")
 				|| imgPath.toUpperCase().endsWith(".GIF"))) {
@@ -245,14 +243,14 @@ public class UImages {
 			LOGGER.error(e.getMessage());
 			throw e;
 		}
-		File[] names = new File[d.length];
+		File[] names = new File[thumbnilsSize.length];
 		String path = img.getAbsolutePath() + "$resized";
 		File pathResized = new File(path);
 		pathResized.mkdirs();
 
-		for (int i = 0; i < d.length; i++) {
-			double width = d[i].getWidth();
-			double height = d[i].getHeight();
+		for (int i = 0; i < thumbnilsSize.length; i++) {
+			double width = thumbnilsSize[i].getWidth();
+			double height = thumbnilsSize[i].getHeight();
 			String name = (int) width + "x" + (int) height + ".jpg";
 			File f1 = new File(pathResized.getPath() + "/" + name);
 
@@ -276,12 +274,12 @@ public class UImages {
 	}
 
 	/**
-	 * 根据最大宽度和最大高度的限制条件，获取目标图像的新尺寸。
+	 * Get the image new size according the maximum width and maximum height limits
 	 * 
-	 * @param bufferedImage 目标图像
-	 * @param maxWidth      最大宽度
-	 * @param maxHeight     最大高度
-	 * @return 宽，高的二维数组
+	 * @param bufferedImage The image
+	 * @param maxWidth      Maximum width
+	 * @param maxHeight     Maximum height
+	 * @return size (width , height)
 	 */
 	public static int[] getNewSize(BufferedImage bufferedImage, int maxWidth, int maxHeight) {
 		double wScale = maxWidth * 1.0 / bufferedImage.getWidth();
@@ -302,14 +300,15 @@ public class UImages {
 	}
 
 	/**
-	 * 使用ImageMagick处理缩率图
+	 * Create the image thumbnails (Using the ImageMagick)
 	 * 
-	 * @param imgPath 图片路径
-	 * @param d       图片尺寸数组(800x600, 400x300)...
-	 * @return 创建后的图片文件的数组
+	 * @param imgPath       the image path and name
+	 * @param thumbnilsSize The thumbnails size(800x600, 400x300)...
+	 * @return The thumbnail files array
 	 * @throws Exception
 	 */
-	public static File[] createResizedByImageMagick(String imgPath, java.awt.Dimension[] d) throws Exception {
+	public static File[] createResizedByImageMagick(String imgPath, java.awt.Dimension[] thumbnilsSize)
+			throws Exception {
 		if (!(imgPath.toUpperCase().endsWith(".JPG") || imgPath.toUpperCase().endsWith(".JPEG")
 				|| imgPath.toUpperCase().endsWith(".PNG") || imgPath.toUpperCase().endsWith(".BMP")
 				|| imgPath.toUpperCase().endsWith(".GIF"))) {
@@ -326,14 +325,14 @@ public class UImages {
 		// convert -resize "100x100>" -strip 360云盘/pics/DSC_0963.JPG aa1.jpg
 		File img = new File(imgPath);
 
-		File[] names = new File[d.length];
+		File[] names = new File[thumbnilsSize.length];
 		String path = img.getAbsolutePath() + "$resized";
 		File pathResized = new File(path);
 		pathResized.mkdirs();
 
-		for (int i = 0; i < d.length; i++) {
-			double width = d[i].getWidth();
-			double height = d[i].getHeight();
+		for (int i = 0; i < thumbnilsSize.length; i++) {
+			double width = thumbnilsSize[i].getWidth();
+			double height = thumbnilsSize[i].getHeight();
 			int w = (int) width;
 			int h = (int) height;
 			String name = w + "x" + h + ".jpg";
@@ -365,54 +364,55 @@ public class UImages {
 	}
 
 	/**
-	 * 生成新尺寸图片，保持比例
+	 * Create the image thumbnails
 	 * 
-	 * @param imgPath 源图片路径
-	 * @param d       图片尺寸数组(800x600, 400x300)...
-	 * @return 创建后的图片文件的数组
+	 * @param imgPath       The image path and name
+	 * @param thumbnilsSize The thumbnails size(800x600, 400x300)...
+	 * @return The thumbnail files array
 	 * @throws Exception
 	 */
-	public static File[] createResized(String imgPath, java.awt.Dimension[] d) throws Exception {
+	public static File[] createResized(String imgPath, java.awt.Dimension[] thumbnilsSize) throws Exception {
 		String magicHome = UPath.getCVT_IMAGEMAGICK_HOME();
 		if (magicHome == null || magicHome.trim().length() == 0) {
 			// return createResizedByJava(imgPath, d);
 			// 利用 net.coobird.thumbnailator.Thumbnails，
-			return createResizedByThumbnails(imgPath, d);
+			return createResizedByThumbnails(imgPath, thumbnilsSize);
 		} else {
 			File pathMagicHome = new File(magicHome);
 			if (pathMagicHome.exists()) {
-				return createResizedByImageMagick(imgPath, d);
+				return createResizedByImageMagick(imgPath, thumbnilsSize);
 			} else {
 				LOGGER.warn("magicHome NOT defined in (ewa_conf.xml), using createResizedByThumbnails");
 				// 利用 net.coobird.thumbnailator.Thumbnails，
-				return createResizedByThumbnails(imgPath, d);
+				return createResizedByThumbnails(imgPath, thumbnilsSize);
 			}
 		}
 	}
 
 	/**
-	 * 利用 net.coobird.thumbnailator.Thumbnails， 生成新尺寸图片，保持比例
+	 * Create the image thumbnails (using net.coobird.thumbnailator.Thumbnails)
 	 * 
-	 * @param imgPath 图片路径
-	 * @param d       图片尺寸数组(800x600, 400x300)...
-	 * @return 创建后的图片文件的数组
+	 * @param imgPath       the image path and name
+	 * @param thumbnilsSize The thumbnails size(800x600, 400x300)...
+	 * @return The thumbnail files array
 	 * @throws Exception
 	 */
-	public static File[] createResizedByThumbnails(String imgPath, java.awt.Dimension[] d) {
+	public static File[] createResizedByThumbnails(String imgPath, java.awt.Dimension[] thumbnilsSize) {
 		File img = new File(imgPath);
 		String path = img.getAbsolutePath() + "$resized";
 		File pathResized = new File(path);
 		pathResized.mkdirs();
-		File[] names = new File[d.length];
-		for (int i = 0; i < d.length; i++) {
-			double width = d[i].getWidth();
-			double height = d[i].getHeight();
+		File[] names = new File[thumbnilsSize.length];
+		for (int i = 0; i < thumbnilsSize.length; i++) {
+			double width = thumbnilsSize[i].getWidth();
+			double height = thumbnilsSize[i].getHeight();
 			int w = (int) width;
 			int h = (int) height;
 			String name = w + "x" + h + ".jpg";
 			File f1 = new File(pathResized.getPath() + "/" + name);
 			try {
-				Thumbnails.of(img).size(w, h).outputFormat("jpg").outputQuality(0.7).toFile(f1);
+				Thumbnails.of(img).size(w, h).outputFormat("jpg").useExifOrientation(true).outputQuality(0.7)
+						.toFile(f1);
 				names[i] = f1;
 			} catch (IOException e) {
 				LOGGER.error(e.getMessage());
@@ -423,10 +423,10 @@ public class UImages {
 	}
 
 	/**
-	 * 读取图片
+	 * Get a BufferedImage from the image path and name
 	 * 
-	 * @param imgPath 图片路径
-	 * @return BufferedImage 图片
+	 * @param imgPath the image path and name
+	 * @return BufferedImage the BufferedImage
 	 * @throws IOException
 	 */
 	public static BufferedImage getBufferedImage(String imgPath) throws IOException {
@@ -440,10 +440,10 @@ public class UImages {
 	}
 
 	/**
-	 * 转换为 BufferedImage
+	 * Convert the Image to BufferedImage
 	 * 
-	 * @param image 图片
-	 * @return BufferedImage
+	 * @param image The source image
+	 * @return BufferedImage the BufferedImage
 	 */
 	public static BufferedImage toBufferedImage(Image image) {
 		if (image instanceof BufferedImage) {
@@ -475,10 +475,10 @@ public class UImages {
 	}
 
 	/**
-	 * 保存图片(jpeg, 质量 0.8)
+	 * Save the BufferedImage to file (JPEG, 0.8)
 	 * 
-	 * @param buf  图片BufferedImage
-	 * @param name 路径
+	 * @param buf  the BufferedImage
+	 * @param name the saved file path and name
 	 * @throws IOException
 	 */
 	public static void imageSave(BufferedImage buf, String name) throws IOException {
@@ -487,10 +487,10 @@ public class UImages {
 	}
 
 	/**
-	 * 保存图片(jpeg, 质量 0.8)
+	 * Save the BufferedImage to file (JPEG, 0.8)
 	 * 
-	 * @param buf 图片BufferedImage
-	 * @param f1  文件
+	 * @param buf the BufferedImage
+	 * @param f1  the saved file
 	 * @throws IOException
 	 */
 	public static void imageSave(BufferedImage buf, File f1) throws IOException {
@@ -504,12 +504,12 @@ public class UImages {
 	}
 
 	/**
-	 * 将原始图片修改为新尺寸图片
+	 * Create an image according to the new size
 	 * 
-	 * @param originalImage 原始图像
-	 * @param width         宽度
-	 * @param height        高度
-	 * @return 图片BufferedImage
+	 * @param originalImage The original image
+	 * @param width         The new width
+	 * @param height        The new height
+	 * @return The new size image
 	 */
 	public static BufferedImage createResizedCopy(Image originalImage, int width, int height) {
 		BufferedImage scaledBI = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
@@ -529,14 +529,14 @@ public class UImages {
 	}
 
 	/**
-	 * 裁剪图片
+	 * Crop the image
 	 * 
-	 * @param originalImage 原始图片
-	 * @param left          左
-	 * @param top           头
-	 * @param right         右
-	 * @param bottom        底
-	 * @return 图片BufferedImage
+	 * @param originalImage The original image
+	 * @param left          The crop left
+	 * @param top           The crop top
+	 * @param right         The crop right
+	 * @param bottom        The crop bottom
+	 * @return new BufferedImage
 	 */
 	public static BufferedImage createClipCopy(Image originalImage, int left, int top, int right, int bottom) {
 		int width = right - left;
@@ -552,11 +552,11 @@ public class UImages {
 	}
 
 	/**
-	 * 获取 BufferedImage的图像二进制
+	 * Convert to BufferedImge to file buffer
 	 * 
-	 * @param bi        图片BufferedImage
-	 * @param imageType 图像类型JPEG, PNG ...
-	 * @return 文件二进制
+	 * @param bi        The BufferedImage
+	 * @param imageType The save to image type JPEG, PNG ...
+	 * @return The file buffer
 	 */
 	public static byte[] getBytes(BufferedImage bi, String imageType, float quality) {
 		ByteArrayOutputStream output = new ByteArrayOutputStream(10240);
@@ -601,10 +601,10 @@ public class UImages {
 	}
 
 	/**
-	 * 命令行执行ImageMagick
+	 * Execute the ImageMagick command in shell
 	 * 
-	 * @param line 命令行
-	 * @return 执行结果
+	 * @param line The command
+	 * @return the result
 	 */
 	private static HashMap<String, String> runImageMagick(String line) {
 		HashMap<String, String> rst = new HashMap<String, String>();
@@ -649,7 +649,6 @@ public class UImages {
 			rst.put("RST", "false");
 			rst.put("ERR", e.getMessage());
 		}
-
 		return rst;
 	}
 }
