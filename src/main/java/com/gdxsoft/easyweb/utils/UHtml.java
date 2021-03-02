@@ -1,6 +1,5 @@
 package com.gdxsoft.easyweb.utils;
 
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -10,11 +9,6 @@ import java.util.regex.MatchResult;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.apache.commons.exec.CommandLine;
-import org.apache.commons.exec.DefaultExecutor;
-import org.apache.commons.exec.ExecuteException;
-import org.apache.commons.exec.ExecuteWatchdog;
-import org.apache.commons.exec.PumpStreamHandler;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -118,104 +112,7 @@ public class UHtml {
 		}
 	}
 
-	/**
-	 * 压缩js/css文件
-	 * 
-	 * @param path
-	 * @param ext
-	 * @return 压缩后的文件 .min
-	 */
-	public static JSONObject compressCode(String path, String ext) {
-		JSONObject rst = new JSONObject();
-		if (ext == null) {
-			rst.put("RST", false);
-			rst.put("ERR_CODE", 1);
-			rst.put("ERR", "ext needed(js/css)");
-			return rst;
-		}
-		File f = new File(path);
-		if (!f.exists()) {
-			rst.put("RST", false);
-			rst.put("ERR_CODE", 2);
-			rst.put("ERR", "file not found");
-			return rst;
-		}
-
-		int loc = path.lastIndexOf(".");
-		String min = path.substring(0, loc) + ".min" + path.substring(loc);
-
-		int id = (f.getAbsolutePath() + "|" + min).hashCode();
-		StringBuilder sbf = new StringBuilder();
-		sbf.append("|");
-		sbf.append(f.getName());
-		sbf.append(f.lastModified());
-		sbf.append(f.getAbsolutePath());
-		int code = sbf.toString().hashCode();
-		if (MAP_COMBINE_FILES.containsKey(id) && MAP_COMBINE_FILES.get(id) == code) {
-			rst.put("RST", true);
-			rst.put("SUCESS_CODE", 1);
-			rst.put("MSG", "NO CHANGE");
-			return rst;
-		}
-
-		String line = null;
-
-		if (ext.equalsIgnoreCase("js")) {
-			String map = path.substring(0, loc) + ".min.map";
-			String google_lib = JS_LIB;
-			line = "java -jar " + google_lib + " --js \"" + path + "\" --create_source_map \"" + map
-					+ "\" --source_map_format=V3 --js_output_file \"" + min + "\"";
-		} else if (ext.equalsIgnoreCase("css")) {
-			// java -jar `dirname $0`/'yuicompressor-2.4.8.jar' `dirname
-			// $0`/default/css.css -o `dirname $0`/default/css.min.css --type
-			// css --line-break 80
-			line = "java -jar " + CSS_LIB + " \"" + path + "\" -o \"" + min + "\" --type css --line-break 199";
-
-		} else {
-			rst.put("RST", false);
-			rst.put("ERR_CODE", 3);
-			rst.put("ERR", "ext should be (js/css)");
-			return rst;
-		}
-
-		System.out.println(line);
-
-		CommandLine commandLine = CommandLine.parse(line);
-		DefaultExecutor executor = new DefaultExecutor();
-		executor.setExitValue(0);
-		ExecuteWatchdog watchdog = new ExecuteWatchdog(60000);
-		executor.setWatchdog(watchdog);
-
-		ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-		PumpStreamHandler streamHandler = new PumpStreamHandler(outputStream);
-		executor.setStreamHandler(streamHandler);
-		try {
-			executor.execute(commandLine);
-			String s = outputStream.toString();
-			outputStream.close();
-			System.out.println(s);
-
-			MAP_COMBINE_FILES.put(id, code);
-			saveCahcedFile();
-			rst.put("RST", true);
-			rst.put("SUCESS_CODE", 2);
-			rst.put("MSG", s);
-			return rst;
-		} catch (ExecuteException e) {
-			System.out.println(e.getMessage());
-			rst.put("RST", false);
-			rst.put("ERR_CODE", 4);
-			rst.put("ERR", e.getMessage());
-			return rst;
-		} catch (IOException e) {
-			System.out.println(e.getMessage());
-			rst.put("RST", false);
-			rst.put("ERR_CODE", 4);
-			rst.put("ERR", e.getMessage());
-			return rst;
-		}
-
-	}
+	 
 
 	/**
 	 * 获取提交的无参数模式的内容
