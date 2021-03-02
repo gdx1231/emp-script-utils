@@ -1,5 +1,7 @@
 package test.java;
 
+import org.junit.Test;
+
 import com.gdxsoft.easyweb.utils.UAes;
 import com.gdxsoft.easyweb.utils.Utils;
 
@@ -10,6 +12,7 @@ public class TestAes extends TestBase {
 		t.testAes();
 	}
 
+	@Test
 	public void testAes() {
 		this.testAes(UAes.AES_128_CCM);
 

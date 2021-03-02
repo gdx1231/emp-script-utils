@@ -13,10 +13,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Cookie的操作
- * 
- * @author admin
- *
+ * Cookie Utils
  */
 public class UCookies {
 	private static Logger LOGGER = LoggerFactory.getLogger(UCookies.class);
