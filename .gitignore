@@ -10,3 +10,7 @@ ewa_console_conf.xml
 *.properties
 .settings
 .vscode
+.classpath
+*.log
+.factorypath
+.project

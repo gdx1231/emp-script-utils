@@ -531,12 +531,11 @@ public class UAes implements IUSymmetricEncyrpt {
 			}
 		}
 		if (cipher.aeadBlockCipher != null) {
+			byte[] aad = this.createAAD();
 			// if (macSizeBits < 32 || macSizeBits > 128 || macSizeBits % 8 != 0)
 			int macSizeBits = this.getMacSizeBits();
 			AEADParameters parameters = new AEADParameters(keyP, macSizeBits, iv);
 			cipher.aeadBlockCipher.init(isEncyrpt, parameters);
-
-			byte[] aad = this.createAAD();
 			cipher.aeadBlockCipher.processAADBytes(aad, 0, aad.length);
 		}
 
