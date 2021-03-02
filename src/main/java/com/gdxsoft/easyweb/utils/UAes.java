@@ -8,7 +8,9 @@ import java.security.NoSuchProviderException;
 import java.security.Security;
 import java.util.Arrays;
 
+import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
+import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
 import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.IvParameterSpec;
@@ -108,8 +110,8 @@ public class UAes implements IUSymmetricEncyrpt {
 
 	private SecretKeySpec keySpec;
 	private IvParameterSpec ivSpec;
-	private Cipher encCipher;
-	private Cipher deCipher;
+	private OpCipher enCipher;
+	private OpCipher deCipher;
 	private String paddingMethod; // aes transformation 加密模式
 	private String cipherName;
 	private byte[] iv;
@@ -133,10 +135,10 @@ public class UAes implements IUSymmetricEncyrpt {
 	}
 
 	/**
-	 * 初始化默认的 key和iv
+	 * Initialize the default key and iv
 	 * 
-	 * @param key 默认的密码
-	 * @param iv  默认的向量
+	 * @param key the key
+	 * @param iv  the iv
 	 */
 	public synchronized static void initDefaultKey(String key, String iv) {
 		AES_KEY_VALUE = key;
@@ -144,31 +146,31 @@ public class UAes implements IUSymmetricEncyrpt {
 	}
 
 	/**
-	 * 获取默认密码的 AES (aes128cbc)
+	 * Get a AES with default key and iv
 	 * 
-	 * @return 默认密码的 AES
+	 * @return AES
 	 * @throws Exception
 	 */
 	public synchronized static UAes getInstance() throws Exception {
 		if (AES_KEY_VALUE == null || AES_IV_VALUE == null) {
-			throw new Exception("请用 UAes.initDefaultKey 初始化");
+			throw new Exception("Please using UAes.initDefaultKey initialize");
 		}
 		UAes aes = new UAes(AES_KEY_VALUE, AES_IV_VALUE);
 		return aes;
 	}
 
 	/**
-	 * 初始化
+	 * Initialize AES (AES_128_CBC)
 	 */
 	public UAes() {
 		this.cipherName = AES_128_CBC;
 	}
 
 	/**
-	 * 初始化
+	 * Initialize AES (AES_128_CBC)
 	 * 
-	 * @param key 密码
-	 * @param iv  向量
+	 * @param key key
+	 * @param iv  iv
 	 */
 	public UAes(String key, String iv) {
 		this.cipherName = AES_128_CBC;
@@ -180,10 +182,11 @@ public class UAes implements IUSymmetricEncyrpt {
 	}
 
 	/**
-	 * 初始化
+	 * Initialize AES
 	 * 
-	 * @param key 密码
-	 * @param iv  向量
+	 * @param key        the password
+	 * @param iv         the iv
+	 * @param cipherName the cipher name (aes-128-gcm ...)
 	 */
 	public UAes(String key, String iv, String cipherName) {
 		this.cipherName = cipherName;
@@ -194,10 +197,10 @@ public class UAes implements IUSymmetricEncyrpt {
 	}
 
 	/**
-	 * 初始化
+	 * Initialize AES (AES_128_CBC)
 	 * 
-	 * @param keyBuf 密码
-	 * @param ivBuf  向量
+	 * @param keyBuf the password bytes
+	 * @param ivBuf  the iv bytes
 	 */
 	public UAes(byte[] keyBuf, byte[] ivBuf) {
 		this.cipherName = AES_128_CBC;
@@ -205,10 +208,11 @@ public class UAes implements IUSymmetricEncyrpt {
 	}
 
 	/**
-	 * 初始化
+	 * Initialize AES
 	 * 
-	 * @param keyBuf 密码
-	 * @param ivBuf  向量
+	 * @param keyBuf     the password bytes
+	 * @param ivBuf      the iv bytes
+	 * @param cipherName the cipher name (aes-128-gcm ...)
 	 */
 	public UAes(byte[] keyBuf, byte[] ivBuf, String cipherName) {
 		this.cipherName = cipherName;
@@ -216,48 +220,18 @@ public class UAes implements IUSymmetricEncyrpt {
 	}
 
 	/**
-	 * Encryption data
+	 * Encrypt data
 	 * 
 	 * @param plainData data
-	 * @return encryption data
+	 * @return encrypted data
 	 * @throws Exception
 	 */
 	public byte[] encryptBytes(byte[] plainData) throws Exception {
-		if (this.usingBc) {
-			return this.encryptBytesBc(plainData);
-		} else {
-			return this.encryptBytesJava(plainData);
+		if (this.enCipher == null) {
+			OpCipher cipher = this.isUsingBc() ? this.getCipherBc(true) : this.getCipherJava(true);
+			this.enCipher = cipher;
 		}
-	}
-
-	/**
-	 * 加密以byte[]明文输入,byte[]密文输出
-	 * 
-	 * @param source 明文
-	 * @return 密文
-	 * @throws Exception
-	 */
-	public byte[] encryptBytesJava(byte[] plainData) throws Exception {
-		if (this.encCipher == null) {
-			Cipher cipher = this.getCipherJava(true);
-			this.encCipher = cipher;
-		}
-		byte[] byteFina = null;
-
-		if (this.getPaddingMethod().equals(NoPadding)) {
-			// 填充Padding
-			int blockSize = encCipher.getBlockSize();
-			int plaintextLength = plainData.length;
-			if (plaintextLength % blockSize != 0) {
-				plaintextLength = plaintextLength + (blockSize - (plaintextLength % blockSize));
-			}
-			byte[] plaintext = new byte[plaintextLength];
-			System.arraycopy(plainData, 0, plaintext, 0, plainData.length);
-
-			byteFina = encCipher.doFinal(plaintext);
-		} else {
-			byteFina = encCipher.doFinal(plainData);
-		}
+		byte[] byteFina = enCipher.processBytes(plainData);
 		return byteFina;
 	}
 
@@ -269,47 +243,29 @@ public class UAes implements IUSymmetricEncyrpt {
 	 * @throws Exception
 	 */
 	public byte[] decryptBytes(byte[] encryptedData) throws Exception {
-		if (this.usingBc) {
-			return this.decryptBytesBc(encryptedData);
-		} else {
-			return this.decryptBytesJava(encryptedData);
+		if (this.deCipher == null) {
+			this.deCipher = this.isUsingBc() ? this.getCipherBc(false) : this.getCipherJava(false);
 		}
-	}
-
-	/**
-	 * 解密以byte[]密文输入,以byte[]明文输出
-	 * 
-	 * @param bytesEncrypt 密文
-	 * @return 明文
-	 * @throws Exception
-	 */
-	public byte[] decryptBytesJava(byte[] encryptedData) throws Exception {
-		byte[] byteFina = null;
-		if (deCipher == null) {
-			Cipher cipher = this.getCipherJava(false);
-			this.deCipher = cipher;
-		}
-
-		byteFina = this.deCipher.doFinal(encryptedData);
+		byte[] byteFina = this.deCipher.processBytes(encryptedData);
 		return byteFina;
 	}
 
 	/**
-	 * Block cipher mode of operation
+	 * Block cipher mode of operation, the default is CBC
 	 * 
 	 * @return CBC/CFB/ECB ...
 	 */
 	public String getBlockCipherMode() {
 		String method;
-		if (this.cipherName.indexOf("cfb") > 0) {
+		if (this.cipherName.toLowerCase().indexOf("cfb") > 0) {
 			method = "CFB";
-		} else if (this.cipherName.indexOf("ofb") > 0) {
+		} else if (this.cipherName.toLowerCase().indexOf("ofb") > 0) {
 			method = "OFB";
-		} else if (this.cipherName.indexOf("ecb") > 0) {
+		} else if (this.cipherName.toLowerCase().indexOf("ecb") > 0) {
 			method = "ECB";
-		} else if (this.cipherName.indexOf("ctr") > 0) {
+		} else if (this.cipherName.toLowerCase().indexOf("ctr") > 0) {
 			method = "CTR";
-		} else if (this.cipherName.indexOf("gcm") > 0) {
+		} else if (this.cipherName.toLowerCase().indexOf("gcm") > 0) {
 			method = "GCM";
 		} else {
 			method = "CBC";
@@ -341,7 +297,7 @@ public class UAes implements IUSymmetricEncyrpt {
 	 * @throws NoSuchPaddingException
 	 * @throws NoSuchProviderException
 	 */
-	private Cipher getCipherJava(boolean isEncrypt) throws InvalidKeyException, InvalidAlgorithmParameterException,
+	private OpCipher getCipherJava(boolean isEncrypt) throws InvalidKeyException, InvalidAlgorithmParameterException,
 			NoSuchAlgorithmException, NoSuchPaddingException, NoSuchProviderException {
 
 		Cipher cipher;
@@ -379,87 +335,11 @@ public class UAes implements IUSymmetricEncyrpt {
 		} else {
 			cipher.init(isEncrypt ? Cipher.ENCRYPT_MODE : Cipher.DECRYPT_MODE, keySpec, ivSpec);
 		}
-
-		return cipher;
-	}
-
-	/**
-	 * Encrypt data (Using bouncy castle)
-	 * 
-	 * @param plainData source
-	 * @return encrypted data
-	 * @throws Exception
-	 */
-	public byte[] encryptBytesBc(byte[] plainData) throws Exception {
-		BCCipher cipher = this.getCipherBc(true);
-		byte[] result = cipher.processBytes(plainData);
-		return result;
-	}
-
-	/**
-	 * Decrypt data (Using bouncy castle)
-	 * 
-	 * @param encryptedData the encrypted data
-	 * @return plain data
-	 * @throws Exception
-	 */
-	public byte[] decryptBytesBc(byte[] encryptedData) throws Exception {
-		BCCipher cipher = this.getCipherBc(false);
-
-		byte[] result = cipher.processBytes(encryptedData);
-
-		return result;
-
-	}
-
-	/**
-	 * 初始化 key,iv
-	 * 
-	 * @param keyBuf 密码
-	 * @param ivBuf  向量
-	 */
-	private void init(byte[] keyBuf, byte[] ivBuf) {
-
-		int keyBitLength = this.getKeyLength();
-
-		byte[] ivBytes = new byte[16];// IV length: must be 16 bytes long
-		Arrays.fill(ivBytes, (byte) 0);
-		System.arraycopy(ivBuf, 0, ivBytes, 0, ivBuf.length > ivBytes.length ? ivBytes.length : ivBuf.length);
-		this.iv = ivBytes;
-
-		/**
-		 * 设置AES密钥长度 AES要求密钥长度为128位或192位或256位，java默认限制AES密钥长度最多128位
-		 * 如需192位或256位，则需要到oracle官网找到对应版本的jdk下载页，在"Additional Resources"中找到 "Java
-		 * Cryptography Extension (JCE) Unlimited Strength Jurisdiction Policy
-		 * Files",点击[DOWNLOAD]下载
-		 * 将下载后的local_policy.jar和US_export_policy.jar放到jdk安装目录下的jre/lib/security/目录下，替换该目录下的同名文件
-		 */
-
-		// System.out.println(keyBitLength);
-
-		byte[] key = new byte[keyBitLength];
-		Arrays.fill(key, (byte) 0);
-		System.arraycopy(keyBuf, 0, key, 0, keyBuf.length > key.length ? key.length : keyBuf.length);
-
-		this.key = key;
-
-		SecretKeySpec keyspec = new SecretKeySpec(key, "AES");
-		IvParameterSpec ivspec = new IvParameterSpec(ivBytes);
-
-		this.keySpec = keyspec;
-		this.ivSpec = ivspec;
-	}
-
-	private BlockCipherPadding getPadding() {
-		if (this.getPaddingMethod().equals(PKCS7Padding)) {
-			BlockCipherPadding pdding = new org.bouncycastle.crypto.paddings.PKCS7Padding();
-			return pdding;
-		} else if (this.getPaddingMethod().equals(PKCS5Padding)) {
-			BlockCipherPadding pdding = new org.bouncycastle.crypto.paddings.PKCS7Padding();
-			return pdding;
-		} else {
-			return null;
-		}
+		OpCipher op = new OpCipher();
+		op.parant = this;
+		op.encrypt = isEncrypt;
+		op.cipher = cipher;
+		return op;
 	}
 
 	/**
@@ -469,10 +349,13 @@ public class UAes implements IUSymmetricEncyrpt {
 	 * @return BCCipher
 	 * @throws InvalidAlgorithmParameterException
 	 */
-	private BCCipher getCipherBc(boolean isEncyrpt) throws InvalidAlgorithmParameterException {
+	private OpCipher getCipherBc(boolean isEncyrpt) throws InvalidAlgorithmParameterException {
 		AESEngine engine = new AESEngine();
 
-		BCCipher cipher = new BCCipher();
+		OpCipher cipher = new OpCipher();
+		cipher.encrypt = isEncyrpt;
+		cipher.parant = this;
+
 		int bitBlockSize = 16 * 8;
 		BlockCipherPadding pdding = getPadding();
 
@@ -543,11 +426,60 @@ public class UAes implements IUSymmetricEncyrpt {
 	}
 
 	/**
-	 * 加密明文
+	 * Initialize the key and iv
 	 * 
-	 * @param source      明文
-	 * @param charsetName 字符集名称 utf8/gbk ...
-	 * @return base64编码的密文
+	 * @param keyBuf the password bytes
+	 * @param ivBuf  the iv bytes
+	 */
+	private void init(byte[] keyBuf, byte[] ivBuf) {
+
+		int keyBitLength = this.getKeyLength();
+
+		byte[] ivBytes = new byte[16];// IV length: must be 16 bytes long
+		Arrays.fill(ivBytes, (byte) 0);
+		System.arraycopy(ivBuf, 0, ivBytes, 0, ivBuf.length > ivBytes.length ? ivBytes.length : ivBuf.length);
+		this.iv = ivBytes;
+
+		/*
+		 * 设置AES密钥长度 AES要求密钥长度为128位或192位或256位，java默认限制AES密钥长度最多128位
+		 * 如需192位或256位，则需要到oracle官网找到对应版本的jdk下载页，在"Additional Resources"中找到 "Java
+		 * Cryptography Extension (JCE) Unlimited Strength Jurisdiction Policy
+		 * Files",点击[DOWNLOAD]下载
+		 * 将下载后的local_policy.jar和US_export_policy.jar放到jdk安装目录下的jre/lib/security/目录下，
+		 * 替换该目录下的同名文件
+		 */
+
+		byte[] key = new byte[keyBitLength];
+		Arrays.fill(key, (byte) 0);
+		System.arraycopy(keyBuf, 0, key, 0, keyBuf.length > key.length ? key.length : keyBuf.length);
+
+		this.key = key;
+
+		SecretKeySpec keyspec = new SecretKeySpec(key, "AES");
+		IvParameterSpec ivspec = new IvParameterSpec(ivBytes);
+
+		this.keySpec = keyspec;
+		this.ivSpec = ivspec;
+	}
+
+	private BlockCipherPadding getPadding() {
+		if (this.getPaddingMethod().equals(PKCS7Padding)) {
+			BlockCipherPadding pdding = new org.bouncycastle.crypto.paddings.PKCS7Padding();
+			return pdding;
+		} else if (this.getPaddingMethod().equals(PKCS5Padding)) {
+			BlockCipherPadding pdding = new org.bouncycastle.crypto.paddings.PKCS7Padding();
+			return pdding;
+		} else {
+			return null;
+		}
+	}
+
+	/**
+	 * Encrypt String with charsetName
+	 * 
+	 * @param source      the source string
+	 * @param charsetName the charsetNamee UTF8/GBK ...
+	 * @return the base64 encoded ciphertext
 	 * @throws Exception
 	 */
 	public String encrypt(String source, String charsetName) throws Exception {
@@ -562,22 +494,18 @@ public class UAes implements IUSymmetricEncyrpt {
 	}
 
 	/**
-	 * 加密明文
+	 * Encrypt String
 	 * 
-	 * @param source UTF8明文
-	 * @return base64编码的密文
+	 * @param source the UTF8 string
+	 * @return the base64 encoded ciphertext
 	 * @throws Exception
 	 */
 	public String encrypt(String source) throws Exception {
-		return this.encrypt(source, "UTF8");
+		return this.encrypt(source, "utf8");
 	}
 
 	/**
-	 * 加密明文 ，同 encrypt
-	 * 
-	 * @param source 明文
-	 * @return base64编码的密文
-	 * @throws Exception
+	 * Encrypt String, same as encrypt
 	 */
 	@Deprecated
 	public String encode(String source) throws Exception {
@@ -585,11 +513,7 @@ public class UAes implements IUSymmetricEncyrpt {
 	}
 
 	/**
-	 * 加密明文，同 encrypt
-	 * 
-	 * @param strMing 明文
-	 * @return base64编码的密文
-	 * @throws Exception
+	 * Encrypt String, same as encrypt
 	 */
 	@Deprecated
 	public String getEncString(String strMing) throws Exception {
@@ -599,18 +523,19 @@ public class UAes implements IUSymmetricEncyrpt {
 	}
 
 	/**
-	 * 解密 以String密文输入,String明文输出
+	 * Decrypt the base64 encoded ciphertext
 	 * 
-	 * @param base64Encrypt 密文
-	 * @return 明文
+	 * @param base64Ciphertext the base64 encoded ciphertext
+	 * @param charsetName      the return text's character set
+	 * @return the plain text
 	 * @throws Exception
 	 */
-	public String decrypt(String base64Encrypt, String charsetName) throws Exception {
+	public String decrypt(String base64Ciphertext, String charsetName) throws Exception {
 		byte[] byteMing = null;
 		byte[] byteMi = null;
 		String strMing = "";
 		try {
-			byteMi = UConvert.FromBase64String(base64Encrypt);
+			byteMi = UConvert.FromBase64String(base64Ciphertext);
 			byteMing = this.decryptBytes(byteMi);
 			strMing = new String(byteMing, charsetName);
 		} catch (Exception e) {
@@ -623,33 +548,33 @@ public class UAes implements IUSymmetricEncyrpt {
 	}
 
 	/**
-	 * 解密 以String密文输入,String明文输出
+	 * Decrypt the base64 encoded ciphertext
 	 * 
-	 * @param base64Encrypt 密文
-	 * @return 明文 UTF8
+	 * @param base64Ciphertext the base64 encoded ciphertext
+	 * @return the plain text (UTF8)
 	 * @throws Exception
 	 */
-	public String decrypt(String base64Encrypt) throws Exception {
-		return this.decrypt(base64Encrypt, "UTF8");
+	public String decrypt(String base64Ciphertext) throws Exception {
+		return this.decrypt(base64Ciphertext, "UTF8");
 	}
 
 	/**
-	 * 解密 以String密文输入
+	 * Decrypt the encrypted data
 	 * 
-	 * @param byteMi 密文
-	 * @return 明文 UTF8
+	 * @param encryptedData the encrypted data
+	 * @return the plain text (UTF8)
 	 * @throws Exception
 	 */
-	public String decrypt(byte[] byteMi) throws Exception {
-		byte[] byteMing = this.decryptBytes(byteMi);
+	public String decrypt(byte[] encryptedData) throws Exception {
+		byte[] byteMing = this.decryptBytes(encryptedData);
 		String strMing = new String(byteMing, "UTF8");
 		return strMing;
 	}
 
 	/**
-	 * AES key bytes length
+	 * AES key bytes length (16->128, 24->192, 32->256)
 	 * 
-	 * @return length
+	 * @return the key's length
 	 */
 	public int getKeyLength() {
 		if (cipherName.indexOf("192") > 0) {
@@ -661,11 +586,7 @@ public class UAes implements IUSymmetricEncyrpt {
 	}
 
 	/**
-	 * 解密 以String密文输入,String明文输出
-	 * 
-	 * @param byteMi 密文
-	 * @return 明文 UTF8
-	 * @throws Exception
+	 * Decrypt
 	 */
 	@Deprecated
 	public String getDesString(byte[] byteMi) throws Exception {
@@ -675,11 +596,7 @@ public class UAes implements IUSymmetricEncyrpt {
 	}
 
 	/**
-	 * 解密
-	 * 
-	 * @param base64Mi base64编码的密文
-	 * @return 明文UTF8
-	 * @throws Exception
+	 * Decrypt
 	 */
 	@Deprecated
 	public String decode(String base64Mi) throws Exception {
@@ -687,11 +604,7 @@ public class UAes implements IUSymmetricEncyrpt {
 	}
 
 	/**
-	 * 加密
-	 * 
-	 * @param strMing 明文
-	 * @return base64编码的密文
-	 * @throws Exception
+	 * Encrypt
 	 */
 	@Deprecated
 	public byte[] getEncBytes(String strMing) throws Exception {
@@ -709,11 +622,7 @@ public class UAes implements IUSymmetricEncyrpt {
 	}
 
 	/**
-	 * 解密 同 decrypt
-	 * 
-	 * @param strMi 密文
-	 * @return 明文
-	 * @throws Exception
+	 * Decrypt
 	 */
 	@Deprecated
 	public String getDesString(String strMi) throws Exception {
@@ -721,11 +630,7 @@ public class UAes implements IUSymmetricEncyrpt {
 	}
 
 	/**
-	 * 解密 ，同 decryptBytes
-	 * 
-	 * @param bytesEncrypt 密文
-	 * @return 明文
-	 * @throws Exception
+	 * DecryptBytes
 	 */
 	@Deprecated
 	public byte[] getDesBytes(byte[] bytesEncrypt) throws Exception {
@@ -733,133 +638,124 @@ public class UAes implements IUSymmetricEncyrpt {
 	}
 
 	/**
-	 * 初始化key和 iv，iv =keyBytes倒序
+	 * Initialize the password and iv<br>
+	 * iv = Reverse keyBytes
 	 * 
-	 * @param keyBytes 密码
-	 * @throws Exception
+	 * @param keyBytes the password
 	 */
-	public void createKey(byte[] keyBytes) throws Exception {
-		if (keyBytes.length < 16) {
-			throw new Exception("key长度>=16bytes");
-		}
-		byte[] ivBytes = new byte[16];// IV length: must be 16 bytes long
+	public void createKey(byte[] keyBytes) {
+
+		byte[] ivBytes = new byte[keyBytes.length];
 		for (int i = 0; i < ivBytes.length; i++) {
 			ivBytes[i] = keyBytes[keyBytes.length - 1 - i];
 		}
-
 		this.init(keyBytes, ivBytes);
 	}
 
 	/**
-	 * 获取密码
+	 * Get SecretKeySpec
 	 * 
-	 * @return 密码
+	 * @return keySpec
 	 */
 	public SecretKeySpec getKeySpec() {
 		return keySpec;
 	}
 
 	/**
-	 * 设置 密码
+	 * Set SecretKeySpec
 	 * 
-	 * @param keySpec 密码
+	 * @param keySpec SecretKeySpec
 	 */
 	public void setKeySpec(SecretKeySpec keySpec) {
 		this.keySpec = keySpec;
 	}
 
 	/**
-	 * 获取向量 iv
+	 * Get IvParameterSpec
 	 * 
-	 * @return 向量 iv
+	 * @return ivSpec
 	 */
 	public IvParameterSpec getIvSpec() {
 		return ivSpec;
 	}
 
 	/**
-	 * 设置向量 iv
+	 * Set IvParameterSpec
 	 * 
-	 * @param ivSpec iv
+	 * @param ivSpec IvParameterSpec
 	 */
 	public void setIvSpec(IvParameterSpec ivSpec) {
 		this.ivSpec = ivSpec;
 	}
 
 	/**
-	 * 编码对象
+	 * PADDING AES/CBC/PKCS7Padding
 	 * 
-	 * @return 编码对象
-	 */
-	public Cipher getEncCipher() {
-		return encCipher;
-	}
-
-	/**
-	 * 编码对象
-	 * 
-	 * @param encCipher 编码对象
-	 */
-	public void setEncCipher(Cipher encCipher) {
-		this.encCipher = encCipher;
-	}
-
-	/**
-	 * 获取解码对象
-	 * 
-	 * @return 解码对象
-	 */
-	public Cipher getDeCipher() {
-		return deCipher;
-	}
-
-	/**
-	 * 设置解码对象
-	 * 
-	 * @param deCipher 解码对象
-	 */
-	public void setDeCipher(Cipher deCipher) {
-		this.deCipher = deCipher;
-	}
-
-	/**
-	 * PADDING 模式，例如 AES/CBC/PKCS7Padding
-	 * 
-	 * @return 模式
+	 * @return PADDING
 	 */
 	public String getPaddingMethod() {
 		return paddingMethod;
 	}
 
 	/**
-	 * PADDING，例如 AES/CBC/PKCS7Padding
+	 * PADDING AES/CBC/PKCS7Padding
 	 * 
-	 * @param paddingMethod 模式
+	 * @param paddingMethod PADDING
 	 */
 	public void setPaddingMethod(String paddingMethod) {
 		this.paddingMethod = paddingMethod;
 	}
 
+	/**
+	 * Get then cipher name
+	 * 
+	 * @return the cipherName
+	 */
 	public String getCipherName() {
 		return cipherName;
 	}
 
+	/**
+	 * Set the cipher name
+	 * 
+	 * @param cipherName the cipher name
+	 */
 	public void setCipherName(String cipherName) {
 		this.cipherName = cipherName;
 	}
 
+	/**
+	 * Get the GCM/CCM mac bits size, default is 128
+	 * 
+	 * @return the GCM/CCM mac bits size
+	 */
 	public int getMacSizeBits() {
 		return macSizeBits;
 	}
 
+	/**
+	 * Set the GCM/CCM mac bits size, default is 128
+	 * 
+	 * @param macSizeBits 32 ~ 128 , divisible by 8
+	 */
 	public void setMacSizeBits(int macSizeBits) {
 		this.macSizeBits = macSizeBits;
 	}
 
+	/**
+	 * whether to use the BouncyCastle provider, default is BouncyCastle
+	 * 
+	 * @return
+	 */
 	public boolean isUsingBc() {
 		return usingBc;
 	}
 
+	/**
+	 * Set whether to use the BouncyCastle provider
+	 * 
+	 * @param usingBc true=BC,false=java.security
+	 */
 	public void setUsingBc(boolean usingBc) {
 		this.usingBc = usingBc;
 	}
@@ -887,12 +783,18 @@ public class UAes implements IUSymmetricEncyrpt {
 	}
 }
 
-class BCCipher {
+/**
+ * Inner class for BouncyCastle encrypt/decrypt
+ */
+class OpCipher {
+	UAes parant;
+	boolean encrypt;
+	Cipher cipher;
 	BufferedBlockCipher cipherBufferBlock;
 	AEADBlockCipher aeadBlockCipher;
 
-	public byte[] processBytes(byte[] source)
-			throws DataLengthException, IllegalStateException, InvalidCipherTextException {
+	public byte[] processBytes(byte[] source) throws DataLengthException, IllegalStateException,
+			InvalidCipherTextException, IllegalBlockSizeException, BadPaddingException {
 		if (this.cipherBufferBlock != null) {
 			byte[] buffer = new byte[cipherBufferBlock.getOutputSize(source.length)];
 			int pos = cipherBufferBlock.processBytes(source, 0, source.length, buffer, 0);
@@ -905,9 +807,25 @@ class BCCipher {
 			pos += aeadBlockCipher.doFinal(buffer, pos);
 
 			return Arrays.copyOf(buffer, pos);
+		} else if (cipher != null) {
+
+			if (this.encrypt && !parant.getBlockCipherMode().equals("GCM") && !parant.getBlockCipherMode().equals("CCM")
+					&& parant.getPaddingMethod().equals(UAes.NoPadding)) {
+				// 填充Padding
+				int blockSize = cipher.getBlockSize();
+				int plaintextLength = source.length;
+				if (plaintextLength % blockSize != 0) {
+					plaintextLength = plaintextLength + (blockSize - (plaintextLength % blockSize));
+				}
+				byte[] plaintext = new byte[plaintextLength];
+				System.arraycopy(source, 0, plaintext, 0, source.length);
+
+				return cipher.doFinal(plaintext);
+			} else {
+				return cipher.doFinal(source);
+			}
 		} else {
 			return null;
 		}
 	}
-
 }

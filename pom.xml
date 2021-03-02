@@ -49,20 +49,22 @@
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-javadoc-plugin</artifactId>
-				<!-- <version>3.2.0</version> -->
-				<!-- Maven在Java8下忽略Javadoc的编译错误 https://liumapp.gitee.io/articles/2018/08/22/1534905949519.html/ -->
-				<version>2.10.3</version>
+				<version>3.2.0</version> 
 				<executions>
 					<execution>
 						<phase>package</phase>
 						<goals>
 							<goal>jar</goal>
 						</goals>
-						<configuration>
-							<additionalparam>-Xdoclint:none</additionalparam>
-						</configuration>
 					</execution>
 				</executions>
+				<configuration>
+                            <encoding>UTF-8</encoding>
+                            <charset>UTF-8</charset>
+                            <additionalOptions>
+                                <additionalOption>-Xdoclint:none</additionalOption>
+                            </additionalOptions>
+                        </configuration>
 			</plugin>
 		</plugins>
 	</build>
