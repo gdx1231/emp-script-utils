@@ -21,6 +21,14 @@ public class TestLogic extends TestBase {
 		super.printCaption("testLogic");
 
 		this.test(" 1 = 1 ");
+		this.test(" 1 = 1 ");
+		this.test(" 1 = 1 ");
+		this.test(" 1 = 1 ");
+		this.test(" 1 = 1 ");
+		this.test(" 1 = 1 ");
+		this.test(" 1 = 1 ");
+		this.test(" 1 = 1 ");
+		this.test(" 1 == 1 ");
 		this.test(" 'a' = 'a' ");
 		this.test(" 31 < 1 ");
 		this.test(" 'aaa' = 'aaa' ");

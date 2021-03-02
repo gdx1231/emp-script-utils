@@ -12,13 +12,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * 利用HSQLDB 内存数据库进行逻辑运算
- * 
- * @author admin
- *
+ * Use HSQLDB memory database for logical operations
  */
 public class ULogic {
-	private static Map<Integer, Boolean> CACHE = new ConcurrentHashMap<Integer, Boolean>(); // 缓存
+	private static Map<String, Boolean> CACHE = new ConcurrentHashMap<String, Boolean>(); // 缓存
 	private static Logger LOGGER = LoggerFactory.getLogger(ULogic.class);
 
 	static {
@@ -26,7 +23,6 @@ public class ULogic {
 		Connection conn = null;
 		try {
 			conn = createConn();
-
 			// This property, when set TRUE, enables support for some elements of Oracle
 			// syntax. The DUAL table is supported
 			// , together with ROWNUM, NEXTVAL and CURRVAL syntax and semantics.
@@ -34,7 +30,6 @@ public class ULogic {
 			st.execute("SET DATABASE SQL SYNTAX ORA TRUE ");
 
 			LOGGER.info("initLogic org.hsqldb.jdbcDriver ");
-
 		} catch (Exception e) {
 			String ERR_MSG = e.getMessage();
 			LOGGER.error(ERR_MSG);
@@ -57,7 +52,7 @@ public class ULogic {
 	}
 
 	/**
-	 * 创建连接
+	 * Create connection
 	 * 
 	 * @return
 	 * @throws Exception
@@ -69,9 +64,9 @@ public class ULogic {
 	}
 
 	/**
-	 * 执行表达式
+	 * Execute the logic expression
 	 * 
-	 * @param exp
+	 * @param exp the logic expression
 	 * @return true/false
 	 * 
 	 */
@@ -85,22 +80,22 @@ public class ULogic {
 			return false;
 		}
 
-		int expCode = exp1.hashCode();
-		if (CACHE.containsKey(expCode)) {
-			return CACHE.get(expCode);
+		String md5 = Utils.md5(exp1);
+		if (CACHE.containsKey(md5)) {
+			return CACHE.get(md5);
 		}
 
-		boolean rst = execExpFromJdbc(exp);
+		boolean rst = execExpFromJdbc(exp, md5);
 		return rst;
 	}
 
 	/**
-	 * 从数据库返回表达式
+	 * Execute the logic expression for hsqldb
 	 * 
-	 * @param exp
+	 * @param exp the logic expression
 	 * @return
 	 */
-	private static boolean execExpFromJdbc(String exp) {
+	private static boolean execExpFromJdbc(String exp, String md5) {
 		boolean rst = false;
 		Statement st = null;
 		ResultSet rs = null;
@@ -139,19 +134,19 @@ public class ULogic {
 				}
 			}
 		}
-		addToCahche(exp.hashCode(), rst);
+		addToCahche(md5, rst);
 		long t1 = System.currentTimeMillis();
 		LOGGER.debug(rst + " " + testSql + " " + (t1 - t0) + "ms");
 		return rst;
 	}
 
 	/**
-	 * 添加表达式到缓存中
+	 * Cached the expression
 	 * 
 	 * @param code
 	 * @param rst
 	 */
-	private synchronized static void addToCahche(int code, boolean rst) {
-		CACHE.put(code, rst);
+	private static void addToCahche(String md5, boolean rst) {
+		CACHE.put(md5, rst);
 	}
 }
