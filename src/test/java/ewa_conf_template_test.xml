@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ewa_confs>
-
+<!-- 
+	copy the file to ewa_conf.xml
+ -->
 	<!-- default DES key and iv -->
 	<des desIvValue="sdfsdfsdfsd"
 		desKeyValue="sdfisdfskldf23492384sdfjkjsldkfjskl" />
