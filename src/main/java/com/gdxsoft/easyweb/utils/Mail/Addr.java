@@ -16,6 +16,18 @@ public class Addr {
 		this._Name = name;
 	}
 
+	public String toString() {
+		StringBuilder sb = new StringBuilder();
+		if (this._Name != null) {
+			sb.append(this._Name);
+			sb.append(" ");
+		}
+		sb.append("<");
+		sb.append(this._Email);
+		sb.append(">");
+		return sb.toString();
+	}
+
 	/**
 	 * @return the _Name
 	 */
@@ -24,8 +36,7 @@ public class Addr {
 	}
 
 	/**
-	 * @param name
-	 *            the _Name to set
+	 * @param name the _Name to set
 	 */
 	public void setName(String name) {
 		_Name = name;
@@ -39,8 +50,7 @@ public class Addr {
 	}
 
 	/**
-	 * @param email
-	 *            the _Email to set
+	 * @param email the _Email to set
 	 */
 	public void setEmail(String email) {
 		_Email = email;

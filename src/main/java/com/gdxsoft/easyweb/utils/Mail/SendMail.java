@@ -22,7 +22,6 @@ import jakarta.mail.internet.MimeMessage;
 import jakarta.mail.internet.MimeMultipart;
 import jakarta.mail.internet.MimeUtility;
 
-import com.gdxsoft.easyweb.utils.UMail;
 import com.gdxsoft.easyweb.utils.Utils;
 
 import org.slf4j.Logger;
@@ -47,13 +46,10 @@ public class SendMail {
 
 	private Addr from_;
 	private Addr sender_;
-
 	private Addr singleTo_;
-
 	private HashMap<String, Addr> tos_ = new HashMap<String, Addr>();
 	private HashMap<String, Addr> ccs_ = new HashMap<String, Addr>();
 	private HashMap<String, Addr> bccs_ = new HashMap<String, Addr>();
-
 	private HashMap<String, Addr> replayTos_ = new HashMap<String, Addr>();
 
 	private HashMap<String, Attachment> atts_ = new HashMap<String, Attachment>();
@@ -142,6 +138,9 @@ public class SendMail {
 	 */
 	public SendMail setSender(Addr sender) {
 		sender_ = sender;
+		if (is_mail_debug_) {
+			log.info(this.sender_.toString());
+		}
 		return this;
 	}
 
@@ -154,6 +153,9 @@ public class SendMail {
 	 */
 	public SendMail setSender(String senderEmail, String senderName) {
 		this.sender_ = new Addr(senderEmail, senderName);
+		if (is_mail_debug_) {
+			log.info(this.sender_.toString());
+		}
 		return this;
 	}
 
@@ -165,6 +167,9 @@ public class SendMail {
 	 */
 	public SendMail setSender(String senderEmail) {
 		this.sender_ = new Addr(senderEmail, null);
+		if (is_mail_debug_) {
+			log.info(this.sender_.toString());
+		}
 		return this;
 	}
 
@@ -209,10 +214,8 @@ public class SendMail {
 	 * @return SendMail
 	 */
 	public SendMail addTo(String toEmail, String toName) {
-		String keytoEmail = toEmail.trim().toLowerCase();
 		Addr to = new Addr(toEmail, toName);
-		tos_.put(keytoEmail, to);
-		return this;
+		return this.addTo(to);
 	}
 
 	/**
@@ -224,6 +227,9 @@ public class SendMail {
 	public SendMail addTo(Addr to) {
 		String keytoEmail = to.getEmail().toUpperCase().trim();
 		tos_.put(keytoEmail, to);
+		if (is_mail_debug_) {
+			log.info(to.toString());
+		}
 		return this;
 	}
 
@@ -246,10 +252,9 @@ public class SendMail {
 	 * @return SendMail
 	 */
 	public SendMail addReplyTo(String replyToEmail, String replyToName) {
-		String keytoEmail = replyToEmail.trim().toLowerCase();
 		Addr to = new Addr(replyToEmail, replyToName);
-		this.replayTos_.put(keytoEmail, to);
-		return this;
+
+		return this.addReplyTo(to);
 	}
 
 	/**
@@ -261,6 +266,9 @@ public class SendMail {
 	public SendMail addReplyTo(Addr replyTo) {
 		String keytoEmail = replyTo.getEmail().toUpperCase().trim();
 		replayTos_.put(keytoEmail, replyTo);
+		if (is_mail_debug_) {
+			log.info(replyTo.toString());
+		}
 		return this;
 	}
 
@@ -306,10 +314,8 @@ public class SendMail {
 	 * @return SendMail
 	 */
 	public SendMail addCc(String ccEmail, String ccName) {
-		String keytoEmail = ccEmail.trim().toLowerCase();
 		Addr to = new Addr(ccEmail, ccName);
-		ccs_.put(keytoEmail, to);
-		return this;
+		return this.addCc(to);
 	}
 
 	/**
@@ -321,6 +327,9 @@ public class SendMail {
 	public SendMail addCc(Addr cc) {
 		String keytoEmail = cc.getEmail().toUpperCase().trim();
 		bccs_.put(keytoEmail, cc);
+		if (is_mail_debug_) {
+			log.info(cc.toString());
+		}
 		return this;
 	}
 
@@ -365,10 +374,8 @@ public class SendMail {
 	 * @return SendMail
 	 */
 	public SendMail addBcc(String bccEmail, String bccName) {
-		String keytoEmail = bccEmail.trim().toLowerCase();
 		Addr to = new Addr(bccEmail, bccName);
-		bccs_.put(keytoEmail, to);
-		return this;
+		return this.addBcc(to);
 	}
 
 	/**
@@ -380,6 +387,9 @@ public class SendMail {
 	public SendMail addBcc(Addr bcc) {
 		String keytoEmail = bcc.getEmail().toUpperCase().trim();
 		bccs_.put(keytoEmail, bcc);
+		if (is_mail_debug_) {
+			log.info(bcc.toString());
+		}
 		return this;
 	}
 
@@ -417,7 +427,9 @@ public class SendMail {
 
 		Attachment att = this.createAtt(name, path);
 		this.atts_.put(att.getAttachName(), att);
-
+		if (is_mail_debug_) {
+			log.info(att.toString());
+		}
 		return this;
 	}
 
@@ -437,7 +449,9 @@ public class SendMail {
 
 		Attachment att = this.createAtt(attName, path);
 		this.atts_.put(att.getAttachName(), att);
-
+		if (is_mail_debug_) {
+			log.info(att.toString());
+		}
 		return this;
 	}
 
@@ -482,6 +496,9 @@ public class SendMail {
 	public SendMail addAttach(String attName, String path) {
 		Attachment att = this.createAtt(attName, path);
 		this.atts_.put(att.getAttachName(), att);
+		if (is_mail_debug_) {
+			log.info(att.toString());
+		}
 		return this;
 	}
 
@@ -564,7 +581,9 @@ public class SendMail {
 		}
 		// System.out.println("SMTP: " + host + ":" + port + ", uid=" + uid + ", pwd=" +
 		// pwd);
-
+		if (is_mail_debug_) {
+			log.info(props.toString());
+		}
 		return this;
 	}
 
@@ -579,6 +598,9 @@ public class SendMail {
 		}
 		if (props == null) {
 			SmtpCfg cfg = SmtpCfgs.getSmtpCfg(this);
+			if (is_mail_debug_) {
+				log.info(cfg.toString());
+			}
 			mailSession = SmtpCfgs.createMailSession(cfg);
 		} else {
 			if (smtp_uid != null && smtp_uid.trim().length() > 0) {
@@ -591,6 +613,9 @@ public class SendMail {
 			}
 		}
 		mailSession.setDebug(this.is_mail_debug_);
+		if (is_mail_debug_) {
+			log.info(mailSession.toString());
+		}
 		return mailSession;
 	}
 
@@ -776,7 +801,7 @@ public class SendMail {
 		mm.setSentDate(new Date());
 
 		if (!this.headers_.containsKey("X-Mailer")) {
-			this.headers_.put("X-Mailer", "EWA2(java) gdxsoft.com");
+			this.headers_.put("X-Mailer", "com.gdxsoft.easyweb(emp-script-utils)");
 		}
 
 		// 添加头部
@@ -794,7 +819,9 @@ public class SendMail {
 		} catch (Exception e) {
 			log.error(e.getMessage());
 		}
-
+		if (is_mail_debug_) {
+			log.info(mm.getFrom().toString() + " ->" + mm.getAllRecipients() + ", " + mm.getSubject());
+		}
 		return mm;
 	}
 
@@ -807,6 +834,9 @@ public class SendMail {
 	 */
 	public SendMail addHeader(String name, String value) {
 		headers_.put(name, value);
+		if (is_mail_debug_) {
+			log.info(name + ": " + value);
+		}
 		return this;
 	}
 

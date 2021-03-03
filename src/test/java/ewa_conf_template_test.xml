@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ewa_confs>
+
+	<!-- default DES key and iv -->
+	<des desIvValue="sdfsdfsdfsd"
+		desKeyValue="sdfisdfskldf23492384sdfjkjsldkfjskl" />
+
+	<smtps>
+		<smtp host="smtp.sina.com" port="25" user="xxxxxxxxx@sina.com"
+			pwd="xxxxxxxx" startTls="true">
+		</smtp>
+		<smtp host="smtp.sohu.com" port="465" user="xxxxxxx@sohu.com"
+			pwd="xxxxxxxxx" ssl="true" />
+		<smtp host="127.0.0.1" port="50025">
+			<to email="@gmail.com" />
+			<to email="xxxxxxxxx@126.com" />
+		</smtp>
+		<smtp default="true" host="::1" port="50025" />
+	</smtps>
+	<dkims>
+		<!-- DKIM for JavaMail needs the private key in DER format, you can transform 
+			a PEM key openssl pkcs8 -topk8 -nocrypt -in private.key.pem -out private.key.der 
+			-outform der -->
+		<dkim domain="xxxxxxxxxxxxxx.com"
+			key="/Users/jhon/test/resources/test.der" select="john" />
+	</dkims>
+</ewa_confs>

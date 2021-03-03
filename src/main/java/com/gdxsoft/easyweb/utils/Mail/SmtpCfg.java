@@ -24,6 +24,10 @@ public class SmtpCfg {
 		this.startTls = startTls;
 	}
 
+	public String toString() {
+		return this.name;
+	}
+
 	public SmtpCfg(String name, String host, String user, String password, int port) {
 
 		this.name = name;

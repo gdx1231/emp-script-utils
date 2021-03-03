@@ -10,8 +10,7 @@ public class Attachment {
 
 	public String toString() {
 		StringBuilder sb = new StringBuilder();
-		sb.append("附件名：" + this._AttachName + ", 保存地址：" + this._SavePathAndName
-				+ ", 内联:" + this._IsInline);
+		sb.append("name: " + this._AttachName + ", path: " + this._SavePathAndName + ", inline: " + this._IsInline);
 
 		return sb.toString();
 
@@ -25,8 +24,7 @@ public class Attachment {
 	}
 
 	/**
-	 * @param attachName
-	 *            the _AttachName to set
+	 * @param attachName the _AttachName to set
 	 */
 	public void setAttachName(String attachName) {
 		_AttachName = attachName;
@@ -40,8 +38,7 @@ public class Attachment {
 	}
 
 	/**
-	 * @param savePathAndName
-	 *            the _SavePathAndName to set
+	 * @param savePathAndName the _SavePathAndName to set
 	 */
 	public void setSavePathAndName(String savePathAndName) {
 		_SavePathAndName = savePathAndName;
@@ -55,8 +52,7 @@ public class Attachment {
 	}
 
 	/**
-	 * @param savePath
-	 *            the _SavePath to set
+	 * @param savePath the _SavePath to set
 	 */
 	public void setSavePath(String savePath) {
 		_SavePath = savePath;
@@ -70,8 +66,7 @@ public class Attachment {
 	}
 
 	/**
-	 * @param saveName
-	 *            the _SaveName to set
+	 * @param saveName the _SaveName to set
 	 */
 	public void setSaveName(String saveName) {
 		_SaveName = saveName;
@@ -85,8 +80,7 @@ public class Attachment {
 	}
 
 	/**
-	 * @param isInline
-	 *            the _IsInline to set
+	 * @param isInline the _IsInline to set
 	 */
 	public void setIsInline(boolean isInline) {
 		_IsInline = isInline;
@@ -100,8 +94,7 @@ public class Attachment {
 	}
 
 	/**
-	 * @param inlineId
-	 *            the _InlineId to set
+	 * @param inlineId the _InlineId to set
 	 */
 	public void setInlineId(String inlineId) {
 		_InlineId = inlineId.replace("<", "").replace(">", "");
@@ -115,8 +108,7 @@ public class Attachment {
 	}
 
 	/**
-	 * @param size
-	 *            the _Size to set
+	 * @param size the _Size to set
 	 */
 	public void setSize(int size) {
 		_Size = size;

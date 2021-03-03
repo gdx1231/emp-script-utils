@@ -5,7 +5,6 @@ import java.io.UnsupportedEncodingException;
 import jakarta.mail.MessagingException;
 import jakarta.mail.Session;
 import jakarta.mail.Transport;
-import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeMessage;
 
 import org.slf4j.Logger;

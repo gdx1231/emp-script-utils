@@ -10,10 +10,8 @@ import jakarta.mail.Session;
 import jakarta.mail.Store;
 import jakarta.mail.internet.MimeMessage;
 
-import com.gdxsoft.easyweb.utils.UMail;
 import com.gdxsoft.easyweb.utils.UPath;
 import com.gdxsoft.easyweb.utils.Mail.Attachment;
-import com.gdxsoft.easyweb.utils.Mail.DKIMCfg;
 import com.gdxsoft.easyweb.utils.Mail.MailDecode;
 import com.gdxsoft.easyweb.utils.Mail.MailLogHelper;
 import com.gdxsoft.easyweb.utils.Mail.SendMail;
@@ -29,10 +27,8 @@ public class TestMail extends TestBase {
 	public static void main(String args[]) throws Exception {
 		UPath.getCachedPath();
 		TestMail t = new TestMail();
-		t.switchValue = 0;
+		t.switchValue = 1;
 		t.testMail();
-		t.testMailSina();
-		t.testMailDkim();
 	}
 
 	@Test
@@ -40,55 +36,37 @@ public class TestMail extends TestBase {
 		if (switchValue == 0) {
 			return;
 		}
+		String subject = "日本零碳终极武器——太空光伏发电";
+		String content = "太空光伏发电”是指利用分布在太空的光伏电池板来发电，并通过微波向地面传输电力的技术。京都大学教授松本纮从1980年代就开始了相关研究，他的学生筱原真毅成功利用微波炉改进的设备让电视屏幕亮起";
+		
+		this.testMail("reminder@notify.gyap.org", "gdx1231@126.com", subject, content);
 
-		/*
-		 * super.printCaption("发送smtp邮件"); this.sendMail(host, username, password);
-		 * 
-		 * super.printCaption("读取pop3邮件"); this.readPop3Mails(host, username, password);
-		 */
+//		this.testMail("guolei@sina.com", "ios@oneworld.cc", subject, content);
+//		this.testMail("guolei@sina.com.cn", "feng.wang@oneworld.cc", subject, content);
+//
+//		this.testMail("1231gdx@sohu.COM", "gl@oneworld.cc", subject, content);
+//		this.testMail("Gdx1231@sohu.COM", "aws@oneworld.cc", subject, content);
+//
+//		this.testMail("gl@oneworld.cc", "gdx1231@gmail.com", subject, content);
+//		this.testMail("aws@oneworld.cc", "lei.guo@gyap.org", subject, content);
+
 	}
-	public void testMailSina() {
-		String username = "guolei@sina.com";
-		super.printCaption("SINA mail to gdx1231@gmail.com");
 
-		SendMail sm = new SendMail().setFrom(username).addTo("gdx1231@gmail.com").setSubject("发送smtp邮件")
-				.setTextContent("发送smtp邮件");
+	public void testMail(String from, String to, String subject, String content) {
+		SendMail sm = new SendMail().setMailDebug(true).setFrom(from).addTo(to).setSubject(subject)
+				.setHtmlContent(content).setCharset("gbk");
 
 		MailLogHelper maillog = new MailLogHelper();
 		maillog.setShowConsole(true);
 		sm.getMailSession().setDebug(true);
 		sm.getMailSession().setDebugOut(maillog);
-		
-		System.out.println(" start send ");
-		sm.send();
-		super.printCaption("send ok");
-		
-	}
-	public void testMailDkim() {
-		String username = "lei.guo@oneworld.cc";
-		super.printCaption("send mail to gdx1231@gmail.com");
 
-		SendMail sm = new SendMail().setFrom(username).addTo("gdx1231@gmail.com").setSubject("发送smtp邮件")
-				.setTextContent("发送smtp邮件");
-
-		MailLogHelper maillog = new MailLogHelper();
-		maillog.setShowConsole(true);
-		sm.getMailSession().setDebug(true);
-		sm.getMailSession().setDebugOut(maillog);
-		
-		System.out.println(" start send ");
+		super.printCaption(from + " " + to);
 		sm.send();
 		super.printCaption("send ok");
 	}
 
-	public void sendMail(String host, String username, String password) {
-		if (host == null || username == null || password == null) {
-			super.captionLength("skip test");
-			return;
-		}
-
-		UMail.sendHtmlMail(username, username, "test", "sdkfklsd");
-	}
+   
 
 	public void readPop3Mails(String host, String username, String password) throws Exception {
 
