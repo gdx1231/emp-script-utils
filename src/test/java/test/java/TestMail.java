@@ -15,6 +15,7 @@ import com.gdxsoft.easyweb.utils.UPath;
 import com.gdxsoft.easyweb.utils.Mail.Attachment;
 import com.gdxsoft.easyweb.utils.Mail.DKIMCfg;
 import com.gdxsoft.easyweb.utils.Mail.MailDecode;
+import com.gdxsoft.easyweb.utils.Mail.MailLogHelper;
 import com.gdxsoft.easyweb.utils.Mail.SendMail;
 
 import org.junit.Test;
@@ -26,9 +27,12 @@ public class TestMail extends TestBase {
 	 * PraseMimeMessage类测试
 	 */
 	public static void main(String args[]) throws Exception {
+		UPath.getCachedPath();
 		TestMail t = new TestMail();
 		t.switchValue = 0;
 		t.testMail();
+		t.testMailSina();
+		t.testMailDkim();
 	}
 
 	@Test
@@ -36,34 +40,45 @@ public class TestMail extends TestBase {
 		if (switchValue == 0) {
 			return;
 		}
-		String host = "127.0.0.1"; //
-
-		String username = "lei.guo@oneworld.cc";
-		String password = "";
-
-		DKIMCfg cfg = new DKIMCfg();
-		cfg.setDomain("oneworld.cc");
-		cfg.setSelect("gdx");
-		String der = UPath.getRealPath() + "resources/test.der";
-		System.out.println(der);
-
-		cfg.setPrivateKeyPath(der);
-		super.printCaption("send mail to gdx1231@gmail.com");
-
-		SendMail sm = new SendMail().setFrom(username).addTo("gdx1231@gmail.com").setSubject("发送smtp邮件")
-				.setTextContent("发送smtp邮件").setDkim(cfg).setMessageId("<aa" + Math.random() + ">");
-
-		System.out.println(" init " + host + "," + username + ", " + password);
-		sm.initProps(host, 25, username, password);
-		System.out.println(" start send ");
-		sm.send();
-		super.printCaption("send ok");
 
 		/*
 		 * super.printCaption("发送smtp邮件"); this.sendMail(host, username, password);
 		 * 
 		 * super.printCaption("读取pop3邮件"); this.readPop3Mails(host, username, password);
 		 */
+	}
+	public void testMailSina() {
+		String username = "guolei@sina.com";
+		super.printCaption("SINA mail to gdx1231@gmail.com");
+
+		SendMail sm = new SendMail().setFrom(username).addTo("gdx1231@gmail.com").setSubject("发送smtp邮件")
+				.setTextContent("发送smtp邮件");
+
+		MailLogHelper maillog = new MailLogHelper();
+		maillog.setShowConsole(true);
+		sm.getMailSession().setDebug(true);
+		sm.getMailSession().setDebugOut(maillog);
+		
+		System.out.println(" start send ");
+		sm.send();
+		super.printCaption("send ok");
+		
+	}
+	public void testMailDkim() {
+		String username = "lei.guo@oneworld.cc";
+		super.printCaption("send mail to gdx1231@gmail.com");
+
+		SendMail sm = new SendMail().setFrom(username).addTo("gdx1231@gmail.com").setSubject("发送smtp邮件")
+				.setTextContent("发送smtp邮件");
+
+		MailLogHelper maillog = new MailLogHelper();
+		maillog.setShowConsole(true);
+		sm.getMailSession().setDebug(true);
+		sm.getMailSession().setDebugOut(maillog);
+		
+		System.out.println(" start send ");
+		sm.send();
+		super.printCaption("send ok");
 	}
 
 	public void sendMail(String host, String username, String password) {

@@ -578,8 +578,8 @@ public class SendMail {
 			return mailSession;
 		}
 		if (props == null) {
-			SmtpCfg cfg = SmtpCfgs.getSmtpCfgByEmail(this.getFrom().getEmail());
-			mailSession = SmtpCfgs.createMailSession(cfg); 
+			SmtpCfg cfg = SmtpCfgs.getSmtpCfg(this);
+			mailSession = SmtpCfgs.createMailSession(cfg);
 		} else {
 			if (smtp_uid != null && smtp_uid.trim().length() > 0) {
 				MailAuth auth = new MailAuth(smtp_uid, smtp_pwd);
@@ -925,8 +925,17 @@ public class SendMail {
 	 * @throws DKIMSignerException
 	 */
 	public MimeMessage dkimSign(MimeMessage mm) throws Exception {
+		String from = this.getFrom().getEmail();
+		if (this.dkimSigner_ == null) {
+			// get DKIMCfg from the domain cfg
+			DKIMCfg dkimCfg = SmtpCfgs.getDkim(from);
+			if (dkimCfg != null && dkimCfg.isDkim()) {
+				this.dkimSigner_ = new DKIMSigner(dkimCfg.getDomain(), dkimCfg.getSelect(),
+						dkimCfg.getPrivateKeyPath());
+			}
+		}
 		if (this.dkimSigner_ != null) {
-			dkimSigner_.setIdentity(this.from_.getEmail());
+			dkimSigner_.setIdentity(from);
 			mm = new SMTPDKIMMessage(mm, dkimSigner_);
 		}
 		return mm;

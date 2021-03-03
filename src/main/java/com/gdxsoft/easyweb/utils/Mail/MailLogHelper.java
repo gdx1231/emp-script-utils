@@ -9,12 +9,13 @@ public class MailLogHelper extends PrintStream {
 	private boolean isData;
 
 	private boolean isShowConsole;
-
+	 
 	public boolean isShowConsole() {
 		return isShowConsole;
 	}
 
 	public void setShowConsole(boolean isShowConsole) {
+		System.out.println("Show console true");
 		this.isShowConsole = isShowConsole;
 	}
 

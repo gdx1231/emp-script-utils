@@ -8,6 +8,8 @@ import java.io.StringReader;
 import java.io.StringWriter;
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
+import java.util.HashMap;
+import java.util.Map;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -30,6 +32,26 @@ import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 
 public class UXml {
+
+	/**
+	 * Get XML Element all attributes
+	 * 
+	 * @param item       The element
+	 * @param keyToLower nodeName to lower case
+	 * @return Map<nodeName, nodeValue>
+	 */
+	public static Map<String, String> getElementAttributes(Element item, boolean keyToLower) {
+		Map<String, String> map = new HashMap<>();
+		for (int i = 0; i < item.getAttributes().getLength(); i++) {
+			Node att = item.getAttributes().item(i);
+			String name = keyToLower ? att.getNodeName().toLowerCase() : att.getNodeName();
+			String val = att.getNodeValue();
+			map.put(name, val);
+		}
+
+		return map;
+	}
+
 	/**
 	 * 过滤非法的字符 0x00 - 0x08 ,0x0b - 0x0c ,0x0e - 0x1f
 	 * 

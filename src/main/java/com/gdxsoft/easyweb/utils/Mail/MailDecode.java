@@ -113,11 +113,22 @@ public class MailDecode {
 	}
 
 	/**
+	 *  Get all recipients (to, cc, bcc)
+	 * 
+	 * @return The all recipients
+	 * @throws Exception
+	 */
+	public List<Addr> getAllRecipients() throws Exception {
+		return this.getMailAddress("ALL");
+	}
+
+	/**
 	 * 获得邮件的收件人，抄送，和密送的地址和姓名，<br>
 	 * 根据所传递的参数的不同 <br>
-	 * "to"----收件人 <br>
-	 * "cc"---抄送人地址<br>
-	 * "bcc"---密送人地址
+	 * "to" <br>
+	 * "cc"<br>
+	 * "bcc"<br>
+	 * "all" -- All recipients
 	 * 
 	 * @return 邮件地址列表
 	 */
@@ -131,8 +142,10 @@ public class MailDecode {
 				address = (InternetAddress[]) mimeMessage.getRecipients(Message.RecipientType.TO);
 			} else if (addtype.equals("CC")) {
 				address = (InternetAddress[]) mimeMessage.getRecipients(Message.RecipientType.CC);
-			} else {
+			} else  if (addtype.equals("BCC")){
 				address = (InternetAddress[]) mimeMessage.getRecipients(Message.RecipientType.BCC);
+			} else  if (addtype.equals("ALL")){
+				address = (InternetAddress[]) mimeMessage.getAllRecipients();
 			}
 			if (address != null) {
 				for (int i = 0; i < address.length; i++) {

@@ -13,6 +13,7 @@ import org.slf4j.LoggerFactory;
 
 import com.gdxsoft.easyweb.utils.Mail.DKIMCfg;
 import com.gdxsoft.easyweb.utils.Mail.SendMail;
+import com.gdxsoft.easyweb.utils.Mail.SmtpCfg;
 import com.gdxsoft.easyweb.utils.Mail.SmtpCfgs;
 
 public class UMail {
@@ -148,7 +149,7 @@ public class UMail {
 			sendmail.setCharset(charset);
 		}
 
-		DKIMCfg cfg = UMail.getDKIMCfgByEmail(from);
+		DKIMCfg cfg = SmtpCfgs.getDkim(from);
 		if (cfg != null) {
 			sendmail.setDkim(cfg);
 		}
@@ -174,27 +175,6 @@ public class UMail {
 		return null;
 	}
 
-	/**
-	 * Get the DKIMCfg from the email
-	 * 
-	 * @param email The email
-	 * @return DKIMCfg
-	 */
-	public static DKIMCfg getDKIMCfgByEmail(String email) {
-		String domain = getEmailDomain(email);
-		return SmtpCfgs.getDomain(domain);
-
-	}
-
-	/**
-	 * Get the DKIMCfg from the domain
-	 * 
-	 * @param domain the domain
-	 * @return DKIMCfg
-	 */
-	public static DKIMCfg getDKIMCfgByDomain(String domain) {
-		return SmtpCfgs.getDomain(domain);
-	}
 
 	/**
 	 * Send a email
@@ -341,16 +321,10 @@ public class UMail {
 	 * @return result
 	 */
 	public static String sendMail(MimeMessage message) {
-		Session mailSession = null;
-		try {
-			// 根据已经地址获取 mailSession
-			InternetAddress from = (InternetAddress) message.getFrom()[0];
-			String fromEmail = from.getAddress();
-			mailSession = SmtpCfgs.createMailSession(SmtpCfgs.getSmtpCfgByEmail(fromEmail));
-		} catch (MessagingException e1) {
-			mailSession = SmtpCfgs.createMailSession(SmtpCfgs.getDefaultSmtpCfg());
-			LOG.error(e1.getMessage());
-		}
+		
+		SmtpCfg smtpCfg = SmtpCfgs.getSmtpCfg(message);
+		Session mailSession = SmtpCfgs.createMailSession(smtpCfg);
+		
 		try {
 			Transport transport = mailSession.getTransport();
 			transport.connect();
