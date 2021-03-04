@@ -966,7 +966,7 @@ public class SendMail {
 		}
 		if (this.dkimSigner_ != null) {
 			dkimSigner_.setIdentity(from);
-			mm = new SMTPDKIMMessage(mm, dkimSigner_);
+			mm = new DKIMMessage(mm, dkimSigner_);
 		}
 		return mm;
 	}

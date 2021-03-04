@@ -278,7 +278,7 @@ public class SmtpCfgs {
 	/**
 	 * Return the DKIMCfg according to parameter emailOrDomain
 	 * 
-	 * @param emailOrdomain Email or Domain
+	 * @param emailOrDomain Email or Domain
 	 * @return DKIMCfg or null
 	 */
 	public static DKIMCfg getDkim(String emailOrDomain) {

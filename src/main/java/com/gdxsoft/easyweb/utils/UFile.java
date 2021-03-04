@@ -79,7 +79,7 @@ public class UFile {
 	/**
 	 * Delete a file
 	 * 
-	 * @param the file path and name
+	 * @param name The file path and name
 	 * @return result
 	 */
 	public static boolean delete(String name) {

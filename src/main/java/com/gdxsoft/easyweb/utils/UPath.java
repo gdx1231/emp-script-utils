@@ -40,7 +40,7 @@ public class UPath {
 	private static HashMap<String, String> RV_TYPES;
 
 	/**
-	 * 定义RequestValue的初始化类型，例如： USR_ID->int
+	 * 定义RequestValue的初始化类型，例如： USR_ID :int
 	 * 
 	 * @return 定义RequestValue的初始化类型
 	 */

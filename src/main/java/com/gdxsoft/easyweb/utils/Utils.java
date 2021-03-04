@@ -1025,7 +1025,7 @@ public class Utils {
 
 	/**
 	 * 
-	 * 基本功能：过滤所有以"<"开头以">"结尾的标签
+	 * 基本功能：过滤所有以"&lt;"开头以"&gt;"结尾的标签
 	 * 
 	 * @param str 字符串
 	 * @return String 过滤后的结果

@@ -38,7 +38,7 @@ public class UXml {
 	 * 
 	 * @param item       The element
 	 * @param keyToLower nodeName to lower case
-	 * @return Map<nodeName, nodeValue>
+	 * @return Map &lt;nodeName, nodeValue&gt;
 	 */
 	public static Map<String, String> getElementAttributes(Element item, boolean keyToLower) {
 		Map<String, String> map = new HashMap<>();
@@ -252,7 +252,7 @@ public class UXml {
 	 * 返回下级节点集合
 	 * 
 	 * @param document document对象
-	 * @param tagName  下级节点表达式，例如 aa/bb/cc，返回 aa>bb>cc
+	 * @param tagName  下级节点表达式，例如 aa/bb/cc，返回 aa&lt;bb&lt;cc
 	 * @return 集合
 	 */
 	public static NodeList retNodeList(Document document, String tagName) {
@@ -263,7 +263,7 @@ public class UXml {
 	 * 返回下级节点集合
 	 * 
 	 * @param node    node 对象
-	 * @param tagName 下级节点表达式，例如 aa/bb/cc，返回 aa>bb>cc
+	 * @param tagName 下级节点表达式，例如 aa/bb/cc，返回 aa&lt;bb&lt;cc
 	 * @return 集合
 	 */
 	public static NodeList retNodeList(Node node, String tagName) {
@@ -274,7 +274,7 @@ public class UXml {
 	 * 返回下级节点集合
 	 * 
 	 * @param element element 对象
-	 * @param tagName 下级节点表达式，例如 aa/bb/cc，返回 aa>bb>cc
+	 * @param tagName 下级节点表达式，例如 aa/bb/cc，返回 aa&lt;bb&lt;cc
 	 * @return 集合
 	 */
 	public static NodeList retNodeList(Element element, String tagName) {
@@ -285,7 +285,7 @@ public class UXml {
 	 * 返回下级节点
 	 * 
 	 * @param node    node对象
-	 * @param tagName 下级节点表达式，例如 aa/bb/cc，返回 aa>bb>cc
+	 * @param tagName 下级节点表达式，例如 aa/bb/cc，返回 aa&lt;bb&lt;cc
 	 * @return 下级节点
 	 */
 	public static Node retNode(Node node, String tagName) {
@@ -296,7 +296,7 @@ public class UXml {
 	 * 返回下级节点
 	 * 
 	 * @param document
-	 * @param tagName  下级节点表达式，例如 aa/bb/cc，返回 aa>bb>cc
+	 * @param tagName  下级节点表达式，例如 aa/bb/cc，返回 aa&lt;bb&lt;cc
 	 * @return 下级节点
 	 */
 	public static Node retNode(Document document, String tagName) {
@@ -309,7 +309,7 @@ public class UXml {
 	 * 返回下级节点
 	 * 
 	 * @param element
-	 * @param tagName 下级节点表达式，例如 aa/bb/cc，返回 aa>bb>cc
+	 * @param tagName 下级节点表达式，例如 aa/bb/cc，返回 aa&lt;bb&lt;cc
 	 * @return 下级节点
 	 */
 	public static Node retNode(Element element, String tagName) {
@@ -324,7 +324,7 @@ public class UXml {
 	 * 返回节点列表通过路径
 	 * 
 	 * @param element element 元素
-	 * @param tagPath 下级节点表达式，例如 aa/bb/cc，返回 aa>bb>cc
+	 * @param tagPath 下级节点表达式，例如 aa/bb/cc，返回 aa&lt;bb&lt;cc
 	 * @return 列表
 	 */
 	public static NodeList retNodeListByPath(Element element, String tagPath) {
@@ -345,7 +345,7 @@ public class UXml {
 	 * 返回节点列表通过路径
 	 * 
 	 * @param document document对象
-	 * @param tagPath  下级节点表达式，例如 aa/bb/cc，返回 aa>bb>cc
+	 * @param tagPath  下级节点表达式，例如 aa/bb/cc，返回 aa&lt;bb&lt;cc
 	 * @return 列表
 	 */
 	public static NodeList retNodeListByPath(Document document, String tagPath) {
@@ -376,7 +376,7 @@ public class UXml {
 	 * 返回节点列表通过路径
 	 * 
 	 * @param node    父节点
-	 * @param tagPath 下级节点表达式，例如 aa/bb/cc，返回 aa>bb>cc
+	 * @param tagPath 下级节点表达式，例如 aa/bb/cc，返回 aa&lt;bb&lt;cc
 	 * @return 节点列表
 	 */
 	public static NodeList retNodeListByPath(Node node, String tagPath) {
@@ -527,7 +527,7 @@ public class UXml {
 	}
 
 	/**
-	 * 返回 Xml字符串 ，包含 <?xml version="1.0" encoding="UTF-8"?>
+	 * 返回 Xml字符串 ，包含 &lt;?xml version="1.0" encoding="UTF-8"?&gt;
 	 * 
 	 * @param node
 	 * @return Xml字符串

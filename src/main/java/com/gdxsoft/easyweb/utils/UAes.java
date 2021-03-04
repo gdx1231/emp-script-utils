@@ -572,7 +572,7 @@ public class UAes implements IUSymmetricEncyrpt {
 	}
 
 	/**
-	 * AES key bytes length (16->128, 24->192, 32->256)
+	 * AES key bytes length (16:128, 24:192, 32:256)
 	 * 
 	 * @return the key's length
 	 */

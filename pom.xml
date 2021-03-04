@@ -39,7 +39,7 @@
 		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 	</properties>
 	<build>
-		<sourceDirectory>src</sourceDirectory>
+		<sourceDirectory>src/main/java</sourceDirectory>
 		<resources>
 			<resource>
 				<directory>src/main/java</directory>
@@ -203,6 +203,7 @@
 		<profile>
 			<id>release</id> <!-- 部署要用到 -->
 			<build>
+				
 				<plugins>
 					<!-- Source -->
 					<plugin>

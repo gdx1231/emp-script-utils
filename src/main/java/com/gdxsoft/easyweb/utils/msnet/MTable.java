@@ -36,8 +36,8 @@ public class MTable implements Serializable {
 	/**
 	 * 连接成字符串，例如：<br>
 	 * 如果表中值为<br>
-	 * equlsString 为"="，splitString为 "&"<br>
-	 * 结果是 name=张三&id=123&address=北京海淀区
+	 * equlsString 为"="，splitString为 "&amp;"<br>
+	 * 结果是 name=张三&amp;id=123&amp;address=北京海淀区
 	 * 
 	 * @param equlsString key和value直接的连接字符串
 	 * @param splitString 不同值之间的分隔字符串

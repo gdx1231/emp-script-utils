@@ -14,23 +14,23 @@ import jakarta.mail.internet.MimeUtility;
 import com.sun.mail.smtp.SMTPMessage;
 import com.sun.mail.util.LineOutputStream;
 
-public class SMTPDKIMMessage extends SMTPMessage {
+public class DKIMMessage extends SMTPMessage {
 	private String customerMessageId;
 
 	private DKIMSigner signer;
 	private String encodedBody;
 
-	public SMTPDKIMMessage(Session session, DKIMSigner signer) {
+	public DKIMMessage(Session session, DKIMSigner signer) {
 		super(session);
 		this.signer = signer;
 	}
 
-	public SMTPDKIMMessage(MimeMessage message, DKIMSigner signer) throws MessagingException {
+	public DKIMMessage(MimeMessage message, DKIMSigner signer) throws MessagingException {
 		super(message);
 		this.signer = signer;
 	}
 
-	public SMTPDKIMMessage(Session session, InputStream is, DKIMSigner signer) throws MessagingException {
+	public DKIMMessage(Session session, InputStream is, DKIMSigner signer) throws MessagingException {
 		super(session, is);
 		this.signer = signer;
 	}
@@ -67,15 +67,6 @@ public class SMTPDKIMMessage extends SMTPMessage {
 	 * <code>content</code> array is not null, the <code>content</code> array is
 	 * written directly, after writing the appropriate message headers.
 	 *
-	 * @exception javax.mail.MessagingException
-	 * @exception IOException                   if an error occurs writing to the
-	 *                                          stream or if an error is generated
-	 *                                          by the javax.activation layer.
-	 * @see javax.activation.DataHandler#writeTo
-	 * 
-	 *      This method enhances the JavaMail method
-	 *      MimeMessage.writeTo(OutputStream os String[] ignoreList); See the
-	 *      according Sun Licence, this contribution is CDDL.
 	 */
 	public void writeTo(OutputStream os, String[] ignoreList) throws IOException, MessagingException {
 

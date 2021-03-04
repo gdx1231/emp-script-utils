@@ -307,7 +307,7 @@ public class DKIMSigner {
 	 * @throws Exception
 	 * @throws MessagingException
 	 */
-	public String sign(SMTPDKIMMessage message) throws Exception {
+	public String sign(DKIMMessage message) throws Exception {
 		long t = new Date().getTime() / 1000l;
 
 		Map<String, String> dkimSignature = new LinkedHashMap<String, String>();
@@ -359,7 +359,7 @@ public class DKIMSigner {
 	 * @return
 	 * @throws Exception
 	 */
-	private StringBuilder signHeader(SMTPDKIMMessage message, Map<String, String> dkimSignature) throws Exception {
+	private StringBuilder signHeader(DKIMMessage message, Map<String, String> dkimSignature) throws Exception {
 		// 获取最小的签名包含的字段列表
 		List<String> minimumHeders = new ArrayList<String>();
 		for (int i = 0; i < miniHeaders.length; i++) {
@@ -422,7 +422,7 @@ public class DKIMSigner {
 	 * @param dkimSignature
 	 * @throws Exception
 	 */
-	private void digestBody(SMTPDKIMMessage message, Map<String, String> dkimSignature) throws Exception {
+	private void digestBody(DKIMMessage message, Map<String, String> dkimSignature) throws Exception {
 		// process body
 		String body = message.getEncodedBody();
 		ByteArrayOutputStream baos = new ByteArrayOutputStream();
