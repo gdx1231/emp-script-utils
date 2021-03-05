@@ -4,8 +4,6 @@ import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -13,7 +11,7 @@ import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.io.OutputStreamWriter;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -23,7 +21,11 @@ import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
+import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
+
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.IOUtils;
 
 import com.gdxsoft.easyweb.utils.msnet.MStr;
 
@@ -230,24 +232,9 @@ public class UFile {
 		File file = new File(path);
 		if (file.exists()) { // 按照文件读取
 			return Files.readAllBytes(Paths.get(path));
-		}
-		// 从jar包中读取
-		InputStream f = null;
-		try {
-			f = UFile.class.getResourceAsStream(path);
-			byte[] b = new byte[f.available()];
-			f.read(b);
-			return b;
-		} catch (IOException err) {
-			throw err;
-		} finally {
-			if (f != null) {
-				try {
-					f.close();
-				} catch (IOException e) {
-					System.err.println(e.toString());
-				}
-			}
+		} else {
+			// 从jar包中读取
+			return IOUtils.resourceToByteArray(path);
 		}
 
 	}
@@ -260,8 +247,104 @@ public class UFile {
 	 * @throws IOException
 	 */
 	public static String readFileText(String filePath) throws Exception {
-		byte[] buf = readFileBytes(filePath);
-		return new String(buf, "UTF-8");
+		File f1 = new File(filePath);
+		if (f1.exists()) {
+			return FileUtils.readFileToString(f1, StandardCharsets.UTF_8);
+		} else {
+			return IOUtils.resourceToString(filePath, StandardCharsets.UTF_8);
+		}
+	}
+
+	/**
+	 * Read the zip/jar file binary (UTF8)
+	 * 
+	 * @param zipFilePath   the zip or jar file
+	 * @param innerFileName zip or jar inner path and name
+	 * @return
+	 * @throws IOException
+	 */
+	public static byte[] readZipBytes(String zipFilePath, String innerFileName) throws IOException {
+		ZipFile zipFile = null;
+		try {
+			zipFile = new ZipFile(zipFilePath);
+			Enumeration<? extends ZipEntry> list = zipFile.entries();
+
+			while (list.hasMoreElements()) {
+				ZipEntry ze = list.nextElement();
+				if (ze.getName().equals(innerFileName)) {
+					InputStream inputStream = zipFile.getInputStream(ze);
+					return IOUtils.toByteArray(inputStream);
+				}
+			}
+			return null;
+		} catch (IOException e) {
+			throw e;
+		} finally {
+			if (zipFile != null) {
+				try { // 关闭流
+					zipFile.close();
+				} catch (IOException e) {
+				}
+			}
+		}
+	}
+
+	/**
+	 * Get the zip/jar file list
+	 * 
+	 * @param zipFilePath the zip or jar file
+	 * @return The zip file list
+	 * @throws IOException
+	 */
+	public static List<String> getZipList(String zipFilePath) throws IOException {
+		List<String> al = new ArrayList<String>();
+		ZipFile zipFile = null;
+		try {
+			zipFile = new ZipFile(zipFilePath);
+			Enumeration<? extends ZipEntry> list = zipFile.entries();
+
+			while (list.hasMoreElements()) {
+				ZipEntry ze = list.nextElement();
+				al.add(ze.getName());
+			}
+			return al;
+		} catch (IOException e) {
+			throw e;
+		} finally {
+			if (zipFile != null) {
+				try { // 关闭流
+					zipFile.close();
+				} catch (IOException e) {
+				}
+			}
+		}
+	}
+
+	public static String readZipText(String zipFilePath, String innerFileName) throws IOException {
+		ZipFile zipFile = null;
+		try {
+			zipFile = new ZipFile(zipFilePath);
+			Enumeration<? extends ZipEntry> list = zipFile.entries();
+
+			while (list.hasMoreElements()) {
+				ZipEntry ze = list.nextElement();
+				if (ze.getName().equals(innerFileName)) {
+					InputStream inputStream = zipFile.getInputStream(ze);
+					return IOUtils.toString(inputStream, StandardCharsets.UTF_8);
+				}
+			}
+			return null;
+		} catch (IOException e) {
+			throw e;
+		} finally {
+			if (zipFile != null) {
+				try { // 关闭流
+					zipFile.close();
+				} catch (IOException e) {
+				}
+			}
+		}
+
 	}
 
 	/**
@@ -272,17 +355,7 @@ public class UFile {
 	 * @throws IOException
 	 */
 	public static void copyFile(String fileFrom, String fileTo) throws IOException {
-		File ft = new File(fileTo);
-		if (!ft.getParentFile().exists()) {
-			ft.getParentFile().mkdirs();
-		}
-		DataInputStream in = new DataInputStream(new BufferedInputStream(new FileInputStream(fileFrom)));
-		byte[] date = new byte[in.available()];
-		in.read(date);
-		DataOutputStream out = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(fileTo)));
-		out.write(date);
-		in.close();
-		out.close();
+		FileUtils.copyFile(new File(fileFrom), new File(fileTo));
 	}
 
 	/**
@@ -550,21 +623,8 @@ public class UFile {
 		if (!file.getParentFile().exists()) {
 			UFile.buildPaths(file.getParent());
 		}
-		OutputStreamWriter os = null;
-		try {
-			os = new OutputStreamWriter(new FileOutputStream(file), "UTF-8");
-			os.write(content);
-			os.flush();
+		FileUtils.write(file, content, "UTF-8");
 
-		} catch (IOException e) {
-			throw e;
-		} finally {
-			if (os != null)
-				try {
-					os.close();
-				} catch (IOException e) {
-				}
-		}
 	}
 
 	/**
@@ -638,16 +698,7 @@ public class UFile {
 		File img = new File(path);
 		UFile.buildPaths(img.getParent());
 		if (isOverWrite || (!isOverWrite && !img.exists())) {
-			FileOutputStream fs = new FileOutputStream(img);
-			try {
-				fs.write(bytes);
-				fs.flush();
-			} catch (IOException e) {
-				throw e;
-			} finally {
-				fs.close();
-				fs = null;
-			}
+			FileUtils.writeByteArrayToFile(img, bytes);
 		}
 	}
 

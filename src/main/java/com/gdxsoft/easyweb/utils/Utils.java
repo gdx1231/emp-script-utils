@@ -19,6 +19,7 @@ import java.util.regex.Pattern;
 
 import com.gdxsoft.easyweb.utils.msnet.MListStr;
 
+import org.apache.commons.lang3.BooleanUtils;
 import org.bouncycastle.util.encoders.Hex;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -169,27 +170,33 @@ public class Utils {
 	}
 
 	/**
-	 * 转换为 boolean
+	 * Converts a Object to a boolean<br>
+	 * Utils.cvtBool(null) = false<br>
+	 * Utils.cvtBool("true") = true<br>
+	 * Utils.cvtBool("TRUE") = true<br>
+	 * Utils.cvtBool("tRUe") = true<br>
+	 * Utils.cvtBool("on") = true<br>
+	 * Utils.cvtBool("yes") = true<br>
+	 * Utils.cvtBool("是") = true<br>
+	 * Utils.toBoolean("y") = true<br>
+	 * Utils.toBoolean("t") = true<br>
 	 * 
-	 * @param v 对象
-	 * @return true/y/yes/是 = true
+	 * @param object the Object to check
+	 * @return boolean result
 	 */
-	public static boolean cvtBool(Object v) {
-		if (v == null)
+	public static boolean cvtBool(Object object) {
+		if (object == null)
 			return false;
-		String v1 = v.toString().trim();
-		try {
-			double d = Double.parseDouble(v1);
-			if (d > 0) {
-				return true;
-			} else {
-				return false;
-			}
-		} catch (Exception e) {
-			if (v1.equalsIgnoreCase("true") || v1.equalsIgnoreCase("y") || v1.equalsIgnoreCase("yes")
-					|| v1.equals("是")) {
-				return true;
-			}
+
+		boolean result = BooleanUtils.toBoolean(object.toString());
+		if (result) {
+			return true;
+		}
+
+		String v1 = object.toString().trim();
+
+		if (v1.equals("是")) {
+			return true;
 		}
 		return false;
 	}

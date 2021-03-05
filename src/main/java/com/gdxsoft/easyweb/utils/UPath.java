@@ -11,6 +11,7 @@ import org.w3c.dom.NodeList;
 import com.gdxsoft.easyweb.utils.Mail.SmtpCfgs;
 import com.gdxsoft.easyweb.utils.msnet.MTableStr;
 
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -91,8 +92,6 @@ public class UPath {
 	private static long PROP_TIME = -1231;
 	private static String PATH_GROUP = ""; // 用于组件的生成和导入目录
 
- 
-
 	private static MTableStr DEBUG_IPS; // 用于页面显示跟踪的IP地址
 	private static boolean IS_DEBUG_SQL;
 
@@ -103,6 +102,16 @@ public class UPath {
 	private static String CVT_OPENOFFICE_HOME;
 	private static String CVT_SWFTOOL_HOME;
 	private static String CVT_IMAGEMAGICK_HOME;
+
+	private static String WF_XML;
+	private static String DATABASE_XML;
+	private static MTableStr INIT_PARAS;
+	private static long LAST_CHK = 0;
+	/**
+	 * 用于Cache文件的目录
+	 */
+	private static String PATH_CACHED = "";
+	private static String CFG_CACHE_METHOD;
 
 	static {
 		// initPath();
@@ -194,19 +203,6 @@ public class UPath {
 		return CVT_IMAGEMAGICK_HOME;
 	}
 
-	private static String WF_XML;
-	private static String DATABASE_XML;
-
-	private static MTableStr INIT_PARAS;
-
-	private static long LAST_CHK = 0;
-	/**
-	 * 用于Cache文件的目录
-	 */
-	private static String PATH_CACHED = "";
-
-	private static String CFG_CACHE_METHOD;
-
 	public UPath() {
 
 	}
@@ -252,7 +248,6 @@ public class UPath {
 		return PATH_REAL;
 	}
 
-	 
 	/**
 	 * 项目路径
 	 * 
@@ -363,12 +358,12 @@ public class UPath {
 		 * (PROP_TIME == f2.lastModified()) { // 文件未被修改 return; } else { PROP_TIME =
 		 * f2.lastModified(); initPath(propName); } } }
 		 */
-		if (PATH_SCRIPT == null || PATH_SCRIPT.length() == 0)
-			PATH_SCRIPT = PATH_REAL + "Scripts/";
-		if (PATH_CONFIG == null || PATH_CONFIG.length() == 0)
-			PATH_CONFIG = PATH_REAL + "Config/";
-		if (PATH_MANAGMENT == null || PATH_MANAGMENT.length() == 0)
-			PATH_MANAGMENT = PATH_REAL + "Management/";
+//		if (PATH_SCRIPT == null || PATH_SCRIPT.length() == 0)
+//			PATH_SCRIPT = PATH_REAL + "Scripts/";
+//		if (PATH_CONFIG == null || PATH_CONFIG.length() == 0)
+//			PATH_CONFIG = PATH_REAL + "Config/";
+//		if (PATH_MANAGMENT == null || PATH_MANAGMENT.length() == 0)
+//			PATH_MANAGMENT = PATH_REAL + "Management/";
 
 	}
 
@@ -610,8 +605,12 @@ public class UPath {
 		NodeList nl = doc.getElementsByTagName("rv");
 		for (int i = 0; i < nl.getLength(); i++) {
 			Element ele = (Element) nl.item(i);
-			String n = ele.getAttribute("Name").toUpperCase();
-			String v = ele.getAttribute("Value");
+			String n = ele.getAttribute("name");
+			if (StringUtils.isBlank(n)) {
+				continue;
+			}
+			n = n.toUpperCase().trim();
+			String v = ele.getAttribute("value");
 			if (RV_GLOBALS.containsKey(n)) {
 				RV_GLOBALS.remove(n);
 			} else {
@@ -648,7 +647,6 @@ public class UPath {
 		}
 	}
 
-	 
 	/**
 	 * 获取项目WebRoot所在的物理目录
 	 * 
@@ -659,7 +657,6 @@ public class UPath {
 		return s1.split("WEB-INF")[0];
 	}
 
-	 
 	/**
 	 * 流程部门列表
 	 * 
