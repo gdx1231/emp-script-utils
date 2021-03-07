@@ -95,7 +95,11 @@ public class UAes implements IUSymmetricEncyrpt {
 
 	private static String AES_KEY_VALUE;
 	private static String AES_IV_VALUE;
-
+	private static String AES_ALGORITHM = AES_128_CBC;
+	// the default GCM/CCM macBitSize
+	private static int AES_MAC_SIZE = 128;
+	// the default GCM/CCM Additional AuthenticationData
+	private static String AES_AAD;
 	/*
 	 * AES/CBC/NoPadding 要求 密钥必须是16位的；Initialization vector (IV) 必须是16位
 	 * 待加密内容的长度必须是16的倍数，如果不是16的倍数，就会出如下异常： javax.crypto.IllegalBlockSizeException:
@@ -112,7 +116,7 @@ public class UAes implements IUSymmetricEncyrpt {
 	private IvParameterSpec ivSpec;
 	private OpCipher enCipher;
 	private OpCipher deCipher;
-	private String paddingMethod; // aes transformation 加密模式
+	private String paddingMethod = PKCS7Padding; // aes transformation 加密模式
 	private String cipherName;
 	private byte[] iv;
 	private byte[] key;
@@ -135,7 +139,7 @@ public class UAes implements IUSymmetricEncyrpt {
 	}
 
 	/**
-	 * Initialize the default key and iv
+	 * Initialize the default key and iv, the algorithm is AES_128_GCM
 	 * 
 	 * @param key the key
 	 * @param iv  the iv
@@ -146,16 +150,66 @@ public class UAes implements IUSymmetricEncyrpt {
 	}
 
 	/**
+	 * Initialize the default algorithm and key and iv
+	 * 
+	 * @param algorithm the AES algorithm
+	 * @param key       the key
+	 * @param iv        the iv
+	 */
+	public synchronized static void initDefaultKey(String algorithm, String key, String iv) {
+		AES_ALGORITHM = algorithm;
+		AES_KEY_VALUE = key;
+		AES_IV_VALUE = iv;
+	}
+
+	/**
+	 * Initialize the default algorithm and key and iv and macSize
+	 * 
+	 * @param algorithm the AES algorithm (GCM/CCM)
+	 * @param key       the key
+	 * @param iv        the iv
+	 * @param macSize   the GCM/CCM macBitSize
+	 */
+	public synchronized static void initDefaultKey(String algorithm, String key, String iv, int macSize) {
+		AES_ALGORITHM = algorithm;
+		AES_KEY_VALUE = key;
+		AES_IV_VALUE = iv;
+		AES_MAC_SIZE = macSize;
+	}
+
+	/**
+	 * Initialize the default algorithm and key and iv and macSize and aad
+	 * 
+	 * @param algorithm the AES algorithm (GCM/CCM)
+	 * @param key       the key
+	 * @param iv        the iv
+	 * @param macSize   the GCM/CCM macBitSize
+	 * @param aad       the GCM/CCM Additional AuthenticationData
+	 */
+	public synchronized static void initDefaultKey(String algorithm, String key, String iv, int macSize, String aad) {
+		AES_ALGORITHM = algorithm;
+		AES_KEY_VALUE = key;
+		AES_IV_VALUE = iv;
+		AES_MAC_SIZE = macSize;
+		AES_AAD = aad;
+	}
+
+	/**
 	 * Get a AES with default key and iv
 	 * 
 	 * @return AES
 	 * @throws Exception
 	 */
-	public synchronized static UAes getInstance() throws Exception {
+	public static UAes getInstance() throws Exception {
 		if (AES_KEY_VALUE == null || AES_IV_VALUE == null) {
 			throw new Exception("Please using UAes.initDefaultKey initialize");
 		}
-		UAes aes = new UAes(AES_KEY_VALUE, AES_IV_VALUE);
+
+		UAes aes = new UAes(AES_KEY_VALUE, AES_IV_VALUE, AES_ALGORITHM);
+		aes.setAdditionalAuthenticationData(AES_AAD);
+		aes.setMacSizeBits(AES_MAC_SIZE);
+		aes.setPaddingMethod(PKCS7Padding);
+
 		return aes;
 	}
 
@@ -163,7 +217,7 @@ public class UAes implements IUSymmetricEncyrpt {
 	 * Initialize AES (AES_128_CBC)
 	 */
 	public UAes() {
-		this.cipherName = AES_128_CBC;
+		this.cipherName = AES_ALGORITHM;
 	}
 
 	/**
@@ -173,7 +227,7 @@ public class UAes implements IUSymmetricEncyrpt {
 	 * @param iv  iv
 	 */
 	public UAes(String key, String iv) {
-		this.cipherName = AES_128_CBC;
+		this.cipherName = AES_ALGORITHM;
 
 		byte[] ivBuf = iv.getBytes(StandardCharsets.UTF_8);
 		byte[] keyBuf = key.getBytes(StandardCharsets.UTF_8);
@@ -281,7 +335,7 @@ public class UAes implements IUSymmetricEncyrpt {
 	 */
 	private byte[] createAAD() {
 		byte[] aad = (this.additionalAuthenticationData == null || this.additionalAuthenticationData.length() == 0)
-				? ivSpec.getIV() // using iv data
+				? null
 				: this.additionalAuthenticationData.getBytes(StandardCharsets.UTF_8);
 		return aad;
 	}
@@ -321,7 +375,9 @@ public class UAes implements IUSymmetricEncyrpt {
 
 			// Additional AuthenticationData (AAD).
 			byte[] aad = this.createAAD();
-			cipher.updateAAD(aad);
+			if (aad != null) {
+				cipher.updateAAD(aad);
+			}
 		} else if (blockMode.equals("CCM")) {
 			// Create GCMParameterSpec
 			// if (macSizeBits < 32 || macSizeBits > 128 || macSizeBits % 8 != 0)
@@ -331,7 +387,9 @@ public class UAes implements IUSymmetricEncyrpt {
 
 			// Additional AuthenticationData (AAD).
 			byte[] aad = this.createAAD();
-			cipher.updateAAD(aad);
+			if (aad != null) {
+				cipher.updateAAD(aad);
+			}
 		} else {
 			cipher.init(isEncrypt ? Cipher.ENCRYPT_MODE : Cipher.DECRYPT_MODE, keySpec, ivSpec);
 		}
@@ -419,7 +477,10 @@ public class UAes implements IUSymmetricEncyrpt {
 			int macSizeBits = this.getMacSizeBits();
 			AEADParameters parameters = new AEADParameters(keyP, macSizeBits, iv);
 			cipher.aeadBlockCipher.init(isEncyrpt, parameters);
-			cipher.aeadBlockCipher.processAADBytes(aad, 0, aad.length);
+			if (aad != null) {
+				cipher.aeadBlockCipher.processAADBytes(aad, 0, aad.length);
+			}
+
 		}
 
 		return cipher;

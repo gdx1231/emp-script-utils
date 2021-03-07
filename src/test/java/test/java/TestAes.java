@@ -1,8 +1,11 @@
 package test.java;
 
+import java.io.IOException;
+
 import org.junit.Test;
 
 import com.gdxsoft.easyweb.utils.UAes;
+import com.gdxsoft.easyweb.utils.UConvert;
 import com.gdxsoft.easyweb.utils.Utils;
 
 public class TestAes extends TestBase {
@@ -14,6 +17,32 @@ public class TestAes extends TestBase {
 
 	@Test
 	public void testAes() {
+		
+		String b64="R5npTKH2TdNUdzSFjRwui1mlTQ==";
+		try {
+			byte[] buf = UConvert.FromBase64String(b64);
+			String key = "efsd91290123p9023sdkjvjdkl293048192";
+			String iv = "xsdskdsdflsdl;fl;sd";
+			String aad = "xxxxxxxxx";
+			UAes.initDefaultKey("aes-192-gcm", key, iv, 32, aad);
+			
+			UAes aes = UAes.getInstance();
+
+			
+
+			//aes.setPaddingMethod(UAes.PKCS7Padding);
+			String rst = aes.decrypt(buf);
+			System.out.println(rst);
+			
+			String rst1 = aes.decrypt(buf);
+			System.out.println(rst1);
+			
+		} catch (Exception e) {
+			System.out.println(e.getLocalizedMessage());
+		}
+		
+		
+		
 		this.testAes(UAes.AES_128_CCM);
 
 		this.testAes(UAes.AES_128_GCM);
@@ -41,11 +70,11 @@ public class TestAes extends TestBase {
 
 	public void testAes(String cipherName) {
 		super.printCaption(cipherName);
-		String key = "0123456789abcdefghijklmn";
-		String iv = "0123456789abcdef";
-		String aad = "0123456789abcdef";
+		String key = "efsd91290123p9023sdkjvjdkl293048192";
+		String iv = "xsdskdsdflsdl;fl;sd";
+		String aad = "xxxxxxxxx";
 
-		String content = "1234567890-史蒂夫-1234567890";
+		String content = "系统管理员";
 
 		try {
 			this.testAes(cipherName, key, iv, aad, true, content);
@@ -66,9 +95,9 @@ public class TestAes extends TestBase {
 		aes.setUsingBc(usingBc);
 		System.out.println("BC: " + usingBc);
 
-		if (aes.getBlockCipherMode().equals("GCM")) {
-			aes.setAdditionalAuthenticationData("0123456789abcdef");
-			aes.setMacSizeBits(128);
+		if (aes.getBlockCipherMode().equals("GCM") || aes.getBlockCipherMode().equals("CCM")) {
+			aes.setAdditionalAuthenticationData(aad);
+			aes.setMacSizeBits(32);
 		}
 
 		aes.setPaddingMethod(UAes.PKCS7Padding);
@@ -78,5 +107,7 @@ public class TestAes extends TestBase {
 		System.out.println(Utils.bytes2hex(s1));
 		byte[] pt1 = aes.decryptBytes(s1);
 		System.out.println(new String(pt1));
+		byte[] pt2 = aes.decryptBytes(s1);
+		System.out.println(new String(pt2));
 	}
 }
