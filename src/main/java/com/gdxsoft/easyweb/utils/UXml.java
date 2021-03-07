@@ -22,6 +22,8 @@ import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.w3c.dom.DOMImplementation;
 import org.w3c.dom.Document;
 import org.w3c.dom.DocumentType;
@@ -32,6 +34,7 @@ import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 
 public class UXml {
+	private static Logger LOGGER = LoggerFactory.getLogger(UXml.class);
 
 	/**
 	 * Get XML Element all attributes
@@ -202,7 +205,8 @@ public class UXml {
 		try {
 			UFile.createNewTextFile(xmlFileName, xml);
 			return true;
-		} catch (IOException e) {
+		} catch (Exception e) {
+			LOGGER.error("saveDocument", e);
 			return false;
 		}
 	}

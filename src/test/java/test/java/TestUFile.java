@@ -1,5 +1,6 @@
 package test.java;
 
+import java.net.URL;
 import java.util.List;
 
 import org.junit.Test;
@@ -10,6 +11,7 @@ import com.gdxsoft.easyweb.utils.UPath;
 public class TestUFile extends TestBase {
 
 	public static void main(String[] a) {
+		UPath.getRealPath();
 		TestUFile t = new TestUFile();
 		try {
 			t.testLogic();
@@ -22,6 +24,11 @@ public class TestUFile extends TestBase {
 	public void testLogic() throws Exception {
 		super.printCaption("读取zip文件信息");
 		
+		URL url = TestUFile.class.getResource("/resources/test.der");
+		System.out.println(url);
+
+		
+
 		// windows format zip path
 		String zip1 = UPath.getRealPath() + "/resources/win-format.zip";
 		String txt1 = UFile.readZipText(zip1, "win-format/tools/node");

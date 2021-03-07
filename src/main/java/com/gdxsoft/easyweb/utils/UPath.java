@@ -90,6 +90,7 @@ public class UPath {
 	private static String PATH_MANAGMENT = "";
 
 	private static long PROP_TIME = -1231;
+
 	private static String PATH_GROUP = ""; // 用于组件的生成和导入目录
 
 	private static MTableStr DEBUG_IPS; // 用于页面显示跟踪的IP地址
@@ -765,4 +766,9 @@ public class UPath {
 
 		return UPath.CFG_CACHE_METHOD;
 	}
+	
+	public static long getPropTime() {
+		return PROP_TIME;
+	}
+
 }

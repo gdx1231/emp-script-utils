@@ -3,10 +3,15 @@
  */
 package com.gdxsoft.easyweb.utils;
 
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
 
 import javax.servlet.http.HttpServletRequest;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Url工具类，添加删除参数等
@@ -15,6 +20,7 @@ import javax.servlet.http.HttpServletRequest;
  *
  */
 public class UUrl {
+	private static Logger LOGGER = LoggerFactory.getLogger(UUrl.class);
 	private HttpServletRequest request_;
 	private String root_; // 域名和协议，结尾以 '/'结束
 	private String root0_; // 域名和协议，结尾不包含 '/'
@@ -26,6 +32,37 @@ public class UUrl {
 	public UUrl() {
 		params_ = new HashMap<String, String>();
 		names_ = new HashMap<String, String>();
+	}
+
+	public UUrl(String url) {
+		params_ = new HashMap<String, String>();
+		names_ = new HashMap<String, String>();
+
+		this.initWithUrl(url);
+	}
+
+	private void initWithUrl(String urlString) {
+		try {
+			URL url = new URL(urlString);
+
+			String getServerName = url.getHost();
+			int getServerPort = url.getPort();
+			String getScheme = url.getProtocol();
+			String port = (getServerPort == 80 || getServerPort == 443) ? "" : ":" + getServerPort + "";
+			if (getServerPort == 443) {
+				getScheme = "https";
+			}
+			this.root0_ = getScheme + "://" + getServerName + port;
+			this.root_ = this.root0_ + "/";
+
+			this.path_ = url.getPath();
+			this.name_ = "";
+
+			this.initParameters(url.getQuery());
+
+		} catch (MalformedURLException e) {
+			LOGGER.error("", e);
+		}
 	}
 
 	/**
@@ -154,6 +191,17 @@ public class UUrl {
 	}
 
 	/**
+	 * Returns the parameter
+	 * 
+	 * @param name the parameter name
+	 * @return the parameter
+	 */
+	public String getParamter(String name) {
+		String name1 = name.toUpperCase().trim();
+		return this.params_.get(name1);
+	}
+
+	/**
 	 * 初始化
 	 */
 	private void init() {
@@ -169,17 +217,14 @@ public class UUrl {
 		}
 		this.root0_ = getScheme + "://" + getServerName + port;
 		this.root_ = this.root0_ + "/";
-		this.initParameters();
+		this.initParameters(request_.getQueryString());
 
 		this.path_ = request_.getContextPath();
 		this.name_ = request_.getServletPath();
 	}
 
-	private void initParameters() {
-		if (request_ == null) {
-			return;
-		}
-		String query = request_.getQueryString();
+	private void initParameters(String query) {
+
 		if (query == null || query.trim().length() == 0) {
 			return;
 		}
