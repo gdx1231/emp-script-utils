@@ -1,11 +1,8 @@
 package test.java;
 
-import java.io.IOException;
-
 import org.junit.Test;
 
 import com.gdxsoft.easyweb.utils.UAes;
-import com.gdxsoft.easyweb.utils.UConvert;
 import com.gdxsoft.easyweb.utils.Utils;
 
 public class TestAes extends TestBase {
@@ -15,34 +12,13 @@ public class TestAes extends TestBase {
 		t.testAes();
 	}
 
+	private String key = "efsd91290123p9023sdkjvjdkl293048192ds9249238490238490234234sdfsdfsdf";
+	private String iv = "xsdskdsdflsdl;fl;sd218902sdfjsdxcbu1283`sjl;z";
+	private String aad = "s9283ksdvsdklsd2390esfsdfs";
+	private String content = "东3圣诞节🐂🐎精神121";
+
 	@Test
 	public void testAes() {
-		
-		String b64="R5npTKH2TdNUdzSFjRwui1mlTQ==";
-		try {
-			byte[] buf = UConvert.FromBase64String(b64);
-			String key = "efsd91290123p9023sdkjvjdkl293048192";
-			String iv = "xsdskdsdflsdl;fl;sd";
-			String aad = "xxxxxxxxx";
-			UAes.initDefaultKey("aes-192-gcm", key, iv, 32, aad);
-			
-			UAes aes = UAes.getInstance();
-
-			
-
-			//aes.setPaddingMethod(UAes.PKCS7Padding);
-			String rst = aes.decrypt(buf);
-			System.out.println(rst);
-			
-			String rst1 = aes.decrypt(buf);
-			System.out.println(rst1);
-			
-		} catch (Exception e) {
-			System.out.println(e.getLocalizedMessage());
-		}
-		
-		
-		
 		this.testAes(UAes.AES_128_CCM);
 
 		this.testAes(UAes.AES_128_GCM);
@@ -70,30 +46,27 @@ public class TestAes extends TestBase {
 
 	public void testAes(String cipherName) {
 		super.printCaption(cipherName);
-		String key = "efsd91290123p9023sdkjvjdkl293048192";
-		String iv = "xsdskdsdflsdl;fl;sd";
-		String aad = "xxxxxxxxx";
-
-		String content = "系统管理员";
 
 		try {
-			this.testAes(cipherName, key, iv, aad, true, content);
+			this.testAes(cipherName, true, true);
+			this.testAes(cipherName, true, false);
 		} catch (Exception e) {
 			System.out.println(e.getMessage());
 		}
 		try {
-			this.testAes(cipherName, key, iv, aad, false, content);
+			this.testAes(cipherName, false, true);
+			this.testAes(cipherName, false, false);
 		} catch (Exception e) {
 			System.out.println(e.getMessage());
 		}
 
 	}
 
-	public void testAes(String cipherName, String key, String iv, String aad, boolean usingBc, String content)
-			throws Exception {
-		UAes aes = new UAes(key, iv, cipherName);
+	public void testAes(String cipherName, boolean usingBc, boolean autoIv) throws Exception {
+		UAes aes = new UAes(key, autoIv ? null : iv, cipherName);
 		aes.setUsingBc(usingBc);
-		System.out.println("BC: " + usingBc);
+
+		System.out.println("BC: " + usingBc + ", AUTO IV：" + autoIv);
 
 		if (aes.getBlockCipherMode().equals("GCM") || aes.getBlockCipherMode().equals("CCM")) {
 			aes.setAdditionalAuthenticationData(aad);
@@ -103,11 +76,11 @@ public class TestAes extends TestBase {
 		aes.setPaddingMethod(UAes.PKCS7Padding);
 		byte[] data = content.getBytes();
 
-		byte[] s1 = aes.encryptBytes(data);
-		System.out.println(Utils.bytes2hex(s1));
-		byte[] pt1 = aes.decryptBytes(s1);
-		System.out.println(new String(pt1));
-		byte[] pt2 = aes.decryptBytes(s1);
-		System.out.println(new String(pt2));
+		byte[] cipherData = aes.encryptBytes(data);
+		System.out.println(Utils.bytes2hex(cipherData));
+
+		byte[] plainText = aes.decryptBytes(cipherData);
+		System.out.println(new String(plainText));
+
 	}
 }

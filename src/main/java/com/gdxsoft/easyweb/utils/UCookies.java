@@ -183,7 +183,7 @@ public class UCookies {
 	}
 
 	/**
-	 * UrlEncode a cookie value (ascii)
+	 * UrlEncode a cookie value (UTF_8)
 	 * 
 	 * @param cookieValue the cookie plain text
 	 * @return UrlEncode.encoded value
@@ -194,7 +194,7 @@ public class UCookies {
 		}
 		String cv;
 		try {
-			cv = URLEncoder.encode(cookieValue, "ascii");
+			cv = URLEncoder.encode(cookieValue, "ISO8859-1");
 		} catch (UnsupportedEncodingException e1) {
 			LOGGER.warn(e1.getMessage());
 			cv = cookieValue;
@@ -204,14 +204,14 @@ public class UCookies {
 	}
 
 	/**
-	 * URLDecoder a cookie value (ascii)
+	 * URLDecoder a cookie value (UTF_8)
 	 * 
 	 * @param encoderCookieValue the UrlEncode.encoded cookie value
 	 * @return URLDecoder.decoded value
 	 */
 	public static String decodeCookieValue(String encoderCookieValue) {
 		try {
-			return URLDecoder.decode(encoderCookieValue, "ascii");
+			return URLDecoder.decode(encoderCookieValue, "ISO8859-1");
 		} catch (UnsupportedEncodingException e) {
 			LOGGER.warn(e.getMessage());
 			return encoderCookieValue;

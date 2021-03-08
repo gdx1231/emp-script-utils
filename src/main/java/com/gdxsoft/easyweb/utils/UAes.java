@@ -5,23 +5,20 @@ import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
+import java.security.SecureRandom;
 import java.security.Security;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 
-import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
-import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
 import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 
-import org.bouncycastle.crypto.BufferedBlockCipher;
 import org.bouncycastle.crypto.CipherParameters;
-import org.bouncycastle.crypto.DataLengthException;
-import org.bouncycastle.crypto.InvalidCipherTextException;
 import org.bouncycastle.crypto.engines.AESEngine;
-import org.bouncycastle.crypto.modes.AEADBlockCipher;
 import org.bouncycastle.crypto.modes.CBCBlockCipher;
 import org.bouncycastle.crypto.modes.CCMBlockCipher;
 import org.bouncycastle.crypto.modes.CFBBlockCipher;
@@ -112,26 +109,6 @@ public class UAes implements IUSymmetricEncyrpt {
 	 * 式，加密数据长度都等于16*(n+1).
 	 */
 
-	private SecretKeySpec keySpec;
-	private IvParameterSpec ivSpec;
-	private OpCipher enCipher;
-	private OpCipher deCipher;
-	private String paddingMethod = PKCS7Padding; // aes transformation 加密模式
-	private String cipherName;
-	private byte[] iv;
-	private byte[] key;
-
-	// Continues a multi-part update of the Additional AuthenticationData (AAD).
-	// Calls to this method provide AAD to the cipher when operating inmodes such as
-	// AEAD (GCM/CCM).
-
-	private String additionalAuthenticationData;
-
-	// if (macSizeBits < 32 || macSizeBits > 128 || macSizeBits % 8 != 0)
-	private int macSizeBits = 128;
-
-	private boolean usingBc = true;
-
 	static {
 		if (Security.getProvider(BouncyCastleProvider.PROVIDER_NAME) == null) {
 			Security.addProvider(new BouncyCastleProvider());
@@ -213,6 +190,25 @@ public class UAes implements IUSymmetricEncyrpt {
 		return aes;
 	}
 
+	private String paddingMethod = PKCS7Padding; // aes transformation 加密模式
+	private String cipherName;
+	private byte[] iv;
+	private byte[] key;
+
+	// Continues a multi-part update of the Additional AuthenticationData (AAD).
+	// Calls to this method provide AAD to the cipher when operating inmodes such as
+	// AEAD (GCM/CCM).
+	private String additionalAuthenticationData;
+
+	// if (macSizeBits < 32 || macSizeBits > 128 || macSizeBits % 8 != 0)
+	private int macSizeBits = 128;
+
+	private boolean usingBc = true;
+
+	private boolean autoIv = false;
+
+	private Map<String, OpCipher> mapCiphers = new HashMap<>();
+
 	/**
 	 * Initialize AES (AES_128_CBC)
 	 */
@@ -228,11 +224,7 @@ public class UAes implements IUSymmetricEncyrpt {
 	 */
 	public UAes(String key, String iv) {
 		this.cipherName = AES_ALGORITHM;
-
-		byte[] ivBuf = iv.getBytes(StandardCharsets.UTF_8);
-		byte[] keyBuf = key.getBytes(StandardCharsets.UTF_8);
-
-		this.init(keyBuf, ivBuf);
+		this.init(key, iv);
 	}
 
 	/**
@@ -244,10 +236,8 @@ public class UAes implements IUSymmetricEncyrpt {
 	 */
 	public UAes(String key, String iv, String cipherName) {
 		this.cipherName = cipherName;
-		byte[] ivBuf = iv.getBytes(StandardCharsets.UTF_8);
-		byte[] keyBuf = key.getBytes(StandardCharsets.UTF_8);
 
-		this.init(keyBuf, ivBuf);
+		this.init(key, iv);
 	}
 
 	/**
@@ -281,12 +271,37 @@ public class UAes implements IUSymmetricEncyrpt {
 	 * @throws Exception
 	 */
 	public byte[] encryptBytes(byte[] plainData) throws Exception {
-		if (this.enCipher == null) {
-			OpCipher cipher = this.isUsingBc() ? this.getCipherBc(true) : this.getCipherJava(true);
-			this.enCipher = cipher;
+		byte[] iv;
+		String mode = this.getBlockCipherMode();
+		if (this.isAutoIv()) {
+			iv = this.generateRandomBytes(16);
+		} else {
+			iv = this.iv;
 		}
+		String cipherKey = new String(iv) + "," + new String(key) + ",true";
+		OpCipher enCipher;
+
+		if (this.mapCiphers.containsKey(cipherKey)) {
+			enCipher = this.mapCiphers.get(cipherKey);
+		} else {
+			enCipher = this.isUsingBc() ? this.getCipherBc(true, this.key, iv) : this.getCipherJava(true, this.key, iv);
+			this.mapCiphers.put(cipherKey, enCipher);
+		}
+
 		byte[] byteFina = enCipher.processBytes(plainData);
-		return byteFina;
+
+		// The ECB mode does not use IV
+		if (this.isAutoIv() && !mode.equals("ECB")) {
+			int ivLength = iv.length;
+			byte[] bytesWithIv = new byte[byteFina.length + ivLength];
+			System.arraycopy(iv, 0, bytesWithIv, 0, ivLength);
+			System.arraycopy(byteFina, 0, bytesWithIv, ivLength, byteFina.length);
+
+			return bytesWithIv;
+		} else {
+			return byteFina;
+		}
+
 	}
 
 	/**
@@ -297,10 +312,33 @@ public class UAes implements IUSymmetricEncyrpt {
 	 * @throws Exception
 	 */
 	public byte[] decryptBytes(byte[] encryptedData) throws Exception {
-		if (this.deCipher == null) {
-			this.deCipher = this.isUsingBc() ? this.getCipherBc(false) : this.getCipherJava(false);
+		byte[] iv;
+		byte[] cipherData;
+		String mode = this.getBlockCipherMode();
+		// ECB not using iv
+		if (this.isAutoIv() && !mode.equals("ECB")) {
+			iv = new byte[16];
+			System.arraycopy(encryptedData, 0, iv, 0, iv.length);
+			cipherData = new byte[encryptedData.length - iv.length];
+			System.arraycopy(encryptedData, iv.length, cipherData, 0, cipherData.length);
+		} else {
+			iv = this.iv;
+			cipherData = encryptedData;
 		}
-		byte[] byteFina = this.deCipher.processBytes(encryptedData);
+		String cipherKey = new String(iv) + "," + new String(key) + ",false";
+		OpCipher deCipher = null;
+
+		// A GCM cann't decrypt multiple ciphertexts with the same key and iv/nonce;
+		if (!"GCM".equals(mode) && this.mapCiphers.containsKey(cipherKey)) {
+			deCipher = this.mapCiphers.get(cipherKey);
+		} else {
+			deCipher = this.isUsingBc() ? this.getCipherBc(false, this.key, iv)
+					: this.getCipherJava(false, this.key, iv);
+			if (!"GCM".equals(mode)) {
+				this.mapCiphers.put(cipherKey, deCipher);
+			}
+		}
+		byte[] byteFina = deCipher.processBytes(cipherData);
 		return byteFina;
 	}
 
@@ -341,19 +379,23 @@ public class UAes implements IUSymmetricEncyrpt {
 	}
 
 	/**
-	 * Create an AES cipher according to the parameter blockMode
+	 * Create a AES cipher according to the parameter blockMode (java.secrity)
 	 * 
 	 * @param isEncrypt true=encrypt/ false=decrypt
-	 * @return AES cipher
+	 * @param keyBytes
+	 * @param ivBytes
+	 * @return
 	 * @throws InvalidKeyException
 	 * @throws InvalidAlgorithmParameterException
 	 * @throws NoSuchAlgorithmException
 	 * @throws NoSuchPaddingException
 	 * @throws NoSuchProviderException
 	 */
-	private OpCipher getCipherJava(boolean isEncrypt) throws InvalidKeyException, InvalidAlgorithmParameterException,
-			NoSuchAlgorithmException, NoSuchPaddingException, NoSuchProviderException {
+	private OpCipher getCipherJava(boolean isEncrypt, byte[] keyBytes, byte[] ivBytes)
+			throws InvalidKeyException, InvalidAlgorithmParameterException, NoSuchAlgorithmException,
+			NoSuchPaddingException, NoSuchProviderException {
 
+		SecretKeySpec keySpec = new SecretKeySpec(keyBytes, "AES");
 		Cipher cipher;
 		String blockMode = this.getBlockCipherMode();
 		// AES/CBC/PKCS5Padding AES/CBC/NoPadding
@@ -370,7 +412,7 @@ public class UAes implements IUSymmetricEncyrpt {
 			// Create GCMParameterSpec
 			// if (macSizeBits < 32 || macSizeBits > 128 || macSizeBits % 8 != 0)
 			int macSizeBits = this.getMacSizeBits();
-			GCMParameterSpec gcmParameterSpec = new GCMParameterSpec(macSizeBits, this.iv);
+			GCMParameterSpec gcmParameterSpec = new GCMParameterSpec(macSizeBits, ivBytes);
 			cipher.init(isEncrypt ? Cipher.ENCRYPT_MODE : Cipher.DECRYPT_MODE, keySpec, gcmParameterSpec);
 
 			// Additional AuthenticationData (AAD).
@@ -382,7 +424,7 @@ public class UAes implements IUSymmetricEncyrpt {
 			// Create GCMParameterSpec
 			// if (macSizeBits < 32 || macSizeBits > 128 || macSizeBits % 8 != 0)
 			int macSizeBits = this.getMacSizeBits();
-			GCMParameterSpec gcmParameterSpec = new GCMParameterSpec(macSizeBits, this.iv);
+			GCMParameterSpec gcmParameterSpec = new GCMParameterSpec(macSizeBits, ivBytes);
 			cipher.init(isEncrypt ? Cipher.ENCRYPT_MODE : Cipher.DECRYPT_MODE, keySpec, gcmParameterSpec);
 
 			// Additional AuthenticationData (AAD).
@@ -391,23 +433,28 @@ public class UAes implements IUSymmetricEncyrpt {
 				cipher.updateAAD(aad);
 			}
 		} else {
-			cipher.init(isEncrypt ? Cipher.ENCRYPT_MODE : Cipher.DECRYPT_MODE, keySpec, ivSpec);
+			IvParameterSpec ivspec = new IvParameterSpec(ivBytes);
+			cipher.init(isEncrypt ? Cipher.ENCRYPT_MODE : Cipher.DECRYPT_MODE, keySpec, ivspec);
 		}
 		OpCipher op = new OpCipher();
 		op.parant = this;
 		op.encrypt = isEncrypt;
 		op.cipher = cipher;
+
+		op.iv = ivBytes;
+		op.key = this.key;
 		return op;
 	}
 
 	/**
-	 * Create an AES cipher according to the parameter blockMode
+	 * Create a AES cipher according to the parameter blockMode
 	 * 
 	 * @param isEncyrpt true=encrypt/ false=decrypt
-	 * @return BCCipher
-	 * @throws InvalidAlgorithmParameterException
+	 * @param keyBytes
+	 * @param ivBytes
+	 * @return cipher
 	 */
-	private OpCipher getCipherBc(boolean isEncyrpt) throws InvalidAlgorithmParameterException {
+	private OpCipher getCipherBc(boolean isEncyrpt, byte[] keyBytes, byte[] ivBytes) {
 		AESEngine engine = new AESEngine();
 
 		OpCipher cipher = new OpCipher();
@@ -462,10 +509,11 @@ public class UAes implements IUSymmetricEncyrpt {
 				cipher.cipherBufferBlock = new PaddedBufferedBlockCipher(new CBCBlockCipher(engine));
 			}
 		}
-		KeyParameter keyP = new KeyParameter(key);
+		KeyParameter keyP = new KeyParameter(keyBytes);
+
 		if (cipher.cipherBufferBlock != null) {
 			if (usingIV) {
-				CipherParameters cipherParameters = new ParametersWithIV(keyP, iv);
+				CipherParameters cipherParameters = new ParametersWithIV(keyP, ivBytes);
 				cipher.cipherBufferBlock.init(isEncyrpt, cipherParameters);
 			} else {
 				cipher.cipherBufferBlock.init(isEncyrpt, keyP);
@@ -475,15 +523,32 @@ public class UAes implements IUSymmetricEncyrpt {
 			byte[] aad = this.createAAD();
 			// if (macSizeBits < 32 || macSizeBits > 128 || macSizeBits % 8 != 0)
 			int macSizeBits = this.getMacSizeBits();
-			AEADParameters parameters = new AEADParameters(keyP, macSizeBits, iv);
+			AEADParameters parameters = new AEADParameters(keyP, macSizeBits, ivBytes);
 			cipher.aeadBlockCipher.init(isEncyrpt, parameters);
 			if (aad != null) {
 				cipher.aeadBlockCipher.processAADBytes(aad, 0, aad.length);
 			}
-
 		}
-
+		cipher.iv = ivBytes;
+		cipher.key = this.key;
 		return cipher;
+	}
+
+	/**
+	 * Initialize with the key and iv
+	 * 
+	 * @param key the encrypt or decrypt password
+	 * @param iv  the nonce of encrypt or decrypt, blank for auto generate iv
+	 */
+	private void init(String key, String iv) {
+		byte[] keyBuf = key.getBytes(StandardCharsets.UTF_8);
+		if (iv == null || iv.length() == 0) {
+			this.autoIv = true;
+			this.init(keyBuf, null);
+		} else {
+			byte[] ivBuf = iv.getBytes(StandardCharsets.UTF_8);
+			this.init(keyBuf, ivBuf);
+		}
 	}
 
 	/**
@@ -496,11 +561,15 @@ public class UAes implements IUSymmetricEncyrpt {
 
 		int keyBitLength = this.getKeyLength();
 
-		byte[] ivBytes = new byte[16];// IV length: must be 16 bytes long
-		Arrays.fill(ivBytes, (byte) 0);
-		System.arraycopy(ivBuf, 0, ivBytes, 0, ivBuf.length > ivBytes.length ? ivBytes.length : ivBuf.length);
-		this.iv = ivBytes;
-
+		if (ivBuf == null || ivBuf.length == 0) {
+			this.autoIv = true;
+			this.iv = null;
+		} else {
+			byte[] ivBytes = new byte[16];// IV length: must be 16 bytes long
+			Arrays.fill(ivBytes, (byte) 0);
+			System.arraycopy(ivBuf, 0, ivBytes, 0, ivBuf.length > ivBytes.length ? ivBytes.length : ivBuf.length);
+			this.iv = ivBytes;
+		}
 		/*
 		 * 设置AES密钥长度 AES要求密钥长度为128位或192位或256位，java默认限制AES密钥长度最多128位
 		 * 如需192位或256位，则需要到oracle官网找到对应版本的jdk下载页，在"Additional Resources"中找到 "Java
@@ -516,11 +585,21 @@ public class UAes implements IUSymmetricEncyrpt {
 
 		this.key = key;
 
-		SecretKeySpec keyspec = new SecretKeySpec(key, "AES");
-		IvParameterSpec ivspec = new IvParameterSpec(ivBytes);
+	}
 
-		this.keySpec = keyspec;
-		this.ivSpec = ivspec;
+	/**
+	 * Generate a random buff
+	 * 
+	 * @param Length the buff length
+	 * @return the random buff
+	 */
+	public byte[] generateRandomBytes(int Length) {
+		byte[] buff = new byte[Length];
+
+		SecureRandom r = new SecureRandom();
+		r.nextBytes(buff);
+
+		return buff;
 	}
 
 	private BlockCipherPadding getPadding() {
@@ -714,42 +793,6 @@ public class UAes implements IUSymmetricEncyrpt {
 	}
 
 	/**
-	 * Get SecretKeySpec
-	 * 
-	 * @return keySpec
-	 */
-	public SecretKeySpec getKeySpec() {
-		return keySpec;
-	}
-
-	/**
-	 * Set SecretKeySpec
-	 * 
-	 * @param keySpec SecretKeySpec
-	 */
-	public void setKeySpec(SecretKeySpec keySpec) {
-		this.keySpec = keySpec;
-	}
-
-	/**
-	 * Get IvParameterSpec
-	 * 
-	 * @return ivSpec
-	 */
-	public IvParameterSpec getIvSpec() {
-		return ivSpec;
-	}
-
-	/**
-	 * Set IvParameterSpec
-	 * 
-	 * @param ivSpec IvParameterSpec
-	 */
-	public void setIvSpec(IvParameterSpec ivSpec) {
-		this.ivSpec = ivSpec;
-	}
-
-	/**
 	 * PADDING AES/CBC/PKCS7Padding
 	 * 
 	 * @return PADDING
@@ -842,51 +885,16 @@ public class UAes implements IUSymmetricEncyrpt {
 	public void setAdditionalAuthenticationData(String additionalAuthenticationData) {
 		this.additionalAuthenticationData = additionalAuthenticationData;
 	}
-}
 
-/**
- * Inner class for BouncyCastle encrypt/decrypt
- */
-class OpCipher {
-	UAes parant;
-	boolean encrypt;
-	Cipher cipher;
-	BufferedBlockCipher cipherBufferBlock;
-	AEADBlockCipher aeadBlockCipher;
+	public boolean isAutoIv() {
+		return autoIv;
+	}
 
-	public byte[] processBytes(byte[] source) throws DataLengthException, IllegalStateException,
-			InvalidCipherTextException, IllegalBlockSizeException, BadPaddingException {
-		if (this.cipherBufferBlock != null) {
-			byte[] buffer = new byte[cipherBufferBlock.getOutputSize(source.length)];
-			int pos = cipherBufferBlock.processBytes(source, 0, source.length, buffer, 0);
-			pos += cipherBufferBlock.doFinal(buffer, pos);
+	public void setAutoIv(boolean autoIv) {
+		this.autoIv = autoIv;
+	}
 
-			return Arrays.copyOf(buffer, pos);
-		} else if (this.aeadBlockCipher != null) {
-			byte[] buffer = new byte[aeadBlockCipher.getOutputSize(source.length)];
-			int pos = aeadBlockCipher.processBytes(source, 0, source.length, buffer, 0);
-			pos += aeadBlockCipher.doFinal(buffer, pos);
-
-			return Arrays.copyOf(buffer, pos);
-		} else if (cipher != null) {
-
-			if (this.encrypt && !parant.getBlockCipherMode().equals("GCM") && !parant.getBlockCipherMode().equals("CCM")
-					&& parant.getPaddingMethod().equals(UAes.NoPadding)) {
-				// 填充Padding
-				int blockSize = cipher.getBlockSize();
-				int plaintextLength = source.length;
-				if (plaintextLength % blockSize != 0) {
-					plaintextLength = plaintextLength + (blockSize - (plaintextLength % blockSize));
-				}
-				byte[] plaintext = new byte[plaintextLength];
-				System.arraycopy(source, 0, plaintext, 0, source.length);
-
-				return cipher.doFinal(plaintext);
-			} else {
-				return cipher.doFinal(source);
-			}
-		} else {
-			return null;
-		}
+	public Map<String, OpCipher> getMapCiphers() {
+		return mapCiphers;
 	}
 }
