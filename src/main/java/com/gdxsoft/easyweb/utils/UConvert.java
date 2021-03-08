@@ -11,7 +11,10 @@ import java.util.Base64;
  */
 public class UConvert {
 	public static byte[] FromBase64String(String s) throws IOException {
-		return Base64.getDecoder().decode(s);
+		// fixed java.lang.IllegalArgumentException: Illegal base64 character d
+		String s1 = s.replace("\n", "").replace("\r", "");
+
+		return Base64.getDecoder().decode(s1);
 	}
 
 	public static String ToBase64String(byte[] inArray) {

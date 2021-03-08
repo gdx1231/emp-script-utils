@@ -329,7 +329,7 @@ public class Utils {
 	 * @return 16进制字符串
 	 */
 	public static String bytes2hex(byte[] b) {
-		return Hex.toHexString(b);
+		return Hex.toHexString(b).toUpperCase();
 	}
 
 	/**
