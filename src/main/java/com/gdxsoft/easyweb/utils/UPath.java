@@ -2,6 +2,7 @@ package com.gdxsoft.easyweb.utils;
 
 import java.io.File;
 import java.util.HashMap;
+import java.util.Map;
 
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -568,7 +569,8 @@ public class UPath {
 		CFG_CACHE_METHOD = "memory"; // 默认模式
 		if (nl.getLength() > 0) {
 			Element eleDes = (Element) nl.item(0);
-			String value = eleDes.getAttribute("Value");
+			Map<String, String> vals = UXml.getElementAttributes(eleDes, true);
+			String value = vals.get("value");
 			if (value != null && value.trim().equalsIgnoreCase("sqlcached")) {
 				CFG_CACHE_METHOD = "sqlcached";
 			}
@@ -766,7 +768,7 @@ public class UPath {
 
 		return UPath.CFG_CACHE_METHOD;
 	}
-	
+
 	public static long getPropTime() {
 		return PROP_TIME;
 	}
