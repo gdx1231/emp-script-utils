@@ -629,7 +629,11 @@ public class UPath {
 	 * @param doc
 	 */
 	private static void initSmtpParas(Document doc) {
-		SmtpCfgs.initCfgs(doc);
+		try {
+			SmtpCfgs.initCfgs(doc);
+		} catch (Exception err) {
+			LOG.error("initSmtpParas", err.getMessage());
+		}
 	}
 
 	/**
