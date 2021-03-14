@@ -23,7 +23,7 @@ import com.gdxsoft.easyweb.utils.URsa;
 import com.sun.mail.util.CRLFOutputStream;
 import com.sun.mail.util.QPEncoderStream;
 
-import jakarta.mail.MessagingException;
+import javax.mail.MessagingException;
 
 /*
  *   DKIM RFC 4871.

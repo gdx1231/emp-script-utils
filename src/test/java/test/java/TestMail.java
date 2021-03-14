@@ -3,12 +3,12 @@ package test.java;
 import java.util.List;
 import java.util.Properties;
 
-import jakarta.mail.Folder;
-import jakarta.mail.Message;
-import jakarta.mail.Part;
-import jakarta.mail.Session;
-import jakarta.mail.Store;
-import jakarta.mail.internet.MimeMessage;
+import javax.mail.Folder;
+import javax.mail.Message;
+import javax.mail.Part;
+import javax.mail.Session;
+import javax.mail.Store;
+import javax.mail.internet.MimeMessage;
 
 import com.gdxsoft.easyweb.utils.UPath;
 import com.gdxsoft.easyweb.utils.Mail.Attachment;

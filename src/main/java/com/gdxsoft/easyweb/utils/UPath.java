@@ -1,22 +1,27 @@
 package com.gdxsoft.easyweb.utils;
 
 import java.io.File;
+import java.io.IOException;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 
+
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
-import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
 import com.gdxsoft.easyweb.utils.Mail.SmtpCfgs;
 import com.gdxsoft.easyweb.utils.msnet.MTableStr;
 
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class UPath {
+	private static boolean mainCall = false;
 	private static Logger LOG = LoggerFactory.getLogger(UPath.class);
 	/**
 	 * 默认的ewa_conf的名字
@@ -115,6 +120,9 @@ public class UPath {
 	private static String PATH_CACHED = "";
 	private static String CFG_CACHE_METHOD;
 
+	private static URL CONF_URL;
+
+	public static long CHK_DURATION = 60 * 1000;
 	static {
 		// initPath();
 	}
@@ -289,84 +297,167 @@ public class UPath {
 		return CFG_XML_DOC;
 	}
 
+	private synchronized static void initPathReal() {
+		Utils ut = new Utils();
+		ClassLoader loader = ut.getClass().getClassLoader();
+
+		String path = null;
+		URL p0 = loader.getResource("/");
+		URL p1 = loader.getResource(".");
+		URL p2 = loader.getResource("");
+
+		if (mainCall) {
+			System.out.println("getResource(\"/\")" + (p0 == null ? "null" : p0.toString()));
+			System.out.println("getResource(\".\")" + (p1 == null ? "null" : p1.toString()));
+			System.out.println("getResource(\"\")" + (p2 == null ? "null" : p2.toString()));
+		} else {
+			LOG.debug("getResource(\"/\")" + (p0 == null ? "null" : p0.toString()));
+			LOG.debug("getResource(\".\")" + (p1 == null ? "null" : p1.toString()));
+			LOG.debug("getResource(\"\")" + (p2 == null ? "null" : p2.toString()));
+		}
+
+		if (p0 != null) { // tomcat call
+			path = p0.getPath();
+			IS_WEB_CALL = true;
+		} else if (p1 != null) {// console call
+			path = p1.getPath();
+			IS_WEB_CALL = false;
+		} else {
+			return;
+		}
+		if (path != null) {
+			File f1 = new File(path);
+			path = f1.getPath().replaceAll("%20", " ");
+			PATH_REAL = path + "/";
+			String msg = "PATH_REAL=" + PATH_REAL;
+			if (mainCall) {
+				System.out.println(msg);
+			} else {
+				LOG.info(msg);
+			}
+		}
+	}
+
+	private static boolean loadEwaConf() throws Exception {
+		File f2 = null;
+		if (CONF_NAME != null) { // 用户指定文件名称
+			String xmlNameDefined = CONF_NAME;
+			f2 = new File(xmlNameDefined);
+			if (f2.exists()) {
+				URL userDefined = new URL(f2.getAbsolutePath());
+				loadConfXml(userDefined);
+				return true;
+			} else {
+				String msg = "Can't found the user's conf file: " + f2.getAbsolutePath();
+				if (mainCall) {
+					System.out.println(msg);
+				} else {
+					LOG.error(msg);
+				}
+			}
+		}
+		URL ewaConf = UPath.class.getClassLoader().getResource("ewa_conf.xml");
+		if (ewaConf != null) {
+			loadConfXml(ewaConf);
+			return true;
+		}
+		URL ewaConfConsole = UPath.class.getClassLoader().getResource("ewa_conf_console.xml");
+		if (ewaConfConsole != null) {
+			loadConfXml(ewaConfConsole);
+			return true;
+		}
+		CFG_XML_DOC = null;
+		if (mainCall) {
+			System.out.println("Not found ewa_conf.xml or ewa_conf_console.xml");
+		} else {
+			LOG.error("Not found ewa_conf.xml or ewa_conf_console.xml");
+		}
+		return false;
+	}
+
+	private static void loadConfXml(URL url) throws IOException {
+		String xml = IOUtils.toString(url, StandardCharsets.UTF_8);
+		CFG_XML_DOC = UXml.asDocument(xml);
+		String msg = "Loaded ewa_conf, " + url;
+
+		if (mainCall) {
+			System.out.println(msg);
+		} else {
+			LOG.info(msg);
+		}
+
+		CONF_URL = url;
+
+		isConfFileChanged();
+	}
+
+	private static boolean isConfFileChanged() {
+		if (CONF_URL == null) {
+			return true;
+		}
+
+		File f = new File(CONF_URL.getPath());
+		if (!f.exists()) {
+			return true;
+		}
+
+		if (f.lastModified() == PROP_TIME) {
+			return false;
+		} else {
+			if (PROP_TIME == -1231) { // Initialized default value
+				PROP_TIME = f.lastModified();
+			}
+			return true;
+		}
+
+	}
+
 	/**
 	 * 初始化配置路径
 	 */
 	public static void initPath() {
-		if (LAST_CHK > 0 && (System.currentTimeMillis() - LAST_CHK) < 60 * 1000) {
-			// 60秒内不重新检查
+		if (System.currentTimeMillis() - LAST_CHK < CHK_DURATION) {// 60秒内不重新检查
 			return;
 		}
+		if (isConfFileChanged()) {
+			reloadConf();
+		} else {
+			String msg = "The conf file has not changed";
+			if (mainCall) {
+				System.out.println(msg);
+			} else {
+				LOG.debug(msg);
+			}
+		}
+	}
+
+	/**
+	 * Reload the configuration
+	 */
+	public synchronized static void reloadConf() {
 		LAST_CHK = System.currentTimeMillis();
-
-		if (PATH_REAL == null || PATH_REAL.length() == 0) {
-			Utils xu = new Utils();
-			String path;
-			if (xu.getClass().getClassLoader().getResource("/") == null) {
-				// console call
-				path = xu.getClass().getClassLoader().getResource(".").getPath();
-				IS_WEB_CALL = false;
-			} else {
-				// tomcat call
-				path = xu.getClass().getClassLoader().getResource("/").getPath();
-				IS_WEB_CALL = true;
-			}
-			File f1 = new File(path);
-			path = f1.getPath().replaceAll("%20", " ");
-			PATH_REAL = path + "/";
-		}
-
-		File f2 = null;
-
-		if (CONF_NAME != null) { // 用户指定文件名称
-			String xmlNameDefined = PATH_REAL + CONF_NAME;
-			f2 = new File(xmlNameDefined);
-			if (!f2.exists()) {
-				f2 = null;
-			}
-		}
-		if (f2 == null) {
-			String xmlName = PATH_REAL + "ewa_conf.xml";
-			f2 = new File(xmlName);
-			// 用于单独执行
-			String xmlName1 = PATH_REAL + "ewa_conf_console.xml";
-			if (!f2.exists()) {
-				f2 = new File(xmlName1);
-			}
-
-			if (!f2.exists()) {
-				System.out.println("NOT FUND " + xmlName + " OR " + xmlName1);
-			}
-		}
-		// 先找ewa_conf.xml （新配置文件）。如果不存在，再找EwaConfig.properties
-		if (f2.exists()) {
-			if (PROP_TIME == f2.lastModified()) {
-				// 文件未被修改
+		initPathReal();
+		try {
+			if (!loadEwaConf()) {
 				return;
+			}
+		} catch (Exception e) {
+			if (mainCall) {
+				System.out.println(e.getMessage());
 			} else {
-				PROP_TIME = f2.lastModified();
-				LOG.info("加载 " + f2.getAbsolutePath());
-				try {
-					initPathXml(f2.getAbsolutePath());
-				} catch (Exception err) {
-					LOG.error(err.getMessage());
-				}
-
+				LOG.error("Load conf fail, " + e.getMessage());
 			}
 		}
-		/*
-		 * 已经作废 if (PATH_SCRIPT.length() == 0) { String propName = PATH_REAL +
-		 * "EwaConfig.properties"; f2 = new File(propName); if (f2.exists()) { if
-		 * (PROP_TIME == f2.lastModified()) { // 文件未被修改 return; } else { PROP_TIME =
-		 * f2.lastModified(); initPath(propName); } } }
-		 */
-//		if (PATH_SCRIPT == null || PATH_SCRIPT.length() == 0)
-//			PATH_SCRIPT = PATH_REAL + "Scripts/";
-//		if (PATH_CONFIG == null || PATH_CONFIG.length() == 0)
-//			PATH_CONFIG = PATH_REAL + "Config/";
-//		if (PATH_MANAGMENT == null || PATH_MANAGMENT.length() == 0)
-//			PATH_MANAGMENT = PATH_REAL + "Management/";
-
+		try {
+			initPathXml();
+		} catch (Exception e) {
+			String msg = "Failed to parse the XML conf, " + e.getMessage();
+			if (mainCall) {
+				System.out.println(msg);
+			} else {
+				LOG.error(msg);
+			}
+		}
 	}
 
 	/**
@@ -405,13 +496,10 @@ public class UPath {
 	/**
 	 * 在ewa_conf.xml配置文件中获取参数
 	 * 
-	 * @param xmlName
 	 * @throws Exception
 	 */
-	private synchronized static void initPathXml(String xmlName) throws Exception {
-		Document doc = UXml.retDocument(xmlName);
-		CFG_XML_DOC = doc;
-		System.out.println("UPATH " + xmlName);
+	private static void initPathXml() {
+		Document doc = CFG_XML_DOC;
 		NodeList nl = doc.getElementsByTagName("path");
 		for (int i = 0; i < nl.getLength(); i++) {
 			Element ele = (Element) nl.item(i);
@@ -493,31 +581,6 @@ public class UPath {
 		UPath.initRequestValueGlobal(doc);
 
 		UPath.initValidDomains(doc);
-
-		// 设置UDes的 key 与 iv
-		// <des desKeyValue="" desIvValue="" />
-		nl = doc.getElementsByTagName("des");
-		if (nl.getLength() > 0) {
-			Element eleDes = (Element) nl.item(0);
-			String desKey = null;
-			String desIv = null;
-			for (int i = 0; i < eleDes.getAttributes().getLength(); i++) {
-				Node att = eleDes.getAttributes().item(i);
-				String name = att.getNodeName();
-				String val = att.getNodeValue();
-				if (name.equals("desKeyValue")) {
-					desKey = val;
-				} else if (name.equals("desIvValue")) {
-					desIv = val;
-				}
-			}
-			UDes.initDefaultKey(desKey, desIv);
-		}
-
-		// <!-- 配置文件缓存方式 memory / sqlcached -->
-		// <!-- memory, 使用 java 内存 (默认)-->
-		// <!-- sqlcached,利用 SqlCached 配置 -->
-		// <cfgCacheMethod Value="sqlcached" />
 
 		UPath.initCfgCacheMethod(doc);
 
@@ -775,6 +838,11 @@ public class UPath {
 
 	public static long getPropTime() {
 		return PROP_TIME;
+	}
+
+	public static void main(String[] args) {
+		UPath.mainCall = true;
+		initPath();
 	}
 
 }

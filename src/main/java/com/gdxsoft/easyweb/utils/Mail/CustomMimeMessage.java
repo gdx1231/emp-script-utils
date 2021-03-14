@@ -1,8 +1,8 @@
 package com.gdxsoft.easyweb.utils.Mail;
 
-import jakarta.mail.MessagingException;
-import jakarta.mail.Session;
-import jakarta.mail.internet.MimeMessage;
+import javax.mail.MessagingException;
+import javax.mail.Session;
+import javax.mail.internet.MimeMessage;
 
 public class CustomMimeMessage extends MimeMessage {
 	private String oldMessageId;
