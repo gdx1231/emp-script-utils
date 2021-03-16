@@ -274,7 +274,7 @@ public class UAes implements IUSymmetricEncyrpt {
 		byte[] iv;
 		String mode = this.getBlockCipherMode();
 		if (this.isAutoIv()) {
-			iv = this.generateRandomBytes(16);
+			iv = generateRandomBytes(16);
 		} else {
 			iv = this.iv;
 		}
@@ -593,7 +593,7 @@ public class UAes implements IUSymmetricEncyrpt {
 	 * @param Length the buff length
 	 * @return the random buff
 	 */
-	public byte[] generateRandomBytes(int Length) {
+	public static byte[] generateRandomBytes(int Length) {
 		byte[] buff = new byte[Length];
 
 		SecureRandom r = new SecureRandom();
