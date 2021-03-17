@@ -4,8 +4,7 @@ import com.gdxsoft.easyweb.utils.UDns;
 
 import java.util.List;
 
-import org.junit.Test;
-
+import org.junit.jupiter.api.Test;
 public class TestDns {
 
 	public static void main(String[] args) {

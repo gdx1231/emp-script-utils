@@ -3,7 +3,7 @@ package test.java;
 import java.util.Date;
 
 import com.gdxsoft.easyweb.utils.*;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class TestFormats extends TestBase{
 	public static void main(String[] args) throws Exception {

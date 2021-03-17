@@ -16,8 +16,7 @@ import com.gdxsoft.easyweb.utils.Mail.MailDecode;
 import com.gdxsoft.easyweb.utils.Mail.MailLogHelper;
 import com.gdxsoft.easyweb.utils.Mail.SendMail;
 
-import org.junit.Test;
-
+import org.junit.jupiter.api.Test;
 public class TestMail extends TestBase {
 	private int switchValue;
 

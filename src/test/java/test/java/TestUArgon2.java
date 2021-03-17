@@ -1,7 +1,7 @@
 package test.java;
 
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import com.gdxsoft.easyweb.utils.UArgon2;
 

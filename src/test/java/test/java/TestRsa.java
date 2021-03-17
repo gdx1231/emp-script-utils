@@ -6,6 +6,8 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.spec.InvalidKeySpecException;
 
+import org.junit.jupiter.api.Test;
+
 import com.gdxsoft.easyweb.utils.UConvert;
 import com.gdxsoft.easyweb.utils.UDigest;
 import com.gdxsoft.easyweb.utils.UFile;
@@ -25,7 +27,8 @@ public class TestRsa extends TestBase {
 		test.testRsa();
 	}
 
-	private TestRsa() throws NoSuchAlgorithmException, InvalidKeySpecException, IOException {
+	
+	public TestRsa() throws NoSuchAlgorithmException, InvalidKeySpecException, IOException {
 		String privateKeyPath = UPath.getRealPath() + "resources/test.pem";
 		String publicKeyPath = UPath.getRealPath() + "resources/test.pub.pem";
 		this.privateKeyFilePath = privateKeyPath;
@@ -38,7 +41,7 @@ public class TestRsa extends TestBase {
 	}
 
 	 
-
+	@Test
 	public void testRsa() throws Throwable {
 		this.rsa.setUsingBc(true);
 		super.printCaption("测试RSA - DER/PEM BC");
