@@ -5,7 +5,7 @@ import com.gdxsoft.easyweb.utils.UDns;
 import java.util.List;
 
 import org.junit.jupiter.api.Test;
-public class TestDns {
+public class TestDns extends TestBase{
 
 	public static void main(String[] args) {
 		TestDns t = new TestDns();
@@ -14,14 +14,15 @@ public class TestDns {
 
 	@Test
 	public void testDns() {
+		super.printCaption("Test DNS default server");
 		testDns("www.gdxsoft.com", "a");
 		testDns("www.gdxsoft.com", "aaaa");
 		testDns("gdxsoft.com", "txt");
 		testDns("gdxsoft.com", "ns");
 		testDns("gdxsoft.com", "mx");
 		
-		
-		testDns("www.gdxsoft.com", "a", "1.1.1.1");
+		super.printCaption("Test DNS 8.8.8.8 ");
+		testDns("www.gdxsoft.com", "a", "8.8.8.8");
 		testDns("www.gdxsoft.com", "aaaa", "8.8.8.8");
 		testDns("gdxsoft.com", "txt", "8.8.8.8");
 		testDns("gdxsoft.com", "ns", "8.8.8.8");

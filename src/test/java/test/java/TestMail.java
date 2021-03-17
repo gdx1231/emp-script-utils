@@ -17,8 +17,9 @@ import com.gdxsoft.easyweb.utils.Mail.MailLogHelper;
 import com.gdxsoft.easyweb.utils.Mail.SendMail;
 
 import org.junit.jupiter.api.Test;
+
 public class TestMail extends TestBase {
-	private int switchValue;
+	private int switchValue = 1;
 
 	/**
 	 * PraseMimeMessage类测试
@@ -32,14 +33,17 @@ public class TestMail extends TestBase {
 
 	@Test
 	public void testMail() throws Exception {
+		super.printCaption("Test mail");
 		if (switchValue == 0) {
 			return;
 		}
 		String subject = "日本零碳终极武器——太空光伏发电";
 		String content = "太空光伏发电”是指利用分布在太空的光伏电池板来发电，并通过微波向地面传输电力的技术。京都大学教授松本纮从1980年代就开始了相关研究，他的学生筱原真毅成功利用微波炉改进的设备让电视屏幕亮起";
-		
-		this.testMail("reminder@notify.gyap.org", "gdx1231@126.com", subject, content);
-
+		try {
+			this.testMail("reminder@notify.gyap.org", "gdx1231@126.com", subject, content);
+		} catch (Exception err) {
+			System.out.println(err.getMessage());
+		}
 //		this.testMail("guolei@sina.com", "ios@oneworld.cc", subject, content);
 //		this.testMail("guolei@sina.com.cn", "feng.wang@oneworld.cc", subject, content);
 //
@@ -64,8 +68,6 @@ public class TestMail extends TestBase {
 		sm.send();
 		super.printCaption("send ok");
 	}
-
-   
 
 	public void readPop3Mails(String host, String username, String password) throws Exception {
 
