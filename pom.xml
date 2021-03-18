@@ -4,9 +4,9 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>com.gdxsoft.easyweb</groupId>
 	<artifactId>emp-script-utils</artifactId>
-	<version>1.0.3</version>
+	<version>1.0.4</version>
 	<name>Easy Web Appliaction Utils</name>
-	<description>Easy Web Appliaction Utils: UMail, UDigest, URsa, UAes, UDes, UFile, UConvert, UFormat, UNet, SendMail, SmtpCfg </description>
+	<description>Easy Web Appliaction Utils: UArgon2, UMail, UDigest, URsa, UAes, UDes, UFile, UConvert, UFormat, UNet, SendMail, SmtpCfg </description>
 
 	<developers>
 		<developer>
@@ -176,12 +176,12 @@
 			<scope>provided</scope>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/jakarta.servlet/jakarta.servlet-api -->
-		<dependency>
+		<!-- <dependency>
 			<groupId>jakarta.servlet</groupId>
 			<artifactId>jakarta.servlet-api</artifactId>
 			<version>5.0.0</version>
 			<scope>provided</scope>
-		</dependency>
+		</dependency> -->
 
 		<!-- https://mvnrepository.com/artifact/org.bouncycastle/bcprov-jdk15on -->
 		<dependency>

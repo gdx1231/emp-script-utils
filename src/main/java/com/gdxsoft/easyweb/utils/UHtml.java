@@ -131,12 +131,10 @@ public class UHtml {
 	 * @return the http body string(UTF8)
 	 * @throws IOException
 	 */
-	public static String getHttpBody(jakarta.servlet.http.HttpServletRequest request) throws IOException {
-		InputStream is = request.getInputStream();
-		String str = getHttpBody(is);
-		return str;
-	}
-
+	/*
+	 * public static String getHttpBody(jakarta.servlet.http.HttpServletRequest request) throws IOException {
+	 * InputStream is = request.getInputStream(); String str = getHttpBody(is); return str; }
+	 */
 	private static String getHttpBody(InputStream is) throws IOException {
 		byte[] bytes = new byte[1024 * 1024];
 		int nRead = 1;
@@ -203,28 +201,15 @@ public class UHtml {
 	 * @param request the HttpServletRequest
 	 * @return the base url
 	 */
-	public static String getHttpBase(jakarta.servlet.http.HttpServletRequest request) {
-		String port = ":" + request.getServerPort();
-		String scheme = request.getHeader("x-forwarded-protocol");
-		if (scheme == null) {
-			scheme = request.getScheme();
-		}
-		if (request.getServerPort() == 80 || request.getServerPort() == 443) {
-			port = "";
-		}
-
-		String ctx = request.getContextPath();
-		int inc = 0;
-		while (ctx.startsWith("//")) {
-			ctx = ctx.replace("//", "/");
-			inc++;
-			if (inc > 500) {
-				break;
-			}
-		}
-		String __base = "//" + request.getServerName() + port + "" + ctx;
-		return __base;
-	}
+	/*
+	 * public static String getHttpBase(jakarta.servlet.http.HttpServletRequest request) { String port = ":" +
+	 * request.getServerPort(); String scheme = request.getHeader("x-forwarded-protocol"); if (scheme == null) { scheme
+	 * = request.getScheme(); } if (request.getServerPort() == 80 || request.getServerPort() == 443) { port = ""; }
+	 * 
+	 * String ctx = request.getContextPath(); int inc = 0; while (ctx.startsWith("//")) { ctx = ctx.replace("//", "/");
+	 * inc++; if (inc > 500) { break; } } String __base = "//" + request.getServerName() + port + "" + ctx; return
+	 * __base; }
+	 */
 
 	/**
 	 * Get request base (Jakarta TOMCAT10)
@@ -233,13 +218,10 @@ public class UHtml {
 	 * @param baseAdd the path of attachment
 	 * @return the base url
 	 */
-	public static String getHttpBase(jakarta.servlet.http.HttpServletRequest request, String baseAdd) {
-		String __base = getHttpBase(request);
-		if (baseAdd != null) {
-			__base = __base + "/" + baseAdd;
-		}
-		return __base;
-	}
+	/*
+	 * public static String getHttpBase(jakarta.servlet.http.HttpServletRequest request, String baseAdd) { String __base
+	 * = getHttpBase(request); if (baseAdd != null) { __base = __base + "/" + baseAdd; } return __base; }
+	 */
 
 	public static String htmlETag() {
 		return "";

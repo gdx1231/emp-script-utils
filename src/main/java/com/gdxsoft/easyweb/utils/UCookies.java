@@ -105,28 +105,16 @@ public class UCookies {
 	 * @param response  HttpServletResponse
 	 * @param skipNames skip cookie's names
 	 */
-	public static void clearCookies(jakarta.servlet.http.HttpServletRequest request,
-			jakarta.servlet.http.HttpServletResponse response, List<String> skipNames) {
-		if (request == null || request.getCookies() == null) {
-			return;
-		}
-		for (jakarta.servlet.http.Cookie cookie : request.getCookies()) {
-			if (skipNames != null) {
-				boolean isSkip = skipNames.stream().anyMatch(item -> cookie.getName().equals(item));
-				if (isSkip) {
-					continue;
-				}
-			}
-			cookie.setMaxAge(0);
-			cookie.setPath("/");
-			cookie.setValue(null);
-			response.addCookie(cookie);
-
-			cookie.setPath(request.getContextPath());
-			response.addCookie(cookie);
-		}
-	}
-
+	/*
+	 * public static void clearCookies(jakarta.servlet.http.HttpServletRequest request,
+	 * jakarta.servlet.http.HttpServletResponse response, List<String> skipNames) { if (request == null ||
+	 * request.getCookies() == null) { return; } for (jakarta.servlet.http.Cookie cookie : request.getCookies()) { if
+	 * (skipNames != null) { boolean isSkip = skipNames.stream().anyMatch(item -> cookie.getName().equals(item)); if
+	 * (isSkip) { continue; } } cookie.setMaxAge(0); cookie.setPath("/"); cookie.setValue(null);
+	 * response.addCookie(cookie);
+	 * 
+	 * cookie.setPath(request.getContextPath()); response.addCookie(cookie); } }
+	 */
 	/**
 	 * Delete the cookie
 	 * 
@@ -145,11 +133,11 @@ public class UCookies {
 	 * @param cookieName the cookie name
 	 * @param response   jakarta.servlet.http.HttpServletResponse
 	 */
-	public void deleteCookie(String cookieName, jakarta.servlet.http.HttpServletResponse response) {
-		jakarta.servlet.http.Cookie cookie = this.createCookieJakarta(cookieName, null);
-		cookie.setMaxAge(0);
-		response.addCookie(cookie);
-	}
+	/*
+	 * public void deleteCookie(String cookieName, jakarta.servlet.http.HttpServletResponse response) {
+	 * jakarta.servlet.http.Cookie cookie = this.createCookieJakarta(cookieName, null); cookie.setMaxAge(0);
+	 * response.addCookie(cookie); }
+	 */
 
 	/**
 	 * Add a cookie
@@ -174,13 +162,13 @@ public class UCookies {
 	 * @param response    HttpServletResponse
 	 * @return Cookie the new cookie
 	 */
-	public jakarta.servlet.http.Cookie addCookie(String cookieName, String cookieValue,
-			jakarta.servlet.http.HttpServletResponse response) {
-		jakarta.servlet.http.Cookie cookie = this.createCookieJakarta(cookieName, cookieValue);
-		response.addCookie(cookie);
-
-		return cookie;
-	}
+	/*
+	 * public jakarta.servlet.http.Cookie addCookie(String cookieName, String cookieValue,
+	 * jakarta.servlet.http.HttpServletResponse response) { jakarta.servlet.http.Cookie cookie =
+	 * this.createCookieJakarta(cookieName, cookieValue); response.addCookie(cookie);
+	 * 
+	 * return cookie; }
+	 */
 
 	/**
 	 * UrlEncode a cookie value (UTF_8)
@@ -225,40 +213,21 @@ public class UCookies {
 	 * @param cookieValue the cookie value
 	 * @return new cookie
 	 */
-	public jakarta.servlet.http.Cookie createCookieJakarta(String cookieName, String cookieValue) {
-
-		jakarta.servlet.http.Cookie cookie = null;
-
-		if (this.encrypt) {
-			String ckName = COOKIE_NAME_PREFIX + cookieName;
-			if (cookieValue == null) {
-				cookie = new jakarta.servlet.http.Cookie(ckName, null);
-			} else {
-				try {
-					String value = this.getSymmetricEncrypt().encrypt(cookieValue);
-					cookie = new jakarta.servlet.http.Cookie(ckName, encodeCookieValue(value));
-				} catch (Exception e) {
-					LOGGER.error(e.getMessage());
-					return null;
-				}
-			}
-		} else {
-			cookie = new jakarta.servlet.http.Cookie(cookieName, encodeCookieValue(cookieValue));
-		}
-		cookie.setHttpOnly(httpOnly);
-		cookie.setSecure(secret);
-		if (domain != null) {
-			cookie.setDomain(domain);
-		}
-		if (path != null) {
-			cookie.setPath(path);
-		}
-		if (this.maxAgeSeconds != null) {
-			cookie.setMaxAge(this.maxAgeSeconds);
-		}
-
-		return cookie;
-	}
+	/*
+	 * public jakarta.servlet.http.Cookie createCookieJakarta(String cookieName, String cookieValue) {
+	 * 
+	 * jakarta.servlet.http.Cookie cookie = null;
+	 * 
+	 * if (this.encrypt) { String ckName = COOKIE_NAME_PREFIX + cookieName; if (cookieValue == null) { cookie = new
+	 * jakarta.servlet.http.Cookie(ckName, null); } else { try { String value =
+	 * this.getSymmetricEncrypt().encrypt(cookieValue); cookie = new jakarta.servlet.http.Cookie(ckName,
+	 * encodeCookieValue(value)); } catch (Exception e) { LOGGER.error(e.getMessage()); return null; } } } else { cookie
+	 * = new jakarta.servlet.http.Cookie(cookieName, encodeCookieValue(cookieValue)); } cookie.setHttpOnly(httpOnly);
+	 * cookie.setSecure(secret); if (domain != null) { cookie.setDomain(domain); } if (path != null) {
+	 * cookie.setPath(path); } if (this.maxAgeSeconds != null) { cookie.setMaxAge(this.maxAgeSeconds); }
+	 * 
+	 * return cookie; }
+	 */
 
 	/**
 	 * create a new cookie

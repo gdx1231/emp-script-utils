@@ -7,7 +7,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 
-
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
@@ -402,6 +401,7 @@ public class UPath {
 		}
 
 		if (f.lastModified() == PROP_TIME) {
+			LAST_CHK = System.currentTimeMillis();
 			return false;
 		} else {
 			if (PROP_TIME == -1231) { // Initialized default value
@@ -416,7 +416,8 @@ public class UPath {
 	 * 初始化配置路径
 	 */
 	public static void initPath() {
-		if (System.currentTimeMillis() - LAST_CHK < CHK_DURATION) {// 60秒内不重新检查
+		long diff = System.currentTimeMillis() - LAST_CHK;
+		if (diff < CHK_DURATION) {// 60秒内不重新检查
 			return;
 		}
 		if (isConfFileChanged()) {
@@ -462,8 +463,7 @@ public class UPath {
 
 	/**
 	 * 初始化定义RequestValue的初始化类型，例如： USR_ID->int <br>
-	 * &lt;requestValueType Name= "G_SUP_ID, G_ADM_ID, GRP_ID, ENQ_ID, ENQ_JNY_ID"
-	 * Type="int" /&gt;
+	 * &lt;requestValueType Name= "G_SUP_ID, G_ADM_ID, GRP_ID, ENQ_ID, ENQ_JNY_ID" Type="int" /&gt;
 	 * 
 	 * @param doc
 	 */
@@ -783,8 +783,7 @@ public class UPath {
 	}
 
 	/**
-	 * des="图片缩略图保存根路径URL, ！！！需要在Tomcat或Apache或Nginx中配置虚拟路径！！！。"
-	 * Name="img_tmp_path_url"，如果ewa_conf中没有配置的话，则为null
+	 * des="图片缩略图保存根路径URL, ！！！需要在Tomcat或Apache或Nginx中配置虚拟路径！！！。" Name="img_tmp_path_url"，如果ewa_conf中没有配置的话，则为null
 	 * 
 	 * @return 上传文件的Url
 	 */
