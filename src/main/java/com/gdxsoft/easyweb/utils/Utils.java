@@ -195,7 +195,7 @@ public class Utils {
 
 		String v1 = object.toString().trim();
 
-		if (v1.equals("是")) {
+		if (v1.equals("是") || v1.equals("1") || v1.equals("同意") || v1.equals("通过") || v1.equals("赞成")) {
 			return true;
 		}
 		return false;
@@ -266,9 +266,8 @@ public class Utils {
 	@Deprecated
 	public static String createEncryptString(String s1) {
 		/*
-		 * try { MessageDigest md = MessageDigest.getInstance("SHA-1");
-		 * md.update(s1.getBytes()); return byte2hex(md.digest()); } catch
-		 * (NoSuchAlgorithmException e) { return e.getMessage(); }
+		 * try { MessageDigest md = MessageDigest.getInstance("SHA-1"); md.update(s1.getBytes()); return
+		 * byte2hex(md.digest()); } catch (NoSuchAlgorithmException e) { return e.getMessage(); }
 		 */
 		String hex = UDigest.digestHex(s1, "sha1");
 		return hex;
@@ -353,9 +352,8 @@ public class Utils {
 	public static byte[] hex2bytes(String hexs) {
 		return Hex.decode(hexs);
 		/*
-		 * String stmp = ""; byte[] buf = new byte[hexs.length() / 2]; for (int n = 0; n
-		 * < hexs.length() / 2; n++) { int beginIndex = n * 2; int endIndex = beginIndex
-		 * + 2; stmp = hexs.substring(beginIndex, endIndex); byte b =
+		 * String stmp = ""; byte[] buf = new byte[hexs.length() / 2]; for (int n = 0; n < hexs.length() / 2; n++) { int
+		 * beginIndex = n * 2; int endIndex = beginIndex + 2; stmp = hexs.substring(beginIndex, endIndex); byte b =
 		 * Integer.decode("0x" + stmp).byteValue(); buf[n] = b; } return buf;
 		 */
 	}
@@ -782,8 +780,7 @@ public class Utils {
 	 */
 	public static String getDateTimeString(Date date) {
 		/*
-		 * SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss"); return
-		 * format.format(date);
+		 * SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss"); return format.format(date);
 		 */
 		return getDateString(date, "yyyy-MM-dd HH:mm:ss");
 	}
@@ -892,8 +889,8 @@ public class Utils {
 	public static Date getDate(String dateString, String dateFormat) {
 		// yyyy-MM-dd HH:mm:ss;
 		/*
-		 * SimpleDateFormat sf = new SimpleDateFormat(dateFormat); try { return
-		 * sf.parse(dateString); } catch (ParseException e) { return null; }
+		 * SimpleDateFormat sf = new SimpleDateFormat(dateFormat); try { return sf.parse(dateString); } catch
+		 * (ParseException e) { return null; }
 		 */
 		Date date;
 		DateTimeFormatter format = DateTimeFormatter.ofPattern(dateFormat);
