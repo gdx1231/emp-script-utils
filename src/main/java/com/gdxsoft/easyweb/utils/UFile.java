@@ -11,6 +11,7 @@ import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -150,8 +151,7 @@ public class UFile {
 	}
 
 	/**
-	 * Get the files in the parent directory according to the filter, excluding sub
-	 * directories
+	 * Get the files in the parent directory according to the filter, excluding sub directories
 	 * 
 	 * @param rootPath the parent directory
 	 * @param filter   filter
@@ -232,25 +232,36 @@ public class UFile {
 		if (file.exists()) { // 按照文件读取
 			return Files.readAllBytes(Paths.get(path));
 		} else {
+			path = path.replace("\\", "/").replace("//", "/").replace("//", "/").replace("//", "/").replace("//", "/");
+			URL url = UFile.class.getClassLoader().getResource(path);
+			if (url == null) {
+				throw new IOException("The file " + path + " not exists in resource and file ");
+			}
 			// 从jar包中读取
-			return IOUtils.resourceToByteArray(path);
+			return IOUtils.toByteArray(url);
 		}
 
 	}
 
 	/**
-	 * Read the file contents(UTF8)
+	 * Read the file contents(UTF8) from file or resource
 	 * 
 	 * @param filePath the file name and path
 	 * @return the file contents (UTF8)
 	 * @throws IOException
 	 */
-	public static String readFileText(String filePath) throws Exception {
+	public static String readFileText(String filePath) throws IOException {
 		File f1 = new File(filePath);
 		if (f1.exists()) {
 			return FileUtils.readFileToString(f1, StandardCharsets.UTF_8);
 		} else {
-			return IOUtils.resourceToString(filePath, StandardCharsets.UTF_8);
+			filePath = filePath.replace("\\", "/").replace("//", "/").replace("//", "/").replace("//", "/")
+					.replace("//", "/");
+			URL url = UFile.class.getClassLoader().getResource(filePath);
+			if (url == null) {
+				throw new IOException("The file " + filePath + " not exists in resource and file ");
+			}
+			return IOUtils.toString(url, StandardCharsets.UTF_8);
 		}
 	}
 
@@ -627,8 +638,7 @@ public class UFile {
 	}
 
 	/**
-	 * Create a binary file based on the MD5 of the binary content, and the saved
-	 * file name is MD5 + extension
+	 * Create a binary file based on the MD5 of the binary content, and the saved file name is MD5 + extension
 	 * 
 	 * @param bytes       The binary content
 	 * @param ext         The saved file extension
@@ -644,8 +654,7 @@ public class UFile {
 	}
 
 	/**
-	 * Create a binary file based on the MD5 of the binary content, and the saved
-	 * file name is MD5 + extension
+	 * Create a binary file based on the MD5 of the binary content, and the saved file name is MD5 + extension
 	 * 
 	 * @param bytes       The binary content
 	 * @param md5         The md5
