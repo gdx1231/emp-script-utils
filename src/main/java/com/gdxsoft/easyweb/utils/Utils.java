@@ -887,14 +887,34 @@ public class Utils {
 	 * @return 日期
 	 */
 	public static Date getDate(String dateString, String dateFormat) {
+		if (dateString == null) {
+			return null;
+		}
+		if (dateString.indexOf("T") > 0) {
+			dateString = dateString.replace("T", " ");
+		}
+
+		if (dateFormat.endsWith(".SSS") && dateString.indexOf(".") == -1) {
+			// String f1="yyyy-MM-dd HH:mm:ss.SSS";
+			// String s1="2016-08-18T14:19:46";
+			dateFormat = dateFormat.substring(0, dateFormat.length() - 4);
+		}
+		if (dateFormat.endsWith(".SSS") && dateString.indexOf(".") > 0) {
+			// String f1="yyyy-MM-dd HH:mm:ss.SSS";
+			// String s1="2016-08-18T14:19:46.0";
+			String[] times = dateString.split("\\.");
+			String sss = times[1].trim() + "000";
+			sss = sss.substring(0, 3); // 补齐3为
+			dateString = times[0] + "." + sss;
+		}
 		// yyyy-MM-dd HH:mm:ss;
 		/*
 		 * SimpleDateFormat sf = new SimpleDateFormat(dateFormat); try { return sf.parse(dateString); } catch
 		 * (ParseException e) { return null; }
 		 */
-		 // 日期时间
-		boolean isHaveTime =  (dateFormat.indexOf("HH") > 0 || dateFormat.indexOf("hh") > 0);
-		 
+		// 日期时间
+		boolean isHaveTime = (dateFormat.indexOf("HH") > 0 || dateFormat.indexOf("hh") > 0);
+
 		Date date;
 		DateTimeFormatter format = DateTimeFormatter.ofPattern(dateFormat);
 		try {
@@ -907,6 +927,7 @@ public class Utils {
 				date = Date.from(zonedDateTime.toInstant());
 			}
 		} catch (Exception e) {
+			LOG.error(dateString + ", " + dateFormat);
 			LOG.error(e.getMessage());
 			return null;
 		}

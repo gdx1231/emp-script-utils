@@ -3,9 +3,11 @@ package test.java;
 import java.util.Date;
 
 import com.gdxsoft.easyweb.utils.*;
+
+import org.apache.http.client.utils.DateUtils;
 import org.junit.jupiter.api.Test;
 
-public class TestFormats extends TestBase{
+public class TestFormats extends TestBase {
 	public static void main(String[] args) throws Exception {
 		TestFormats t = new TestFormats();
 		t.testFormats();
@@ -33,10 +35,18 @@ public class TestFormats extends TestBase{
 		System.out.println(age1);
 
 		String format = "yyyy-MM-dd hh:mm:ss";
-		String source="2021-03-21 18:02:01";
+		String source = "2021-03-21 18:02:01";
 		Date date = Utils.getDate(source, format);
 		System.out.println(date);
 
+		String f1 = "yyyy-MM-dd HH:mm:ss.SSS";
+		String s1 = "2016-08-18T14:19:46";
+		Date date1 = Utils.getDate(s1, f1);
+		System.out.println(date1);
+		
+		String s2 = "2016-08-18T14:19:46.12";
+		Date date2 = Utils.getDate(s2, f1);
+		System.out.println(date2);
 	}
 
 	private void testDate() throws Exception {
