@@ -32,6 +32,11 @@ public class TestFormats extends TestBase{
 		String age1 = UFormat.formatAge(dbo);
 		System.out.println(age1);
 
+		String format = "yyyy-MM-dd hh:mm:ss";
+		String source="2021-03-21 18:02:01";
+		Date date = Utils.getDate(source, format);
+		System.out.println(date);
+
 	}
 
 	private void testDate() throws Exception {

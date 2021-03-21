@@ -892,10 +892,13 @@ public class Utils {
 		 * SimpleDateFormat sf = new SimpleDateFormat(dateFormat); try { return sf.parse(dateString); } catch
 		 * (ParseException e) { return null; }
 		 */
+		 // 日期时间
+		boolean isHaveTime =  (dateFormat.indexOf("HH") > 0 || dateFormat.indexOf("hh") > 0);
+		 
 		Date date;
 		DateTimeFormatter format = DateTimeFormatter.ofPattern(dateFormat);
 		try {
-			if (dateFormat.indexOf("HH") > 0) { // 日期时间
+			if (isHaveTime) {
 				LocalDateTime lt = LocalDateTime.parse(dateString, format);
 				date = Date.from(lt.atZone(ZoneId.systemDefault()).toInstant());
 			} else {
