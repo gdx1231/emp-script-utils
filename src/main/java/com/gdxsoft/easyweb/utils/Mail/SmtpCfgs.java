@@ -105,7 +105,7 @@ public class SmtpCfgs {
 		String ssl = smtpParas.get("ssl");
 		if (ssl == null || ssl.trim().length() == 0) {
 			if (port == 465) {
-				// the ssl not setting and the port ==  465
+				// the ssl not setting and the port == 465
 				isSsl = true;
 			}
 		} else {
@@ -129,6 +129,8 @@ public class SmtpCfgs {
 			DEF_CFG = cfg;
 		}
 		addSmtpCfg(cfg);
+
+		LOG.info("Initialize the SMTP -> {} ", host + "." + port + "." + user);
 		return cfg;
 	}
 
@@ -249,29 +251,30 @@ public class SmtpCfgs {
 		Map<String, String> ps = UXml.getElementAttributes(itemDkim, true);
 		String domain = ps.get("domain");
 		if (domain == null || domain.trim().length() == 0) {
-			String xml = UXml.asXml(itemDkim);
-			LOG.warn("no domain -> " + xml);
-			return;
+			domain = ps.get("dkimdomain"); // old version, for compatible
 		}
-		domain = domain.toLowerCase().trim();
 		String key = ps.get("key");
 		if (key == null || key.trim().length() == 0) {
-			String xml = UXml.asXml(itemDkim);
-			LOG.warn("no key -> " + xml);
-			return;
+			key = ps.get("dkimkey"); // old version, for compatible
 		}
 		String select = ps.get("select");
 		if (select == null || select.trim().length() == 0) {
+			select = ps.get("dkimselect"); // old version, for compatible
+		}
+
+		if (domain == null || domain.trim().length() == 0 || select == null || select.trim().length() == 0
+				|| key == null || key.trim().length() == 0) {
 			String xml = UXml.asXml(itemDkim);
-			LOG.warn("no select -> " + xml);
+			LOG.warn("Invalid DKIM conf -> " + xml);
 			return;
 		}
 
-		cfg.setDomain(domain);
+		cfg.setDomain(domain.toLowerCase().trim());
 		cfg.setPrivateKeyPath(key);
 		cfg.setSelect(select);
 		cfg.setDkim(true);
 
+		LOG.info("Initialize the DKIM -> {} ", cfg.getDomain());
 		DKIMS.put(domain, cfg);
 	}
 
