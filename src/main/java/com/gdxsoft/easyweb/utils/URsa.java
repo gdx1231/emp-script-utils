@@ -91,14 +91,14 @@ public class URsa {
 	}
 
 	/**
-	 * 创建新的RSA 私匙和公匙
+	 * Create new public/private key
 	 * 
-	 * @param length 长度
+	 * @param keySize This is an algorithm-specific metric, such as modulus length, specified in number of bits.
 	 * @throws NoSuchAlgorithmException
 	 */
-	public void generateRsaKeys(int length) throws NoSuchAlgorithmException {
+	public void generateRsaKeys(int keySize) throws NoSuchAlgorithmException {
 		KeyPairGenerator keyPairGen = KeyPairGenerator.getInstance(KEY_ALGORITHM);
-		keyPairGen.initialize(length);
+		keyPairGen.initialize(keySize);
 		KeyPair keyPair = keyPairGen.generateKeyPair();
 		RSAPublicKey publicKey = (RSAPublicKey) keyPair.getPublic();
 		RSAPrivateKey privateKey = (RSAPrivateKey) keyPair.getPrivate();
@@ -108,10 +108,10 @@ public class URsa {
 	}
 
 	/**
-	 * 转换PEM文件为key buf
+	 * Convert the The PEM key file to the key buff
 	 * 
-	 * @param pemKeyFilePath PEM文件路径
-	 * @return
+	 * @param pemKeyFilePath The PEM key file path
+	 * @return the converted key data
 	 * @throws IOException
 	 */
 	public byte[] readPemKey(String pemKeyFilePath) throws IOException {
@@ -126,10 +126,10 @@ public class URsa {
 	}
 
 	/**
-	 * 更加扩展名，初始化公匙
+	 * Initialize the public key with the key file(DER/PEM)
 	 * 
-	 * @param publicKeyFilePath DER OR PEM 私匙文件
-	 * @return
+	 * @param publicKeyFilePath the key file(DER/PEM) path
+	 * @return the public key
 	 * @throws NoSuchAlgorithmException
 	 * @throws InvalidKeySpecException
 	 * @throws IOException
@@ -149,10 +149,10 @@ public class URsa {
 	}
 
 	/**
-	 * 通过PEM文件初始化公匙
+	 * Initialize the public key with the key file(PEM)
 	 * 
-	 * @param pemPublicKeyFilePath 公匙PEM文件
-	 * @return 公匙
+	 * @param pemPublicKeyFilePath the key file(PEM) path
+	 * @return the public key
 	 * @throws IOException
 	 * @throws InvalidKeySpecException
 	 * @throws NoSuchAlgorithmException
@@ -164,10 +164,10 @@ public class URsa {
 	}
 
 	/**
-	 * 初始化DER 公匙
+	 * Initialize the public key with the key file(DER)
 	 * 
-	 * @param derPublicKeyFilePath 公匙DER文件
-	 * @return 公匙
+	 * @param derPublicKeyFilePath the key file(DER) path
+	 * @return the public key
 	 * @throws IOException
 	 * @throws NoSuchAlgorithmException
 	 * @throws InvalidKeySpecException
@@ -179,10 +179,10 @@ public class URsa {
 	}
 
 	/**
-	 * 初始化公私
+	 * Initialize the public key with the key
 	 * 
-	 * @param keyBytes 公私二进制
-	 * @return 公私
+	 * @param keyBytes the key data
+	 * @return the public key
 	 * @throws NoSuchAlgorithmException
 	 * @throws InvalidKeySpecException
 	 */
@@ -195,10 +195,10 @@ public class URsa {
 	}
 
 	/**
-	 * 根据文件扩展名(xxx.der / xxx.pem)初始化私匙
+	 * Initialize the private key with the private key file(.DER or .PEM)
 	 * 
-	 * @param privateKeyFilePath PEM/ DER 私匙文件
-	 * @return 私匙
+	 * @param privateKeyFilePath the private key file
+	 * @return the private key
 	 * @throws IOException
 	 * @throws InvalidKeySpecException
 	 * @throws NoSuchAlgorithmException
@@ -217,10 +217,10 @@ public class URsa {
 	}
 
 	/**
-	 * 通过PEM文件初始化私匙
+	 * Initialize the private key with the PEM format file
 	 * 
-	 * @param pemPrivateKeyFilePath 私匙PEM文件
-	 * @return 私匙
+	 * @param pemPrivateKeyFilePath the private key PEM format file
+	 * @return The private key
 	 * @throws IOException
 	 * @throws InvalidKeySpecException
 	 * @throws NoSuchAlgorithmException
@@ -232,10 +232,10 @@ public class URsa {
 	}
 
 	/**
-	 * 通过PEM文件初始化私匙
+	 * Initialize the private key with DER file
 	 * 
-	 * @param derPrivateKeyFilePath 私匙DER文件
-	 * @return 私匙
+	 * @param derPrivateKeyFilePath The DER file path
+	 * @return the private key
 	 * @throws IOException
 	 * @throws InvalidKeySpecException
 	 * @throws NoSuchAlgorithmException
@@ -247,10 +247,10 @@ public class URsa {
 	}
 
 	/**
-	 * 初始化私匙 DER
+	 * Initialize the private key (DER format)
 	 * 
-	 * @param keyBytes 私匙二进制
-	 * @return 私匙
+	 * @param keyBytes the DER key
+	 * @return the private key
 	 * @throws NoSuchAlgorithmException
 	 * @throws InvalidKeySpecException
 	 */
@@ -264,10 +264,10 @@ public class URsa {
 	}
 
 	/**
-	 * 签名，返回base64
+	 * RSA Sign the data and returns the base64 encoded signed data
 	 * 
-	 * @param data 需要签名的数据
-	 * @return 签名结果 base64
+	 * @param data the source data
+	 * @return the base64 encoded signed data
 	 * @throws InvalidKeyException
 	 * @throws NoSuchAlgorithmException
 	 * @throws SignatureException
@@ -282,7 +282,7 @@ public class URsa {
 	 * RSA signing (Using java.security or BC According to usingBc parameter)
 	 * 
 	 * @param data the source data
-	 * @return signature
+	 * @return signature the signed data
 	 * 
 	 * @throws Exception
 	 */
@@ -298,7 +298,7 @@ public class URsa {
 	 * RSA signing (Using java.secruity)
 	 * 
 	 * @param data the source data
-	 * @return signature
+	 * @return signature the signed data
 	 * 
 	 * @throws NoSuchAlgorithmException
 	 * @throws InvalidKeyException
@@ -336,8 +336,7 @@ public class URsa {
 	}
 
 	/**
-	 * Verification the RSA digital signature (Using java.security or BC According
-	 * to usingBc parameter)
+	 * Verification the RSA digital signature (Using java.security or BC According to usingBc parameter)
 	 * 
 	 * @param data       the source data
 	 * @param base64Sign sign the signature of the source data(base64)
@@ -351,8 +350,7 @@ public class URsa {
 	}
 
 	/**
-	 * Verification the RSA digital signature (Using java.security or BC According
-	 * to usingBc parameter)
+	 * Verification the RSA digital signature (Using java.security or BC According to usingBc parameter)
 	 * 
 	 * @param data the source data
 	 * @param sign the signature of the source data
@@ -453,10 +451,10 @@ public class URsa {
 	}
 
 	/**
-	 * 公匙加密
+	 * Encrypt the data with public key
 	 * 
-	 * @param data
-	 * @return
+	 * @param data the plain data
+	 * @return the encryption data
 	 * @throws Exception
 	 */
 	public byte[] encryptPublic(byte[] data) throws Exception {
@@ -465,10 +463,10 @@ public class URsa {
 	}
 
 	/**
-	 * 私匙加密
+	 * Encrypt the data with private key
 	 * 
-	 * @param data
-	 * @return
+	 * @param data the plain data
+	 * @return the encryption data
 	 * @throws Exception
 	 */
 	public byte[] encryptPrivate(byte[] data) throws Exception {
@@ -787,8 +785,7 @@ public class URsa {
 	}
 
 	/**
-	 * Using java.security or BC for encryption/decryption according to parameter
-	 * usingBc
+	 * Using java.security or BC for encryption/decryption according to parameter usingBc
 	 * 
 	 * @return true= BC, false= java.security
 	 */
@@ -797,8 +794,7 @@ public class URsa {
 	}
 
 	/**
-	 * Using java.security or BC for encryption/decryption according to parameter
-	 * usingBc
+	 * Using java.security or BC for encryption/decryption according to parameter usingBc
 	 * 
 	 * @param usingBc true= BC, false= java.security
 	 */

@@ -270,7 +270,7 @@ public class UFile {
 	 * 
 	 * @param zipFilePath   the zip or jar file
 	 * @param innerFileName zip or jar inner path and name
-	 * @return
+	 * @return the content of the file in the zip/jar
 	 * @throws IOException
 	 */
 	public static byte[] readZipBytes(String zipFilePath, String innerFileName) throws IOException {

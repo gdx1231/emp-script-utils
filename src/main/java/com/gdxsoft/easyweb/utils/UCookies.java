@@ -373,7 +373,7 @@ public class UCookies {
 	/**
 	 * Encrypt/ Decrypt Cookie provider
 	 * 
-	 * @return
+	 * @return the symmetric encrypt
 	 */
 	public IUSymmetricEncyrpt getSymmetricEncrypt() {
 		return symmetricEncrypt;

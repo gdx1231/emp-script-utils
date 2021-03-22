@@ -96,7 +96,7 @@ public class UArgon2 {
 	 * 
 	 * @param plainPassword
 	 * @param hashedPassword
-	 * @return
+	 * @return true/false
 	 */
 	public boolean verifyPassword(String plainPassword, String hashedPassword) {
 

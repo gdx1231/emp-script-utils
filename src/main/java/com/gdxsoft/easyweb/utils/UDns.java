@@ -64,12 +64,12 @@ public class UDns {
 	}
 
 	/**
-	 * 查询网址
+	 * Query a domain
 	 * 
-	 * @param domain    域名
-	 * @param queryType 查询类型 txt, a, aaaa, mx, ns ...
-	 * @param dnsServer 指定查询的 dns服务器
-	 * @return 查询结果
+	 * @param domain    the domain name
+	 * @param queryType the query type, E.g. txt, a, aaaa, mx, ns ...
+	 * @param dnsServer the DNS server
+	 * @return the multiple results
 	 */
 	public static List<String> nslookup(String domain, String queryType, String dnsServer) {
 		Hashtable<String, String> env = createDefaultEnv();
@@ -81,11 +81,11 @@ public class UDns {
 	}
 
 	/**
-	 * 查询网址
+	 * Query a domain
 	 * 
-	 * @param domain    域名
-	 * @param queryType 查询类型 txt, a, aaaa, mx, ns ...
-	 * @return 查询结果
+	 * @param domain    the domain name
+	 * @param queryType the query type, E.g. txt, a, aaaa, mx, ns ...
+	 * @return the multiple results
 	 */
 	public static List<String> nslookup(String domain, String queryType) {
 		Hashtable<String, String> env = createDefaultEnv();
@@ -93,18 +93,18 @@ public class UDns {
 	}
 
 	/**
-	 * 查询网址
+	 * Query a domain
 	 * 
-	 * @param dirContextEnv DirContext 参数定义
-	 * @param domain        域名
-	 * @param queryType     查询类型 txt, a, aaaa, mx, ns ...
-	 * @return
+	 * @param env       the java.naming.factory environment
+	 * @param domain    the domain name
+	 * @param queryType the query type, E.g. txt, a, aaaa, mx, ns ...
+	 * @return The all results
 	 */
-	public static List<String> nslookup(Hashtable<String, String> dirContextEnv, String domain, String queryType) {
+	public static List<String> nslookup(Hashtable<String, String> env, String domain, String queryType) {
 		String qt = queryType.toLowerCase().trim();
 		List<String> values = new ArrayList<String>();
 		try {
-			DirContext dnsContext = new InitialDirContext(dirContextEnv);
+			DirContext dnsContext = new InitialDirContext(env);
 
 			Attributes attribs = dnsContext.getAttributes(domain, new String[] { qt });
 			Attribute records = attribs.get(qt);

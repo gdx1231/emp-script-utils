@@ -195,7 +195,7 @@ public class UHtml {
 		return __base;
 	}
 
-	/**
+	/* 
 	 * Get request base url from HttpServletRequest (Jakarta TOMCAT10)
 	 * 
 	 * @param request the HttpServletRequest
@@ -211,7 +211,7 @@ public class UHtml {
 	 * __base; }
 	 */
 
-	/**
+	/* 
 	 * Get request base (Jakarta TOMCAT10)
 	 * 
 	 * @param request the HttpServletRequest

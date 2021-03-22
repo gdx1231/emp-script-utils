@@ -499,7 +499,7 @@ public class SmtpCfgs {
 	 * Get all configurations that match the to domain
 	 * 
 	 * @param toDomain the to domain name
-	 * @return the list
+	 * @return the configuration list that match the to domain
 	 */
 	public static List<SmtpCfg> getSmtpCfgByToDomain(String toDomain) {
 		String em = toDomain.trim().toLowerCase();
@@ -514,7 +514,7 @@ public class SmtpCfgs {
 	 * Get all configuration that match the from email address
 	 * 
 	 * @param fromEmail The from email address
-	 * @return
+	 * @return the configuration list that match the from email address
 	 */
 	public static List<SmtpCfg> getSmtpCfgByFromEmail(String fromEmail) {
 		String em = fromEmail.trim().toLowerCase();

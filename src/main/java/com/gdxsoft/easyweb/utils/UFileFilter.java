@@ -12,7 +12,7 @@ public class UFileFilter implements FilenameFilter {
 
 	/**
 	 * Get a images filter instance
-	 * @return
+	 * @return the images filter
 	 */
 	public static UFileFilter getImageInstance() {
 		UFileFilter f = new UFileFilter();
@@ -24,7 +24,7 @@ public class UFileFilter implements FilenameFilter {
 
 	/**
 	 * Get a zip filter instance
-	 * @return
+	 * @return the zip filter
 	 */
 	public static UFileFilter getZipInstance() {
 		UFileFilter f = new UFileFilter();
@@ -35,9 +35,9 @@ public class UFileFilter implements FilenameFilter {
 	}
 
 	/**
-	 * Get the filter 
+	 * Create a filter from the exts array 
 	 * @param ff The filter array
-	 * @return
+	 * @return the filter
 	 */
 	public static UFileFilter getInstance(String[] ff) {
 		UFileFilter f = new UFileFilter();
