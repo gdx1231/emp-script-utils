@@ -849,7 +849,7 @@ public class UAes implements IUSymmetricEncyrpt {
 	/**
 	 * whether to use the BouncyCastle provider, default is BouncyCastle
 	 * 
-	 * @return
+	 * @return whether to use the BouncyCastle
 	 */
 	public boolean isUsingBc() {
 		return usingBc;

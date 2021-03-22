@@ -44,7 +44,7 @@ public class UArgon2 {
 	 * Hash the password
 	 * 
 	 * @param password
-	 * @return
+	 * @return the hashed password
 	 */
 	public static String hashPwd(String password) {
 		return new UArgon2().hashPassword(password);
