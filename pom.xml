@@ -4,7 +4,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>com.gdxsoft.easyweb</groupId>
 	<artifactId>emp-script-utils</artifactId>
-	<version>1.0.5</version>
+	<version>1.0.6</version>
 	<name>Easy Web Appliaction Utils</name>
 	<description>Easy Web Appliaction Utils: UArgon2, UMail, UDigest, URsa, UAes, UDes, UFile, UConvert, UFormat, UNet, SendMail, SmtpCfg </description>
 

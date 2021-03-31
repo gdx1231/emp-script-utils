@@ -233,7 +233,10 @@ public class UFile {
 			return Files.readAllBytes(Paths.get(path));
 		} else {
 			path = path.replace("\\", "/").replace("//", "/").replace("//", "/").replace("//", "/").replace("//", "/");
-			URL url = UFile.class.getClassLoader().getResource(path);
+			URL url = UFile.class.getResource(path);
+			if (url == null) {
+				url = UFile.class.getClassLoader().getResource(path);
+			}
 			if (url == null) {
 				throw new IOException("The file " + path + " not exists in resource and file ");
 			}
@@ -513,7 +516,7 @@ public class UFile {
 	}
 
 	/**
-	 * Unzip file
+	 * Unzip files to the zipFilePath.xxx.unzip dir
 	 * 
 	 * @param zipFilePath the zip file path and name
 	 * @return list of unziped files
@@ -539,7 +542,27 @@ public class UFile {
 		if (unzipPath.length() == 0) {
 			throw new IOException("Unable to create unzip directory");
 		}
-		String path = unzipPath + File.separator;
+
+		return unZipFile(zipFilePath, unzipPath);
+	}
+
+	/**
+	 * Unzip files to the target dir
+	 * 
+	 * @param zipFilePath the zip file path and name
+	 * @param targetPath  the unziped dir
+	 * @return list of unziped files
+	 * @throws IOException
+	 */
+	public static List<String> unZipFile(String zipFilePath, String targetPath) throws IOException {
+
+		File target = new File(targetPath);
+		if (!target.exists()) {
+			target.mkdirs();
+		}
+		targetPath = target.getAbsolutePath();
+
+		String path = targetPath + File.separator;
 
 		Enumeration<?> entries;
 		ZipFile zipFile;
