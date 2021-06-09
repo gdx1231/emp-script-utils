@@ -10,6 +10,7 @@ import java.util.regex.MatchResult;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.apache.commons.io.IOUtils;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -119,9 +120,20 @@ public class UHtml {
 	 * @throws IOException
 	 */
 	public static String getHttpBody(javax.servlet.http.HttpServletRequest request) throws IOException {
+		return getHttpBody(request, "utf-8");
+	}
+
+	/**
+	 * Get http body content
+	 * 
+	 * @param request HttpServletRequest (javax)
+	 * @param charset The charset name
+	 * @return the http body string
+	 * @throws IOException
+	 */
+	public static String getHttpBody(javax.servlet.http.HttpServletRequest request, String charset) throws IOException {
 		InputStream is = request.getInputStream();
-		String str = getHttpBody(is);
-		return str;
+		return IOUtils.toString(is, charset);
 	}
 
 	/**
@@ -135,18 +147,17 @@ public class UHtml {
 	 * public static String getHttpBody(jakarta.servlet.http.HttpServletRequest request) throws IOException {
 	 * InputStream is = request.getInputStream(); String str = getHttpBody(is); return str; }
 	 */
-	private static String getHttpBody(InputStream is) throws IOException {
-		byte[] bytes = new byte[1024 * 1024];
-		int nRead = 1;
-		int nTotalRead = 0;
-		while (nRead > 0) {
-			nRead = is.read(bytes, nTotalRead, bytes.length - nTotalRead);
-			if (nRead > 0)
-				nTotalRead = nTotalRead + nRead;
-		}
-		String str = new String(bytes, 0, nTotalRead, "utf-8");
-		// System.out.println("Str:" + str);
-		return str;
+
+	/**
+	 * Get the request body content
+	 * 
+	 * @param request
+	 * @return
+	 * @throws IOException
+	 */
+	public static byte[] getHttpBodyBytes(javax.servlet.http.HttpServletRequest request) throws IOException {
+		InputStream is = request.getInputStream();
+		return IOUtils.toByteArray(is);
 	}
 
 	/**
@@ -195,10 +206,11 @@ public class UHtml {
 		return __base;
 	}
 
-	/* 
+	/*
 	 * Get request base url from HttpServletRequest (Jakarta TOMCAT10)
 	 * 
 	 * @param request the HttpServletRequest
+	 * 
 	 * @return the base url
 	 */
 	/*
@@ -211,11 +223,13 @@ public class UHtml {
 	 * __base; }
 	 */
 
-	/* 
+	/*
 	 * Get request base (Jakarta TOMCAT10)
 	 * 
 	 * @param request the HttpServletRequest
+	 * 
 	 * @param baseAdd the path of attachment
+	 * 
 	 * @return the base url
 	 */
 	/*
@@ -338,8 +352,7 @@ public class UHtml {
 	 * @param iCurPage      the current page
 	 * @param iPageSize     the page size
 	 * @param iTotalRecords the total records
-	 * @param pageUrlRoot   the page url (../bbs/xxx/yy/{EXP}.html) the {EXP} is the
-	 *                      page number replacement
+	 * @param pageUrlRoot   the page url (../bbs/xxx/yy/{EXP}.html) the {EXP} is the page number replacement
 	 * @return the pagination html
 	 */
 	public static String createListSplit(int iCurPage, int iPageSize, int iTotalRecords, String pageUrlRoot) {
@@ -404,8 +417,7 @@ public class UHtml {
 	 * @param iCurPage      the current page
 	 * @param iPageSize     the page size
 	 * @param iTotalRecords the total records
-	 * @param pageUrlRoot   the page url (../bbs/xxx/yy/{EXP}.html) the {EXP} is the
-	 *                      page number replacement
+	 * @param pageUrlRoot   the page url (../bbs/xxx/yy/{EXP}.html) the {EXP} is the page number replacement
 	 * @return the pagination html(table)
 	 */
 	public static String createListSplitTable(int iCurPage, int iPageSize, int iTotalRecords, String pageUrlRoot) {
