@@ -642,20 +642,20 @@ public class Utils {
 	}
 
 	/**
-	 * 获取GMT时间表达式
+	 * 获取GMT(0)时间表达式，用于 Last-Modified等
 	 * 
 	 * @param date 时间
 	 * @return GMT时间
 	 */
 	public static String getDateGMTString(Date date) {
-		DateTimeFormatter format = DateTimeFormatter.ofPattern("E, dd-MMM-yy HH:mm:ss z", Locale.UK);
-		LocalDateTime dt = date.toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime();
-		return format.format(dt);
+		DateTimeFormatter format = DateTimeFormatter.ofPattern("EEE, dd-MMM-yyyy HH:mm:ss", Locale.UK);
+		LocalDateTime dt = date.toInstant().atZone(ZoneId.of("GMT")).toLocalDateTime();
+		return format.format(dt) + " GMT";
 
 	}
 
 	/**
-	 * 获取GMT时间表达式
+	 * 获取GMT(0)时间表达式，用于 Last-Modified等
 	 * 
 	 * @param t1 时间
 	 * @return GMT时间
@@ -668,7 +668,7 @@ public class Utils {
 	}
 
 	/**
-	 * 获取GMT时间表达式
+	 * 获取GMT(0)时间表达式，用于 Last-Modified等
 	 * 
 	 * @param calendar 时间
 	 * @return GMT时间
