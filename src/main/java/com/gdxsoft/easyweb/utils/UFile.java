@@ -107,11 +107,12 @@ public class UFile {
 	 * @return the extension
 	 */
 	public static String getFileExt(String name) {
+		if (name.endsWith(".")) {
+			return "";
+		}
+
 		int m = name.lastIndexOf(".");
 		if (m > 0) {
-			if (name.endsWith(".")) {
-				return "";
-			}
 			return name.substring(m + 1);
 		} else {
 			return "";
