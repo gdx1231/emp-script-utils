@@ -775,6 +775,9 @@ public class UPath {
 	 */
 	public static String getPATH_UPLOAD() {
 		initPath();
+		if (PATH_UPLOAD == null) {
+			return null;
+		}
 		if (PATH_UPLOAD.startsWith("@")) {
 			return PATH_UPLOAD.replace("@", "");
 		} else {
