@@ -566,8 +566,11 @@ public class UPath {
 		nl = doc.getElementsByTagName("para");
 		for (int i = 0; i < nl.getLength(); i++) {
 			Element ele = (Element) nl.item(i);
-			String n = ele.getAttribute("Name").toUpperCase();
-			String v = ele.getAttribute("Value");
+			
+			String n = ele.hasAttribute("Name") ? ele.getAttribute("Name") : ele.getAttribute("name");
+			n = n.toUpperCase();
+			
+			String v = ele.hasAttribute("Value") ? ele.getAttribute("Value") : ele.getAttribute("value");
 
 			if (INIT_PARAS.containsKey(n)) {
 				INIT_PARAS.removeKey(n);
