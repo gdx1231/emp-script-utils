@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.HttpURLConnection;
+import java.net.URI;
 import java.net.URL;
 import java.net.URLConnection;
 import java.net.URLEncoder;
@@ -422,6 +423,32 @@ public class UNet {
 
 		HttpDelete httpDelete = new HttpDelete(url);
 		this.addRequestHeaders(httpDelete);
+
+		result = this.handleResponse(httpclient, httpDelete);
+
+		return result;
+	}
+
+	/**
+	 * DELETE模式
+	 * 
+	 * @param url  地址
+	 * @param body 提交的内容
+	 * @return 执行结果
+	 */
+	public String doDelete(String url, String body) {
+
+		if (this._IsShowLog) {
+			LOGGER.info("PUT " + url);
+		}
+		String result = null;
+
+		CloseableHttpClient httpclient = this.getHttpClient(url);
+
+		HttpDeleteWithBody httpDelete = new HttpDeleteWithBody(url);
+		this.addRequestHeaders(httpDelete);
+		StringEntity postEntity = this.createStringEntity(body);
+		httpDelete.setEntity(postEntity);
 
 		result = this.handleResponse(httpclient, httpDelete);
 
@@ -1439,4 +1466,34 @@ public class UNet {
 		}
 	}
 
+	/**
+	 * 解决 delete不能提交body的问题
+	 */
+	 class HttpDeleteWithBody extends HttpEntityEnclosingRequestBase {
+
+	    public final static String METHOD_NAME = "DELETE";
+
+	    public HttpDeleteWithBody() {
+	        super();
+	    }
+
+	    public HttpDeleteWithBody(final URI uri) {
+	        super();
+	        setURI(uri);
+	    }
+
+	    /**
+	     * @throws IllegalArgumentException if the uri is invalid.
+	     */
+	    public HttpDeleteWithBody(final String uri) {
+	        super();
+	        setURI(URI.create(uri));
+	    }
+
+	    @Override
+	    public String getMethod() {
+	        return METHOD_NAME;
+	    }
+
+	}
 }
