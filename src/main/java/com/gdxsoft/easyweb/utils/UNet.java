@@ -297,29 +297,7 @@ public class UNet {
 		return this.handleResponse(httpclient, httppost);
 	}
 
-	/**
-	 * 提交body 消息
-	 * 
-	 * @param u    提交地址
-	 * @param body 提交内容
-	 * @return 执行结果
-	 */
-	public String postMsg(String u, String body) {
-		if (this._IsShowLog) {
-			LOGGER.info("POST: " + u);
-		}
-		CloseableHttpClient httpclient = this.getHttpClient(u);
-		HttpPost httpost = new HttpPost(u);
-		for (String key : this._Headers.keySet()) {
-			String v = this._Headers.get(key);
-			httpost.addHeader(key, v);
-		}
 
-		StringEntity postEntity = this.createStringEntity(body);
-		httpost.setEntity(postEntity);
-
-		return this.handleResponse(httpclient, httpost);
-	}
 
 	/**
 	 * 提交消息
@@ -518,7 +496,38 @@ public class UNet {
 		}
 
 	}
+	/**
+	 * 提交body 消息
+	 * 
+	 * @param u    提交地址
+	 * @param body 提交内容
+	 * @return 执行结果
+	 */
+	public String doPost(String url, String body) {
+		if (this._IsShowLog) {
+			LOGGER.info("POST: " + url);
+		}
+		CloseableHttpClient httpclient = this.getHttpClient(url);
+		
+		HttpPost httpost = new HttpPost(url);
+		
+		this.addRequestHeaders(httpost);
+		
+		StringEntity postEntity = this.createStringEntity(body);
+		httpost.setEntity(postEntity);
 
+		return this.handleResponse(httpclient, httpost);
+	}
+	/**
+	 * 提交body 消息，同 doPost(u, body)
+	 * 
+	 * @param u    提交地址
+	 * @param body 提交内容
+	 * @return 执行结果
+	 */
+	public String postMsg(String u, String body) {
+		return this.doPost(u, body);
+	}
 	/**
 	 * 检查是否有重定向，有的化执行get（最多7次），没有返回追后执行的内容
 	 * 
