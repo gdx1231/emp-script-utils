@@ -890,10 +890,27 @@ public class Utils {
 		if (dateString == null) {
 			return null;
 		}
+		dateString = dateString.trim();
 		if (dateString.indexOf("T") > 0) {
 			dateString = dateString.replace("T", " ");
 		}
+		// 日期时间
+		boolean isHaveTime = (dateFormat.indexOf("HH") > 0 || dateFormat.indexOf("hh") > 0);
+		if (isHaveTime) {
+			if (dateString.indexOf(" ") == -1) {
+				dateString = dateString + " 00:00:00";
+			}
 
+			String[] datePart = dateString.split(" ");
+			String dateStr = datePart[0];
+			String timeStr = datePart[1];
+
+			if (timeStr.split(":").length == 2 && dateFormat.indexOf("ss") > 0) {
+				timeStr = timeStr + ":00";
+
+				dateString = dateStr + " " + timeStr;
+			}
+		}
 		if (dateFormat.endsWith(".SSS") && dateString.indexOf(".") == -1) {
 			// String f1="yyyy-MM-dd HH:mm:ss.SSS";
 			// String s1="2016-08-18T14:19:46";
@@ -912,8 +929,6 @@ public class Utils {
 		 * SimpleDateFormat sf = new SimpleDateFormat(dateFormat); try { return sf.parse(dateString); } catch
 		 * (ParseException e) { return null; }
 		 */
-		// 日期时间
-		boolean isHaveTime = (dateFormat.indexOf("HH") > 0 || dateFormat.indexOf("hh") > 0);
 
 		Date date;
 		DateTimeFormatter format = DateTimeFormatter.ofPattern(dateFormat);
