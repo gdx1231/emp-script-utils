@@ -101,6 +101,30 @@
 					</additionalOptions>
 				</configuration>
 			</plugin>
+			
+			
+			<plugin>
+				<artifactId>maven-antrun-plugin</artifactId>
+				<executions>
+					<execution>
+						<id>copy-lib-src-webapps</id>
+						<phase>package</phase>
+						<configuration>
+							<tasks>
+								<echo>copy ${project.build.finalName}.jar to ${basedir}/../../workspace.newVersion/allclass/lib/</echo>
+								<copy todir="${basedir}/../../workspace.newVersion/allclass/lib/">
+									<fileset dir="${project.build.directory}">
+										<include name="${project.build.finalName}*" />
+									</fileset>
+								</copy>
+							</tasks>
+						</configuration>
+						<goals>
+							<goal>run</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
 		</plugins>
 	</build>
 	<dependencies>
