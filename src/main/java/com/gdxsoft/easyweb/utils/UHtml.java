@@ -347,6 +347,31 @@ public class UHtml {
 	}
 
 	/**
+	 * 创建类似BBS类型的分页
+	 * 
+	 * @param pageSplit     ListFrame分页参数
+	 * @param pageUrlRoot   根路径
+	 * @param target        连接窗口(_self,_blank ...)
+	 * @param isShowAsTable 是否以表格方式显示（兼容IE6）
+	 * @return 字符串
+	 */
+	public static String createListSplit(IPageSplit pageSplit, String pageUrlRoot, String target,
+			boolean isShowAsTable) {
+		String s;
+		if (isShowAsTable) {
+			s = createListSplitTable(pageSplit.getPageCurrent(), pageSplit.getPageSize(), pageSplit.getRecordCount(),
+					pageUrlRoot);
+		} else {
+			s = createListSplit(pageSplit.getPageCurrent(), pageSplit.getPageSize(), pageSplit.getRecordCount(),
+					pageUrlRoot);
+		}
+		if (target != null && target.trim().length() > 0) {
+			s = s.replace("<a ", "<a target=\"" + target + "\" ");
+		}
+		return s;
+	}
+
+	/**
 	 * Create a pagination div
 	 * 
 	 * @param iCurPage      the current page
