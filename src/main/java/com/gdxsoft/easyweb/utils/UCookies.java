@@ -26,8 +26,10 @@ public class UCookies {
 	private boolean httpOnly = true;
 	private boolean secret = true;
 
+	// Encrypt the cookie value
 	private boolean encrypt = false;
 
+	// Encryption algorithm (AES /DES)
 	private IUSymmetricEncyrpt symmetricEncrypt;
 
 	/**
@@ -44,6 +46,10 @@ public class UCookies {
 	 */
 	public UCookies(IUSymmetricEncyrpt symmetricEncrypt) {
 		this.symmetricEncrypt = symmetricEncrypt;
+		if (this.symmetricEncrypt != null) {
+			// Encrypt the cookie value cookie name ends with __EWA__
+			this.encrypt = true;
+		}
 	}
 
 	/**
@@ -106,11 +112,13 @@ public class UCookies {
 	 * @param skipNames skip cookie's names
 	 */
 	/*
-	 * public static void clearCookies(jakarta.servlet.http.HttpServletRequest request,
-	 * jakarta.servlet.http.HttpServletResponse response, List<String> skipNames) { if (request == null ||
-	 * request.getCookies() == null) { return; } for (jakarta.servlet.http.Cookie cookie : request.getCookies()) { if
-	 * (skipNames != null) { boolean isSkip = skipNames.stream().anyMatch(item -> cookie.getName().equals(item)); if
-	 * (isSkip) { continue; } } cookie.setMaxAge(0); cookie.setPath("/"); cookie.setValue(null);
+	 * public static void clearCookies(jakarta.servlet.http.HttpServletRequest
+	 * request, jakarta.servlet.http.HttpServletResponse response, List<String>
+	 * skipNames) { if (request == null || request.getCookies() == null) { return; }
+	 * for (jakarta.servlet.http.Cookie cookie : request.getCookies()) { if
+	 * (skipNames != null) { boolean isSkip = skipNames.stream().anyMatch(item ->
+	 * cookie.getName().equals(item)); if (isSkip) { continue; } }
+	 * cookie.setMaxAge(0); cookie.setPath("/"); cookie.setValue(null);
 	 * response.addCookie(cookie);
 	 * 
 	 * cookie.setPath(request.getContextPath()); response.addCookie(cookie); } }
@@ -134,9 +142,10 @@ public class UCookies {
 	 * @param response   jakarta.servlet.http.HttpServletResponse
 	 */
 	/*
-	 * public void deleteCookie(String cookieName, jakarta.servlet.http.HttpServletResponse response) {
-	 * jakarta.servlet.http.Cookie cookie = this.createCookieJakarta(cookieName, null); cookie.setMaxAge(0);
-	 * response.addCookie(cookie); }
+	 * public void deleteCookie(String cookieName,
+	 * jakarta.servlet.http.HttpServletResponse response) {
+	 * jakarta.servlet.http.Cookie cookie = this.createCookieJakarta(cookieName,
+	 * null); cookie.setMaxAge(0); response.addCookie(cookie); }
 	 */
 
 	/**
@@ -163,9 +172,10 @@ public class UCookies {
 	 * @return Cookie the new cookie
 	 */
 	/*
-	 * public jakarta.servlet.http.Cookie addCookie(String cookieName, String cookieValue,
-	 * jakarta.servlet.http.HttpServletResponse response) { jakarta.servlet.http.Cookie cookie =
-	 * this.createCookieJakarta(cookieName, cookieValue); response.addCookie(cookie);
+	 * public jakarta.servlet.http.Cookie addCookie(String cookieName, String
+	 * cookieValue, jakarta.servlet.http.HttpServletResponse response) {
+	 * jakarta.servlet.http.Cookie cookie = this.createCookieJakarta(cookieName,
+	 * cookieValue); response.addCookie(cookie);
 	 * 
 	 * return cookie; }
 	 */
@@ -214,17 +224,22 @@ public class UCookies {
 	 * @return new cookie
 	 */
 	/*
-	 * public jakarta.servlet.http.Cookie createCookieJakarta(String cookieName, String cookieValue) {
+	 * public jakarta.servlet.http.Cookie createCookieJakarta(String cookieName,
+	 * String cookieValue) {
 	 * 
 	 * jakarta.servlet.http.Cookie cookie = null;
 	 * 
-	 * if (this.encrypt) { String ckName = COOKIE_NAME_PREFIX + cookieName; if (cookieValue == null) { cookie = new
-	 * jakarta.servlet.http.Cookie(ckName, null); } else { try { String value =
-	 * this.getSymmetricEncrypt().encrypt(cookieValue); cookie = new jakarta.servlet.http.Cookie(ckName,
-	 * encodeCookieValue(value)); } catch (Exception e) { LOGGER.error(e.getMessage()); return null; } } } else { cookie
-	 * = new jakarta.servlet.http.Cookie(cookieName, encodeCookieValue(cookieValue)); } cookie.setHttpOnly(httpOnly);
-	 * cookie.setSecure(secret); if (domain != null) { cookie.setDomain(domain); } if (path != null) {
-	 * cookie.setPath(path); } if (this.maxAgeSeconds != null) { cookie.setMaxAge(this.maxAgeSeconds); }
+	 * if (this.encrypt) { String ckName = COOKIE_NAME_PREFIX + cookieName; if
+	 * (cookieValue == null) { cookie = new jakarta.servlet.http.Cookie(ckName,
+	 * null); } else { try { String value =
+	 * this.getSymmetricEncrypt().encrypt(cookieValue); cookie = new
+	 * jakarta.servlet.http.Cookie(ckName, encodeCookieValue(value)); } catch
+	 * (Exception e) { LOGGER.error(e.getMessage()); return null; } } } else {
+	 * cookie = new jakarta.servlet.http.Cookie(cookieName,
+	 * encodeCookieValue(cookieValue)); } cookie.setHttpOnly(httpOnly);
+	 * cookie.setSecure(secret); if (domain != null) { cookie.setDomain(domain); }
+	 * if (path != null) { cookie.setPath(path); } if (this.maxAgeSeconds != null) {
+	 * cookie.setMaxAge(this.maxAgeSeconds); }
 	 * 
 	 * return cookie; }
 	 */
@@ -241,7 +256,7 @@ public class UCookies {
 		Cookie cookie = null;
 
 		if (this.encrypt) {
-			String ckName = COOKIE_NAME_PREFIX + cookieName;
+			String ckName = cookieName + COOKIE_NAME_PREFIX;
 			if (cookieValue == null) {
 				cookie = new Cookie(ckName, null);
 			} else {
@@ -371,18 +386,18 @@ public class UCookies {
 	}
 
 	/**
-	 * Encrypt/ Decrypt Cookie provider
+	 * Encrypt/ Decrypt Cookie value algorithm(AES/DES ...)
 	 * 
-	 * @return the symmetric encrypt
+	 * @return the symmetric encrypt algorithm(AES/DES ...)
 	 */
 	public IUSymmetricEncyrpt getSymmetricEncrypt() {
 		return symmetricEncrypt;
 	}
 
 	/**
-	 * Set Encrypt/ Decrypt cookie value provider
+	 * Set Encrypt/ Decrypt cookie value algorithm(AES/DES ...)
 	 * 
-	 * @param symmetricEncrypt
+	 * @param symmetricEncrypt algorithm(AES/DES ...)
 	 */
 	public void setSymmetricEncrypt(IUSymmetricEncyrpt symmetricEncrypt) {
 		this.symmetricEncrypt = symmetricEncrypt;
