@@ -15,15 +15,24 @@ import org.slf4j.LoggerFactory;
  * </p>
  * Inputs:<br>
  * <ol>
- * <li><b>password (P):</b> Bytes (0..232-1) Password (or message) to be hashed</li>
- * <li><b>salt (S):</b> Bytes (8..232-1) Salt (16 bytes recommended for password hashing)</li>
- * <li><b>parallelism (p):</b> Number (1..224-1) Degree of parallelism (i.e. number of threads)</li>
- * <li><b>tagLength (T):</b> Number (4..232-1) Desired number of returned bytes</li>
- * <li><b>memorySizeKB (m):</b> Number (8p..232-1) Amount of memory (in kibibytes) to use</li>
- * <li><b>iterations (t):</b> Number (1..232-1) Number of iterations to perform</li>
- * <li><b>version (v):</b> Number (0x13) The current version is 0x13 (19 decimal)</li>
- * <li><b>key (K):</b> Bytes (0..232-1) Optional key (Errata: PDF says 0..32 bytes, RFC says 0..232 bytes)</li>
- * <li><b>associatedData (X):</b> Bytes (0..232-1) Optional arbitrary extra data</li>
+ * <li><b>password (P):</b> Bytes (0..232-1) Password (or message) to be
+ * hashed</li>
+ * <li><b>salt (S):</b> Bytes (8..232-1) Salt (16 bytes recommended for password
+ * hashing)</li>
+ * <li><b>parallelism (p):</b> Number (1..224-1) Degree of parallelism (i.e.
+ * number of threads)</li>
+ * <li><b>tagLength (T):</b> Number (4..232-1) Desired number of returned
+ * bytes</li>
+ * <li><b>memorySizeKB (m):</b> Number (8p..232-1) Amount of memory (in
+ * kibibytes) to use</li>
+ * <li><b>iterations (t):</b> Number (1..232-1) Number of iterations to
+ * perform</li>
+ * <li><b>version (v):</b> Number (0x13) The current version is 0x13 (19
+ * decimal)</li>
+ * <li><b>key (K):</b> Bytes (0..232-1) Optional key (Errata: PDF says 0..32
+ * bytes, RFC says 0..232 bytes)</li>
+ * <li><b>associatedData (X):</b> Bytes (0..232-1) Optional arbitrary extra
+ * data</li>
  * <li><b>hashType (y):</b> Number (0=Argon2d, 1=Argon2i, 2=Argon2id)</li>
  * </ol>
  * Output:<br>
@@ -99,7 +108,11 @@ public class UArgon2 {
 	 * @return true/false
 	 */
 	public boolean verifyPassword(String plainPassword, String hashedPassword) {
-
+		if (plainPassword == null || plainPassword.trim().length() == 0 || hashedPassword == null
+				|| hashedPassword.trim().length() == 0) {
+			// blank password
+			return false;
+		}
 		try {
 			this.initVerifyParameter(hashedPassword);
 		} catch (IllegalArgumentException | IOException e1) {
