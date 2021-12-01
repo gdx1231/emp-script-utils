@@ -21,6 +21,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLContext;
@@ -461,7 +462,7 @@ public class UNet {
 	 * @param vals 参数
 	 * @return 执行结果
 	 */
-	public String doPost(String url, java.util.HashMap<String, String> vals) {
+	public String doPost(String url, Map<String, String> vals) {
 		if (this._IsShowLog) {
 			LOGGER.info("POST " + url);
 		}
