@@ -52,6 +52,9 @@ public class UUrl {
 			if (getServerPort == 443) {
 				getScheme = "https";
 			}
+			if (getServerPort == -1) { // https://gdx/ewa-module-portal
+				port = "";
+			}
 			this.root0_ = getScheme + "://" + getServerName + port;
 			this.root_ = this.root0_ + "/";
 
@@ -160,16 +163,19 @@ public class UUrl {
 	 * 
 	 * @param name  名称
 	 * @param value 值
+	 * @return this
 	 */
-	public void add(String name, Object value) {
+	public UUrl add(String name, Object value) {
 		if (value == null) {
-			return;
+			return this;
 		}
 		this.remove(name);
 
 		String name1 = name.toUpperCase().trim();
 		this.names_.put(name1, name);
 		this.params_.put(name, value.toString());
+		
+		return this;
 	}
 
 	/**
