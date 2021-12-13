@@ -15,6 +15,7 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.List;
@@ -30,7 +31,6 @@ import org.apache.commons.io.IOUtils;
 import com.gdxsoft.easyweb.utils.msnet.MStr;
 
 public class UFile {
-
 	/**
 	 * Get the extension from the bytes of the file
 	 * 
@@ -706,15 +706,82 @@ public class UFile {
 	/**
 	 * Get the MD5 of the file
 	 * 
-	 * @param file the file name and directory
-	 * @return the MD5 of the file
+	 * @param file the file
+	 * @return the MD5 of the file (hex)
 	 */
 	public static String createMd5(File file) {
+//		try {
+//			byte[] bytes = readFileBytes(file.getPath());
+//			return Utils.md5(bytes);
+//		} catch (Exception e) {
+//			return e.getMessage();
+//		}
+//		
+		// 避免内存溢出，按照流进行md5
+		return md5(file);
+	}
+
+	/**
+	 * Get the MD5 of the file
+	 * 
+	 * @param file the file
+	 * @return the MD5 of the file (hex)
+	 */
+	public static String md5(File file) {
+		return digestFile(file, "MD5");
+
+	}
+
+	/**
+	 * Get the MD5 of the file
+	 * 
+	 * @param file the file
+	 * @return the MD5 of the file (hex)
+	 */
+	public static String sha1(File file) {
+		return digestFile(file, "SHA1");
+	}
+
+	/**
+	 * Get the MD5 of the file
+	 * 
+	 * @param file the file
+	 * @return the MD5 of the file (hex)
+	 */
+	public static String sha256(File file) {
+		return digestFile(file, "SHA-256");
+	}
+
+	/**
+	 * Get the digest of the file
+	 * 
+	 * @param file       the file
+	 * @param digestName the digest name (MD2, MD5, SHA-1, SHA-224, SHA-256, SHA-384, SHA-512)
+	 * @return the digest (hex)
+	 */
+	public static String digestFile(File file, String digestName) {
+
+		FileInputStream fileInputStream = null;
 		try {
-			byte[] bytes = readFileBytes(file.getPath());
-			return Utils.md5(bytes);
+			MessageDigest md5 = MessageDigest.getInstance(digestName);
+			fileInputStream = new FileInputStream(file);
+			byte[] buffer = new byte[1024 * 64]; // 64k
+			int length;
+			while ((length = fileInputStream.read(buffer)) != -1) {
+				md5.update(buffer, 0, length);
+			}
+			return Utils.bytes2hex(md5.digest());
 		} catch (Exception e) {
-			return e.getMessage();
+			e.printStackTrace();
+			return null;
+		} finally {
+			try {
+				if (fileInputStream != null) {
+					fileInputStream.close();
+				}
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
 		}
 	}
 
