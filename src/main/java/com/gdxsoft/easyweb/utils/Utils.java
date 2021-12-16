@@ -266,8 +266,9 @@ public class Utils {
 	@Deprecated
 	public static String createEncryptString(String s1) {
 		/*
-		 * try { MessageDigest md = MessageDigest.getInstance("SHA-1"); md.update(s1.getBytes()); return
-		 * byte2hex(md.digest()); } catch (NoSuchAlgorithmException e) { return e.getMessage(); }
+		 * try { MessageDigest md = MessageDigest.getInstance("SHA-1");
+		 * md.update(s1.getBytes()); return byte2hex(md.digest()); } catch
+		 * (NoSuchAlgorithmException e) { return e.getMessage(); }
 		 */
 		String hex = UDigest.digestHex(s1, "sha1");
 		return hex;
@@ -352,8 +353,9 @@ public class Utils {
 	public static byte[] hex2bytes(String hexs) {
 		return Hex.decode(hexs);
 		/*
-		 * String stmp = ""; byte[] buf = new byte[hexs.length() / 2]; for (int n = 0; n < hexs.length() / 2; n++) { int
-		 * beginIndex = n * 2; int endIndex = beginIndex + 2; stmp = hexs.substring(beginIndex, endIndex); byte b =
+		 * String stmp = ""; byte[] buf = new byte[hexs.length() / 2]; for (int n = 0; n
+		 * < hexs.length() / 2; n++) { int beginIndex = n * 2; int endIndex = beginIndex
+		 * + 2; stmp = hexs.substring(beginIndex, endIndex); byte b =
 		 * Integer.decode("0x" + stmp).byteValue(); buf[n] = b; } return buf;
 		 */
 	}
@@ -429,7 +431,8 @@ public class Utils {
 	}
 
 	/**
-	 * 获取字符串中的参数
+	 * 获取字符串中的参数（含中文） <br>
+	 * 例如：{CALL PR_EWA_HOR_STR (@a, @CO_UNID, @姓名, @姓名.hash)}
 	 * 
 	 * @param sql 字符串
 	 * @param tag 参数前导字符例如 @
@@ -440,7 +443,7 @@ public class Utils {
 			return null;
 		String tmp = "{{{GDX1郭磊GdX2郭磊gDX3郭磊GDX1}}";
 		String s1 = sql.replace(tag + tag, tmp);
-		Pattern pat = Pattern.compile(tag + "[a-zA-Z0-9\\-\\._:]*\\b", Pattern.CASE_INSENSITIVE);
+		Pattern pat = Pattern.compile(tag + "[a-zA-Z0-9\u4e00-\u9fa5\\-\\._:]*\\b", Pattern.CASE_INSENSITIVE);
 		Matcher mat = pat.matcher(s1);
 
 		MListStr rst = new MListStr();
@@ -780,7 +783,8 @@ public class Utils {
 	 */
 	public static String getDateTimeString(Date date) {
 		/*
-		 * SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss"); return format.format(date);
+		 * SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss"); return
+		 * format.format(date);
 		 */
 		return getDateString(date, "yyyy-MM-dd HH:mm:ss");
 	}
@@ -926,8 +930,8 @@ public class Utils {
 		}
 		// yyyy-MM-dd HH:mm:ss;
 		/*
-		 * SimpleDateFormat sf = new SimpleDateFormat(dateFormat); try { return sf.parse(dateString); } catch
-		 * (ParseException e) { return null; }
+		 * SimpleDateFormat sf = new SimpleDateFormat(dateFormat); try { return
+		 * sf.parse(dateString); } catch (ParseException e) { return null; }
 		 */
 
 		Date date;
