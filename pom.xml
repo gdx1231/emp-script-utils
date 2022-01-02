@@ -230,19 +230,25 @@
 			<scope>test</scope>
 		</dependency>
 
-		<dependency>
+		<!-- <dependency>
 			<groupId>org.slf4j</groupId>
 			<artifactId>slf4j-log4j12</artifactId>
 			<version>1.7.30</version>
 			<scope>test</scope>
-		</dependency>
+		</dependency> -->
 
-		<!-- https://mvnrepository.com/artifact/org.apache.logging.log4j/log4j-core -->
-		<dependency>
+		 <!-- https://mvnrepository.com/artifact/org.apache.logging.log4j/log4j-core -->
+		<!--<dependency>
 			<groupId>org.apache.logging.log4j</groupId>
 			<artifactId>log4j-core</artifactId>
 			<version>2.14.1</version>
 			<scope>test</scope>
+		</dependency> -->
+		<dependency>
+		    <groupId>org.slf4j</groupId>
+		    <artifactId>slf4j-jdk14</artifactId>
+		    <version>1.7.32</version>
+		    <scope>test</scope>
 		</dependency>
 
 	</dependencies>
