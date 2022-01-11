@@ -178,7 +178,7 @@ public class UAes implements IUSymmetricEncyrpt {
 	 * @throws Exception
 	 */
 	public static UAes getInstance() throws Exception {
-		if (AES_KEY_VALUE == null || AES_IV_VALUE == null) {
+		if (AES_KEY_VALUE == null ) {
 			throw new Exception("Please using UAes.initDefaultKey initialize");
 		}
 
