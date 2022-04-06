@@ -297,6 +297,9 @@ public class UPath {
 	}
 
 	private synchronized static void initPathReal() {
+		if(PATH_REAL != null) {
+			return ;
+		}
 		Utils ut = new Utils();
 		ClassLoader loader = ut.getClass().getClassLoader();
 
@@ -343,7 +346,7 @@ public class UPath {
 			String xmlNameDefined = CONF_NAME;
 			f2 = new File(xmlNameDefined);
 			if (f2.exists()) {
-				URL userDefined = new URL(f2.getAbsolutePath());
+				URL userDefined = new URL("file://" + f2.getAbsolutePath());
 				loadConfXml(userDefined);
 				return true;
 			} else {
@@ -463,7 +466,8 @@ public class UPath {
 
 	/**
 	 * 初始化定义RequestValue的初始化类型，例如： USR_ID->int <br>
-	 * &lt;requestValueType Name= "G_SUP_ID, G_ADM_ID, GRP_ID, ENQ_ID, ENQ_JNY_ID" Type="int" /&gt;
+	 * &lt;requestValueType Name= "G_SUP_ID, G_ADM_ID, GRP_ID, ENQ_ID, ENQ_JNY_ID"
+	 * Type="int" /&gt;
 	 * 
 	 * @param doc
 	 */
@@ -566,10 +570,10 @@ public class UPath {
 		nl = doc.getElementsByTagName("para");
 		for (int i = 0; i < nl.getLength(); i++) {
 			Element ele = (Element) nl.item(i);
-			
+
 			String n = ele.hasAttribute("Name") ? ele.getAttribute("Name") : ele.getAttribute("name");
 			n = n.toUpperCase();
-			
+
 			String v = ele.hasAttribute("Value") ? ele.getAttribute("Value") : ele.getAttribute("value");
 
 			if (INIT_PARAS.containsKey(n)) {
@@ -789,7 +793,8 @@ public class UPath {
 	}
 
 	/**
-	 * des="图片缩略图保存根路径URL, ！！！需要在Tomcat或Apache或Nginx中配置虚拟路径！！！。" Name="img_tmp_path_url"，如果ewa_conf中没有配置的话，则为null
+	 * des="图片缩略图保存根路径URL, ！！！需要在Tomcat或Apache或Nginx中配置虚拟路径！！！。"
+	 * Name="img_tmp_path_url"，如果ewa_conf中没有配置的话，则为null
 	 * 
 	 * @return 上传文件的Url
 	 */
