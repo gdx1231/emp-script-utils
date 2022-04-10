@@ -81,6 +81,9 @@ public class UNet {
 	private boolean _IsShowLog = true;
 	private HashMap<String, String> _Headers;
 	private HashMap<String, String> _Cookies;
+	
+	private Map<String,String> _ResponseHeaders;
+	
 	private PoolingHttpClientConnectionManager connMgr;
 	private RequestConfig requestConfig;
 	private String userAgent;
@@ -753,6 +756,7 @@ public class UNet {
 	 */
 	private void saveLastHeader(HttpResponse response) {
 		Header[] heads = response.getAllHeaders();
+		_ResponseHeaders = new HashMap<>();
 		for (int i = 0; i < heads.length; i++) {
 			Header h = heads[i];
 			String name = h.getName();
@@ -760,6 +764,9 @@ public class UNet {
 			if (this._IsShowLog) {
 				LOGGER.info(name + "=" + value);
 			}
+			
+			_ResponseHeaders.put(name, value);
+			
 			if (name.equalsIgnoreCase("Set-Cookie")) {
 				String[] cks = value.split("\\;");
 				String[] cks1 = cks[0].split("\\=");
@@ -1505,5 +1512,13 @@ public class UNet {
 	        return METHOD_NAME;
 	    }
 
+	}
+
+	/**
+	 * Get the last response headers
+	 * @return the _ResponseHeaders
+	 */
+	public Map<String, String> getResponseHeaders() {
+		return _ResponseHeaders;
 	}
 }

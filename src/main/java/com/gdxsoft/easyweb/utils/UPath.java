@@ -297,8 +297,8 @@ public class UPath {
 	}
 
 	private synchronized static void initPathReal() {
-		if(PATH_REAL != null) {
-			return ;
+		if (PATH_REAL != null && PATH_REAL.trim().length() > 0) {
+			return;
 		}
 		Utils ut = new Utils();
 		ClassLoader loader = ut.getClass().getClassLoader();
