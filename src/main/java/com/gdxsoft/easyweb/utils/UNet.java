@@ -73,17 +73,17 @@ import com.gdxsoft.easyweb.utils.msnet.MStr;
  */
 public class UNet {
 	private static Logger LOGGER = LoggerFactory.getLogger(UNet.class);
-	public static String AGENT_4 = "Mozilla/4.0 (compatible; MSIE 8.0; Windows NT 5.2; Trident/4.0; chromeframe/10.0.648.151; chromeframe;)";
-	public static String AGENT = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/56.0.2924.87 Safari/537.36";
+	public static String AGENT_4 = "Mozilla/4.0 (compatible; MSIE 8.0; Windows NT 5.2; Trident/4.0;)";
+	public static String AGENT = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/101.0.4951.54 Safari/537.36";
 	public static int C_TIME_OUT = 500000;
 	public static int R_TIME_OUT = 500000;
 	private String _LastUrl;
-	private boolean _IsShowLog = true;
+	private boolean _IsShowLog = false;
 	private HashMap<String, String> _Headers;
 	private HashMap<String, String> _Cookies;
-	
-	private Map<String,String> _ResponseHeaders;
-	
+
+	private Map<String, String> _ResponseHeaders;
+
 	private PoolingHttpClientConnectionManager connMgr;
 	private RequestConfig requestConfig;
 	private String userAgent;
@@ -283,7 +283,7 @@ public class UNet {
 	 * @param body 发送正文
 	 * @return 执行结果
 	 */
-	public String patch(String u, String body) {
+	public String doPatch(String u, String body) {
 		if (this._IsShowLog) {
 			LOGGER.info("PATCH: " + u);
 		}
@@ -301,10 +301,47 @@ public class UNet {
 		return this.handleResponse(httpclient, httppost);
 	}
 
-
+	/**
+	 * 同 doPatch
+	 * 
+	 * @param u
+	 * @param body
+	 * @return
+	 */
+	public String patch(String u, String body) {
+		return this.doPatch(u, body);
+	}
 
 	/**
-	 * 提交消息
+	 * 发送 PATCH 请求访问本地应用并根据传递参数不同返回不同结果
+	 * 
+	 * @param url  地址
+	 * @param vals 参数
+	 * @return 执行结果
+	 */
+	public String doPatch(String url, Map<String, String> vals) {
+		if (this._IsShowLog) {
+			LOGGER.info("PATCH " + url);
+		}
+
+		CloseableHttpClient httpclient = this.getHttpClient(url);
+
+		HttpPatch httPatch = new HttpPatch(url);
+		this.addRequestHeaders(httPatch);
+
+		try {
+			this.addPostData(httPatch, vals);
+		} catch (UnsupportedEncodingException e) {
+			this._LastErr = e.getLocalizedMessage();
+			LOGGER.error(e.getMessage());
+			return null;
+		}
+		this.handleResponse(httpclient, httPatch);
+		return this.checkAndHandleRedirectString();
+	}
+
+	/**
+	 * 提交消息并下载
 	 * 
 	 * @param u    Url地址
 	 * @param body 提交的内容
@@ -370,7 +407,6 @@ public class UNet {
 	 * @return 执行结果
 	 */
 	public String doPut(String url, String body) {
-
 		if (this._IsShowLog) {
 			LOGGER.info("PUT " + url);
 		}
@@ -387,6 +423,35 @@ public class UNet {
 
 		return result;
 	}
+	/**
+	 * 发送 PUT 请求访问本地应用并根据传递参数不同返回不同结果
+	 * 
+	 * @param url  地址
+	 * @param vals 参数
+	 * @return 执行结果
+	 */
+	public String doPut(String url, Map<String, String> vals) {
+		if (this._IsShowLog) {
+			LOGGER.info("PUT " + url);
+		}
+		CloseableHttpClient httpclient = this.getHttpClient(url);
+
+		HttpPut httpPut = new HttpPut(url);
+		this.addRequestHeaders(httpPut);
+
+		try {
+			this.addPostData(httpPut, vals);
+		} catch (UnsupportedEncodingException e) {
+			this._LastErr = e.getLocalizedMessage();
+			LOGGER.error(e.getMessage());
+			return null;
+		}
+		this.handleResponse(httpclient, httpPut);
+		return this.checkAndHandleRedirectString();
+
+	}
+
+	
 
 	/**
 	 * DELETE 模式
@@ -395,7 +460,6 @@ public class UNet {
 	 * @return 执行结果
 	 */
 	public String doDelete(String url) {
-
 		if (this._IsShowLog) {
 			LOGGER.info("DELETE " + url);
 		}
@@ -419,9 +483,8 @@ public class UNet {
 	 * @return 执行结果
 	 */
 	public String doDelete(String url, String body) {
-
 		if (this._IsShowLog) {
-			LOGGER.info("PUT " + url);
+			LOGGER.info("DELETE " + url);
 		}
 		String result = null;
 
@@ -438,6 +501,34 @@ public class UNet {
 	}
 
 	/**
+	 * 发送 DELETE 请求访问本地应用并根据传递参数不同返回不同结果
+	 * 
+	 * @param url  地址
+	 * @param vals 参数
+	 * @return 执行结果
+	 */
+	public String doDelete(String url, Map<String, String> vals) {
+		if (this._IsShowLog) {
+			LOGGER.info("DELETE " + url);
+		}
+
+		CloseableHttpClient httpclient = this.getHttpClient(url);
+
+		HttpDeleteWithBody httpDelete = new HttpDeleteWithBody(url);
+		this.addRequestHeaders(httpDelete);
+
+		try {
+			this.addPostData(httpDelete, vals);
+		} catch (UnsupportedEncodingException e) {
+			this._LastErr = e.getLocalizedMessage();
+			LOGGER.error(e.getMessage());
+			return null;
+		}
+		this.handleResponse(httpclient, httpDelete);
+		return this.checkAndHandleRedirectString();
+	}
+
+	/**
 	 * get 获取网页文本
 	 * 
 	 * @param url 地址
@@ -445,7 +536,7 @@ public class UNet {
 	 */
 	public String doGet(String url) {
 		if (this._IsShowLog) {
-			LOGGER.info("G " + url);
+			LOGGER.info("GET " + url);
 		}
 
 		CloseableHttpClient httpclient = this.getHttpClient(url);
@@ -475,31 +566,17 @@ public class UNet {
 		HttpPost httppost = new HttpPost(url);
 		this.addRequestHeaders(httppost);
 
-		// 创建参数队列
-		List<BasicNameValuePair> formparams = new ArrayList<BasicNameValuePair>();
-		for (String key : vals.keySet()) {
-			String value = vals.get(key);
-			formparams.add(new BasicNameValuePair(key, value));
-		}
-		String code = this._Encode == null ? "UTF-8" : this._Encode;
-		UrlEncodedFormEntity uefEntity;
-
 		try {
-			uefEntity = new UrlEncodedFormEntity(formparams, code);
-			httppost.setEntity(uefEntity);
-			this.handleResponse(httpclient, httppost);
-
-			return this.checkAndHandleRedirectString();
-
-		} catch (UnsupportedEncodingException e1) {
-			this._LastErr = e1.getLocalizedMessage();
-			LOGGER.error(e1.getMessage());
+			this.addPostData(httppost, vals);
+		} catch (UnsupportedEncodingException e) {
+			this._LastErr = e.getLocalizedMessage();
+			LOGGER.error(e.getMessage());
 			return null;
-		} finally {
-			this.closeHttpClient(httpclient);
 		}
-
+		this.handleResponse(httpclient, httppost);
+		return this.checkAndHandleRedirectString();
 	}
+
 	/**
 	 * 提交body 消息
 	 * 
@@ -512,16 +589,38 @@ public class UNet {
 			LOGGER.info("POST: " + url);
 		}
 		CloseableHttpClient httpclient = this.getHttpClient(url);
-		
+
 		HttpPost httpost = new HttpPost(url);
-		
+
 		this.addRequestHeaders(httpost);
-		
+
 		StringEntity postEntity = this.createStringEntity(body);
 		httpost.setEntity(postEntity);
 
 		return this.handleResponse(httpclient, httpost);
 	}
+
+	/**
+	 * POST/PUT/PATCH/DELETE等添加form参数
+	 * 
+	 * @param http
+	 * @param vals
+	 * @throws UnsupportedEncodingException
+	 */
+	private void addPostData(HttpEntityEnclosingRequestBase http, Map<String, String> vals)
+			throws UnsupportedEncodingException {
+		List<BasicNameValuePair> formparams = new ArrayList<BasicNameValuePair>();
+		for (String key : vals.keySet()) {
+			String value = vals.get(key);
+			formparams.add(new BasicNameValuePair(key, value));
+		}
+		String code = this._Encode == null ? "UTF-8" : this._Encode;
+		UrlEncodedFormEntity uefEntity;
+
+		uefEntity = new UrlEncodedFormEntity(formparams, code);
+		http.setEntity(uefEntity);
+	}
+	
 	/**
 	 * 提交body 消息，同 doPost(u, body)
 	 * 
@@ -532,6 +631,7 @@ public class UNet {
 	public String postMsg(String u, String body) {
 		return this.doPost(u, body);
 	}
+
 	/**
 	 * 检查是否有重定向，有的化执行get（最多7次），没有返回追后执行的内容
 	 * 
@@ -764,9 +864,9 @@ public class UNet {
 			if (this._IsShowLog) {
 				LOGGER.info(name + "=" + value);
 			}
-			
+
 			_ResponseHeaders.put(name, value);
-			
+
 			if (name.equalsIgnoreCase("Set-Cookie")) {
 				String[] cks = value.split("\\;");
 				String[] cks1 = cks[0].split("\\=");
@@ -985,14 +1085,12 @@ public class UNet {
 			LOGGER.error(e.getMessage());
 			return null;
 		} finally {
-
 			if (this._IsShowLog) {
 				Date t2 = new Date();
 				long tt = com.gdxsoft.easyweb.utils.Utils.timeDiffSeconds(t2, t1);
 				LOGGER.info(tt + "s, L=" + (result == null ? -1 : result.length()));
 			}
 		}
-
 	}
 
 	/**
@@ -1486,36 +1584,37 @@ public class UNet {
 	/**
 	 * 解决 delete不能提交body的问题
 	 */
-	 class HttpDeleteWithBody extends HttpEntityEnclosingRequestBase {
+	class HttpDeleteWithBody extends HttpEntityEnclosingRequestBase {
 
-	    public final static String METHOD_NAME = "DELETE";
+		public final static String METHOD_NAME = "DELETE";
 
-	    public HttpDeleteWithBody() {
-	        super();
-	    }
+		public HttpDeleteWithBody() {
+			super();
+		}
 
-	    public HttpDeleteWithBody(final URI uri) {
-	        super();
-	        setURI(uri);
-	    }
+		public HttpDeleteWithBody(final URI uri) {
+			super();
+			setURI(uri);
+		}
 
-	    /**
-	     * @throws IllegalArgumentException if the uri is invalid.
-	     */
-	    public HttpDeleteWithBody(final String uri) {
-	        super();
-	        setURI(URI.create(uri));
-	    }
+		/**
+		 * @throws IllegalArgumentException if the uri is invalid.
+		 */
+		public HttpDeleteWithBody(final String uri) {
+			super();
+			setURI(URI.create(uri));
+		}
 
-	    @Override
-	    public String getMethod() {
-	        return METHOD_NAME;
-	    }
+		@Override
+		public String getMethod() {
+			return METHOD_NAME;
+		}
 
 	}
 
 	/**
 	 * Get the last response headers
+	 * 
 	 * @return the _ResponseHeaders
 	 */
 	public Map<String, String> getResponseHeaders() {
