@@ -148,10 +148,17 @@ public class UFormat {
 
 		// 日期型
 		if (cName.indexOf("TIME") < 0 && cName.indexOf("DATE") < 0) {
-			if (oriValue.toString().length() < 10) {
+			String str = oriValue.toString();
+			if (str.length() < 10) {
 				return oriValue.toString();
 			}
-			String[] ss = oriValue.toString().split(" ");
+			if(str.indexOf("T")>0) {
+				str = str.replace("T", " ");
+				if(str.endsWith("Z")) {
+					str = str.replace("Z", " ");
+				}
+			}
+			String[] ss = str.split(" ");
 			sDate = ss[0];
 			sTime = "";
 			if (ss.length > 1) {

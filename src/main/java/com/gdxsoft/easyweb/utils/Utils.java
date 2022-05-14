@@ -3,6 +3,7 @@ package com.gdxsoft.easyweb.utils;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.sql.Timestamp;
+import java.text.Format;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -895,8 +896,11 @@ public class Utils {
 			return null;
 		}
 		dateString = dateString.trim();
-		if (dateString.indexOf("T") > 0) {
+		if (dateString.indexOf("T") > 0) { // IS0 8601, 2017-02-22T05:07:22Z
 			dateString = dateString.replace("T", " ");
+			if(dateString.endsWith("Z")) {
+				dateString = dateString.replace("Z", "");
+			}
 		}
 		// 日期时间
 		boolean isHaveTime = (dateFormat.indexOf("HH") > 0 || dateFormat.indexOf("hh") > 0);
@@ -935,6 +939,7 @@ public class Utils {
 		 */
 
 		Date date;
+		
 		DateTimeFormatter format = DateTimeFormatter.ofPattern(dateFormat);
 		try {
 			if (isHaveTime) {
