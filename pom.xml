@@ -1,13 +1,11 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<url>https://github.com/gdx1231/emp-script-utils</url>
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>com.gdxsoft.easyweb</groupId>
 	<artifactId>emp-script-utils</artifactId>
-	<version>1.1.2</version>
+	<version>1.1.3</version>
 	<name>Easy Web Appliaction Utils</name>
 	<description>Easy Web Appliaction Utils: UArgon2, UMail, UDigest, URsa, UAes, UDes, UFile, UConvert, UFormat, UNet, SendMail, SmtpCfg </description>
-
 	<developers>
 		<developer>
 			<id>guolei</id>
@@ -21,12 +19,10 @@
 			<email>jinzhaopeng@126.com</email>
 		</developer>
 	</developers>
-
 	<organization>
 		<name>gdxsoft</name>
 		<url>www.gdxsoft.com</url>
 	</organization>
-
 	<licenses>
 		<license>
 			<name>MIT License</name>
@@ -55,7 +51,6 @@
 				</excludes>
 			</resource>
 		</resources>
-
 		<plugins>
 			<plugin>
 				<artifactId>maven-compiler-plugin</artifactId>
@@ -101,7 +96,6 @@
 					</additionalOptions>
 				</configuration>
 			</plugin>
-			
 			<!-- <plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-resources-plugin</artifactId>
@@ -131,7 +125,6 @@
 			<plugin>
 				<artifactId>maven-antrun-plugin</artifactId>
 				<executions>
-					
 					<execution>
 						<id>copy-lib-src-webapps</id>
 						<phase>package</phase>
@@ -166,51 +159,41 @@
 			<artifactId>commons-lang3</artifactId>
 			<version>3.12.0</version>
 		</dependency>
-
 		<!-- https://mvnrepository.com/artifact/org.json/json -->
 		<dependency>
 			<groupId>org.json</groupId>
 			<artifactId>json</artifactId>
-			<version>20201115</version>
+			<version>20220320</version>
 		</dependency>
-
 		<!-- https://mvnrepository.com/artifact/net.coobird/thumbnailator -->
 		<dependency>
 			<groupId>net.coobird</groupId>
 			<artifactId>thumbnailator</artifactId>
-			<version>0.4.15</version>
+			<version>0.4.17</version>
 		</dependency>
-
-
 		<dependency>
 			<groupId>org.slf4j</groupId>
 			<artifactId>slf4j-api</artifactId>
-			<version>1.7.32</version>
+			<version>1.7.36</version>
 		</dependency>
-
-
 		<!-- https://mvnrepository.com/artifact/org.apache.commons/commons-exec -->
 		<dependency>
 			<groupId>org.apache.commons</groupId>
 			<artifactId>commons-exec</artifactId>
 			<version>1.3</version>
 		</dependency>
-
 		<!-- https://mvnrepository.com/artifact/com.sun.mail/jakarta.mail -->
 		<dependency>
 			<groupId>com.sun.mail</groupId>
 			<artifactId>jakarta.mail</artifactId>
 			<version>1.6.6</version>
 		</dependency>
-
 		<!-- https://mvnrepository.com/artifact/org.apache.httpcomponents/httpclient -->
 		<dependency>
 			<groupId>org.apache.httpcomponents</groupId>
 			<artifactId>httpclient</artifactId>
 			<version>4.5.13</version>
 		</dependency>
-
-
 		<!-- https://mvnrepository.com/artifact/org.apache.httpcomponents/httpmime -->
 		<dependency>
 			<groupId>org.apache.httpcomponents</groupId>
@@ -239,8 +222,6 @@
 			<artifactId>bcprov-jdk15on</artifactId>
 			<version>1.70</version>
 		</dependency>
-
-
 		<!-- https://mvnrepository.com/artifact/org.hsqldb/hsqldb -->
 		<dependency>
 			<groupId>org.hsqldb</groupId>
@@ -262,8 +243,7 @@
 			<version>1.7.30</version>
 			<scope>test</scope>
 		</dependency> -->
-
-		 <!-- https://mvnrepository.com/artifact/org.apache.logging.log4j/log4j-core -->
+		<!-- https://mvnrepository.com/artifact/org.apache.logging.log4j/log4j-core -->
 		<!--<dependency>
 			<groupId>org.apache.logging.log4j</groupId>
 			<artifactId>log4j-core</artifactId>
@@ -271,17 +251,12 @@
 			<scope>test</scope>
 		</dependency> -->
 		<dependency>
-		    <groupId>org.slf4j</groupId>
-		    <artifactId>slf4j-jdk14</artifactId>
-		    <version>1.7.32</version>
-		    <scope>test</scope>
+			<groupId>org.slf4j</groupId>
+			<artifactId>slf4j-jdk14</artifactId>
+			<version>1.7.32</version>
+			<scope>test</scope>
 		</dependency>
-
 	</dependencies>
-
-
-
-
 	<!-- 发布项目 -->
 	<!-- mvn clean deploy -P release -->
 	<!--
@@ -291,7 +266,6 @@
 		<profile>
 			<id>release</id> <!-- 部署要用到 -->
 			<build>
-
 				<plugins>
 					<!-- Source -->
 					<plugin>
@@ -329,7 +303,8 @@
 						</configuration>
 					</plugin>
 					<!-- GPG -->
-					<plugin> <!-- 进行延签 -->
+					<plugin>
+						<!-- 进行延签 -->
 						<groupId>org.apache.maven.plugins</groupId>
 						<artifactId>maven-gpg-plugin</artifactId>
 						<version>1.6</version>
