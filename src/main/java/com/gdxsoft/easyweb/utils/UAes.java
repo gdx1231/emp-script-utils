@@ -178,7 +178,7 @@ public class UAes implements IUSymmetricEncyrpt {
 	 * @throws Exception
 	 */
 	public static UAes getInstance() throws Exception {
-		if (AES_KEY_VALUE == null ) {
+		if (AES_KEY_VALUE == null) {
 			throw new Exception("Please using UAes.initDefaultKey initialize");
 		}
 
@@ -188,6 +188,28 @@ public class UAes implements IUSymmetricEncyrpt {
 		aes.setPaddingMethod(PKCS7Padding);
 
 		return aes;
+	}
+
+	/**
+	 * Default encrypt
+	 * 
+	 * @param plainText plain text
+	 * @return Encrypted base64
+	 * @throws Exception
+	 */
+	public static String defaultEncrypt(String plainText) throws Exception {
+		return getInstance().encrypt(plainText);
+	}
+
+	/**
+	 * Default decrypt
+	 * 
+	 * @param base64Ciphertext Encrypted base64
+	 * @return Plain text
+	 * @throws Exception
+	 */
+	public static String defaultDecrypt(String base64Ciphertext) throws Exception {
+		return getInstance().decrypt(base64Ciphertext);
 	}
 
 	private String paddingMethod = PKCS7Padding; // aes transformation 加密模式
