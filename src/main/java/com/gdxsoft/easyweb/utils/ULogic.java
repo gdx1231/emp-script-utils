@@ -29,7 +29,7 @@ public class ULogic {
 			st = conn.createStatement();
 			st.execute("SET DATABASE SQL SYNTAX ORA TRUE ");
 
-			LOGGER.info("initLogic org.hsqldb.jdbcDriver ");
+			LOGGER.info("initLogic org.hsqldb.jdbc.JDBCDriver ");
 		} catch (Exception e) {
 			String ERR_MSG = e.getMessage();
 			LOGGER.error(ERR_MSG);
@@ -58,7 +58,7 @@ public class ULogic {
 	 * @throws Exception
 	 */
 	private static Connection createConn() throws Exception {
-		Class.forName("org.hsqldb.jdbcDriver");
+		Class.forName("org.hsqldb.jdbc.JDBCDriver");
 		Connection conn = DriverManager.getConnection("jdbc:hsqldb:mem:.", "sa", "");
 		return conn;
 	}
