@@ -200,7 +200,14 @@
 			<artifactId>httpmime</artifactId>
 			<version>4.5.13</version>
 		</dependency>
-
+		<!-- https://github.com/apache/commons-codec/commit/48b615756d1d770091ea3322eefc08011ee8b113
+			httpclient commons-codec
+		 -->
+		<dependency>
+			<groupId>commons-codec</groupId>
+			<artifactId>commons-codec</artifactId>
+			<version>1.13</version>
+		</dependency>
 		<!-- https://mvnrepository.com/artifact/javax.servlet/javax.servlet-api -->
 		<dependency>
 			<groupId>javax.servlet</groupId>
