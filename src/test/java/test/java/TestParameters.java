@@ -1,8 +1,6 @@
 package test.java;
 
 import org.junit.jupiter.api.Test;
-import com.gdxsoft.easyweb.utils.UAes;
-import com.gdxsoft.easyweb.utils.UDes;
 import com.gdxsoft.easyweb.utils.Utils;
 import com.gdxsoft.easyweb.utils.msnet.MListStr;
 

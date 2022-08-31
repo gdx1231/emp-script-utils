@@ -81,7 +81,6 @@ public class DKIMMessage extends SMTPMessage {
 		// First, write out the body to the body buffer
 		if (modified) {
 			// Finally, the content. Encode if required.
-			// XXX: May need to account for ESMTP ?
 			OutputStream osEncoding = MimeUtility.encode(osBody, this.getEncoding());
 			this.getDataHandler().writeTo(osEncoding);
 			osEncoding.flush(); // Needed to complete encoding
