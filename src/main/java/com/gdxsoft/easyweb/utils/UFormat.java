@@ -29,7 +29,7 @@ public class UFormat {
 		if (oriValue == null)
 			return null;
 		if (toFormat == null || toFormat.trim().length() == 0)
-			return oriValue.toString();
+			return objectToString(oriValue);
 
 		String f = toFormat.trim().toLowerCase();
 		// 日期型
@@ -52,6 +52,102 @@ public class UFormat {
 			return formatPercent(oriValue);
 		} else if (f.equals("week")) {
 			return formatWeek(oriValue, lang);
+		}
+		return objectToString(oriValue);
+	}
+
+	/**
+	 * 对象转字符串, Array通过", "拼接，用于处理ClickHouse的数组对象
+	 * 
+	 * @param oriValue 原始对象
+	 * @return Array=a, b, c
+	 */
+	public static String objectToString(Object oriValue) {
+		if (oriValue == null)
+			return null;
+
+		if (oriValue.getClass().isArray()) {
+			StringBuilder sb = new StringBuilder();
+			if (oriValue.getClass().getComponentType().isPrimitive()) {
+				String ct = oriValue.getClass().getComponentType().getSimpleName();
+				if (ct.equals("int")) {
+					int[] arr = (int[]) oriValue;
+					for (int i = 0; i < arr.length; i++) {
+						int item = arr[i];
+						if (i > 0) {
+							sb.append(", ");
+						}
+						sb.append(item);
+					}
+				} else if (ct.equals("long")) {
+					long[] arr = (long[]) oriValue;
+					for (int i = 0; i < arr.length; i++) {
+						long item = arr[i];
+						if (i > 0) {
+							sb.append(", ");
+						}
+						sb.append(item);
+					}
+				} else if (ct.equals("short")) {
+					short[] arr = (short[]) oriValue;
+					for (int i = 0; i < arr.length; i++) {
+						long item = arr[i];
+						if (i > 0) {
+							sb.append(", ");
+						}
+						sb.append(item);
+					}
+				} else if (ct.equals("boolean")) {
+					boolean[] arr = (boolean[]) oriValue;
+					for (int i = 0; i < arr.length; i++) {
+						boolean item = arr[i];
+						if (i > 0) {
+							sb.append(", ");
+						}
+						sb.append(item);
+					}
+				} else if (ct.equals("double")) {
+					double[] arr = (double[]) oriValue;
+					for (int i = 0; i < arr.length; i++) {
+						double item = arr[i];
+						if (i > 0) {
+							sb.append(", ");
+						}
+						sb.append(item);
+					}
+				} else if (ct.equals("float")) {
+					float[] arr = (float[]) oriValue;
+					for (int i = 0; i < arr.length; i++) {
+						float item = arr[i];
+						if (i > 0) {
+							sb.append(", ");
+						}
+						sb.append(item);
+					}
+				} else if (ct.equals("char")) {
+					char[] arr = (char[]) oriValue;
+					for (int i = 0; i < arr.length; i++) {
+						char item = arr[i];
+						if (i > 0) {
+							sb.append(", ");
+						}
+						sb.append(item);
+					}
+				}  else if (ct.equals("byte")) {
+					byte[] arr = (byte[]) oriValue;
+					return UConvert.ToBase64String(arr);
+				}
+			} else {
+				Object[] arr = (Object[]) oriValue;
+				for (int i = 0; i < arr.length; i++) {
+					Object item = arr[i];
+					if (i > 0) {
+						sb.append(", ");
+					}
+					sb.append(item == null ? "null" : item.toString());
+				}
+			}
+			return sb.toString();
 		}
 		return oriValue.toString();
 	}
@@ -152,9 +248,9 @@ public class UFormat {
 			if (str.length() < 10) {
 				return oriValue.toString();
 			}
-			if(str.indexOf("T")>0) {
+			if (str.indexOf("T") > 0) {
 				str = str.replace("T", " ");
-				if(str.endsWith("Z")) {
+				if (str.endsWith("Z")) {
 					str = str.replace("Z", " ");
 				}
 			}
