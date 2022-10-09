@@ -218,13 +218,13 @@
 			<artifactId>httpmime</artifactId>
 			<version>4.5.13</version>
 		</dependency>
-		<!-- https://github.com/apache/commons-codec/commit/48b615756d1d770091ea3322eefc08011ee8b113
-			httpclient commons-codec
+		<!-- commons-codec - 1.13
+		 Base32 would decode some invalid Base32 encoded string into arbitrary value
 		 -->
 		<dependency>
 			<groupId>commons-codec</groupId>
 			<artifactId>commons-codec</artifactId>
-			<version>1.13</version>
+			<version>1.15</version>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/javax.servlet/javax.servlet-api -->
 		<dependency>
@@ -251,7 +251,8 @@
 		<dependency>
 			<groupId>org.hsqldb</groupId>
 			<artifactId>hsqldb</artifactId>
-			<version>2.6.1</version>
+			<classifier>jdk8</classifier>
+			<version>2.7.0</version>
 		</dependency>
 
 		<!-- https://mvnrepository.com/artifact/org.junit.jupiter/junit-jupiter-api -->
