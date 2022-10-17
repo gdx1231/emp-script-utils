@@ -4,8 +4,8 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
-import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -31,26 +31,26 @@ public class UPath {
 	 */
 	private static Document CFG_XML_DOC;
 
-	private static HashMap<String, String> RV_GLOBALS;
+	private static Map<String, String> RV_GLOBALS;
 
 	/**
 	 * 放到 RequestValue 的全局变量
 	 * 
 	 * @return RequestValue 的全局变量
 	 */
-	public static HashMap<String, String> getRV_GLOBALS() {
+	public static Map<String, String> getRV_GLOBALS() {
 		initPath();
 		return RV_GLOBALS;
 	}
 
-	private static HashMap<String, String> RV_TYPES;
+	private static Map<String, String> RV_TYPES;
 
 	/**
 	 * 定义RequestValue的初始化类型，例如： USR_ID :int
 	 * 
 	 * @return 定义RequestValue的初始化类型
 	 */
-	public static HashMap<String, String> getRvTypes() {
+	public static Map<String, String> getRvTypes() {
 		initPath();
 		return RV_TYPES;
 	}
@@ -472,15 +472,21 @@ public class UPath {
 	 * @param doc
 	 */
 	private static void initRequestValuesType(Document doc) {
-		RV_TYPES = new HashMap<String, String>();
+		RV_TYPES = new  ConcurrentHashMap<>();
 		NodeList nl = doc.getElementsByTagName("requestValueType");
 		for (int i = 0; i < nl.getLength(); i++) {
 			Element ele = (Element) nl.item(i);
 			String names = ele.getAttribute("Name");
 			if (names == null || names.trim().length() == 0) {
+				names = ele.getAttribute("name");
+			}
+			if (names == null || names.trim().length() == 0) {
 				continue;
 			}
 			String paramType = ele.getAttribute("Type");
+			if (paramType == null || paramType.trim().length() == 0) {
+				paramType = ele.getAttribute("type");
+			}
 			if (paramType == null || paramType.trim().length() == 0) {
 				paramType = "int";// 默认整数
 			} else {
@@ -674,7 +680,7 @@ public class UPath {
 	 */
 	private static void initRequestValueGlobal(Document doc) {
 		// 加载到 RequestValue的全局变量
-		RV_GLOBALS = new HashMap<String, String>();
+		RV_GLOBALS = new ConcurrentHashMap  <String, String>();
 		NodeList nl = doc.getElementsByTagName("rv");
 		for (int i = 0; i < nl.getLength(); i++) {
 			Element ele = (Element) nl.item(i);
