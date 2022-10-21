@@ -472,7 +472,7 @@ public class UPath {
 	 * @param doc
 	 */
 	private static void initRequestValuesType(Document doc) {
-		RV_TYPES = new  ConcurrentHashMap<>();
+		RV_TYPES = new ConcurrentHashMap<>();
 		NodeList nl = doc.getElementsByTagName("requestValueType");
 		for (int i = 0; i < nl.getLength(); i++) {
 			Element ele = (Element) nl.item(i);
@@ -534,12 +534,16 @@ public class UPath {
 				UPath.CVT_IMAGEMAGICK_HOME = v;
 				System.out.println(UPath.CVT_IMAGEMAGICK_HOME);
 			} else if (name.equals("img_tmp_path")) { // 图片缩略图保存路径
-				PATH_IMG_CACHE = v + "/" + PATH_TEMP + "/IMG/";
-				if (PATH_IMG_CACHE.startsWith("@")) {
-					UFile.buildPaths(PATH_IMG_CACHE.replace("@", ""));
+				if (v.startsWith("@")) {
+					// @意义无效了，均为在项目外指定保存目录
+					v = v.substring(1);
 				}
-				PATH_IMG_CACHE = PATH_IMG_CACHE.replace("//", "/");
+				String tmp = v + "/" + PATH_TEMP + "/IMG/";
+				tmp = tmp.replace("//", "/");
+				UFile.buildPaths(tmp);
+				PATH_IMG_CACHE = tmp;
 				PATH_UPLOAD = v + (v.endsWith("/") ? "" : "/");
+
 			} else if (name.equals("img_tmp_path_url")) { // 图片缩略图URL
 				PATH_IMG_CACHE_URL = v + "/" + PATH_TEMP + "/IMG/";
 				// PATH_IMG_CACHE_URL = PATH_IMG_CACHE_URL.replace("//", "/");
@@ -548,7 +552,10 @@ public class UPath {
 
 		}
 		if (PATH_CACHED == null || PATH_CACHED.length() == 0) {
-			PATH_CACHED = PATH_REAL + "/ewa_temp/cached/";
+			LOG.warn("没有定义上传目录 img_tmp_path");
+		}
+		if (PATH_UPLOAD_URL == null || PATH_UPLOAD_URL.length() == 0) {
+			LOG.warn("没有定义上传目录 img_tmp_path_url");
 		}
 
 		UPath.initSmtpParas(doc);
@@ -680,7 +687,7 @@ public class UPath {
 	 */
 	private static void initRequestValueGlobal(Document doc) {
 		// 加载到 RequestValue的全局变量
-		RV_GLOBALS = new ConcurrentHashMap  <String, String>();
+		RV_GLOBALS = new ConcurrentHashMap<String, String>();
 		NodeList nl = doc.getElementsByTagName("rv");
 		for (int i = 0; i < nl.getLength(); i++) {
 			Element ele = (Element) nl.item(i);
@@ -794,7 +801,9 @@ public class UPath {
 		if (PATH_UPLOAD.startsWith("@")) {
 			return PATH_UPLOAD.replace("@", "");
 		} else {
-			return UPath.getRealContextPath() + "/" + PATH_UPLOAD;
+			// "@"作用取消了，只允许在指定目录上传
+			// return UPath.getRealContextPath() + "/" + PATH_UPLOAD;
+			return PATH_UPLOAD;
 		}
 	}
 
