@@ -795,16 +795,7 @@ public class UPath {
 	 */
 	public static String getPATH_UPLOAD() {
 		initPath();
-		if (PATH_UPLOAD == null) {
-			return null;
-		}
-		if (PATH_UPLOAD.startsWith("@")) {
-			return PATH_UPLOAD.replace("@", "");
-		} else {
-			// "@"作用取消了，只允许在指定目录上传
-			// return UPath.getRealContextPath() + "/" + PATH_UPLOAD;
-			return PATH_UPLOAD;
-		}
+		return PATH_UPLOAD;
 	}
 
 	/**
@@ -815,11 +806,7 @@ public class UPath {
 	 */
 	public static String getPATH_UPLOAD_URL() {
 		initPath();
-		if (PATH_UPLOAD_URL == null) {
-			return null;
-		} else {
-			return UPath.PATH_UPLOAD_URL;
-		}
+		return UPath.PATH_UPLOAD_URL;
 	}
 
 	/**
@@ -829,11 +816,7 @@ public class UPath {
 	 */
 	public static String getPATH_IMG_CACHE() {
 		initPath();
-		if (PATH_IMG_CACHE.startsWith("@")) {
-			return PATH_IMG_CACHE.replace("@", "");
-		} else {
-			return UPath.getRealContextPath() + UPath.PATH_IMG_CACHE;
-		}
+		return UPath.PATH_IMG_CACHE;
 	}
 
 	/**
@@ -844,9 +827,6 @@ public class UPath {
 	 */
 	public static String getPATH_IMG_CACHE_URL() {
 		initPath();
-		if (PATH_IMG_CACHE_URL == null) {
-			return PATH_IMG_CACHE;
-		}
 		return UPath.PATH_IMG_CACHE_URL;
 	}
 
@@ -857,7 +837,6 @@ public class UPath {
 	 */
 	public static String getCfgCacheMethod() {
 		initPath();
-
 		return UPath.CFG_CACHE_METHOD;
 	}
 
