@@ -3,6 +3,7 @@ package com.gdxsoft.easyweb.utils;
 import java.awt.AlphaComposite;
 import java.awt.BasicStroke;
 import java.awt.Color;
+import java.awt.Dimension;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.GraphicsConfiguration;
@@ -42,11 +43,17 @@ import net.coobird.thumbnailator.Thumbnails;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.gdxsoft.easyweb.conf.ConfImageMagick;
+
 /**
  * The image utils
  *
  */
 public class UImages {
+	/**
+	 * Default image quality
+	 */
+	public static int DEFAULT_QUALITY = 70;
 	private static Logger LOGGER = LoggerFactory.getLogger(UImages.class);
 
 	/**
@@ -202,13 +209,28 @@ public class UImages {
 	 * @param maxheight The maximum height
 	 * @return The thumbnail image path and name
 	 */
-	public static String createSmallImage(String imgPath, int maxwidth, int maxheight) {
-		java.awt.Dimension[] d = new java.awt.Dimension[1];
-		d[0] = new java.awt.Dimension();
-		d[0].setSize(maxwidth, maxheight);
+	public static String createSmallImage(String imgPath, int maxWidth, int maxHeight) {
+		return createSmallImage(imgPath, maxWidth, maxHeight, "jpg", DEFAULT_QUALITY);
+
+	}
+
+	/**
+	 * Create the image thumbnail
+	 * 
+	 * @param imgPath   The image path and name
+	 * @param maxWidth  The maximum width
+	 * @param maxHeight The maximum height
+	 * @param outputExt The output image extension, e.g. jpg or png or webp ...
+	 * @param quality   The image quality
+	 * @return The thumbnail image path and name
+	 */
+	public static String createSmallImage(String imgPath, int maxWidth, int maxHeight, String outputExt, int quality) {
+		Dimension[] d = new Dimension[1];
+		d[0] = new Dimension();
+		d[0].setSize(maxWidth, maxHeight);
 
 		try {
-			File[] fs = createResized(imgPath, d);
+			File[] fs = createResized(imgPath, d, outputExt, quality);
 			if (fs.length == 0) {
 				return null;
 			} else {
@@ -230,11 +252,12 @@ public class UImages {
 	 * @throws Exception
 	 */
 	public static File[] createResizedByJava(String imgPath, java.awt.Dimension[] thumbnilsSize) throws Exception {
-		if (!(imgPath.toUpperCase().endsWith(".JPG") || imgPath.toUpperCase().endsWith(".JPEG")
-				|| imgPath.toUpperCase().endsWith(".PNG") || imgPath.toUpperCase().endsWith(".BMP")
-				|| imgPath.toUpperCase().endsWith(".GIF"))) {
-			return new File[0];
+		String[] exts = { ".jpg", ".jpeg", ".png", ".bmp", ".gif" };
+		if (!UCheckerIn.endsWith(imgPath, exts, true)) {
+			LOGGER.error("Invalid image ext: {}", imgPath);
+			throw new Exception("Invalid image ext: " + imgPath);
 		}
+
 		File img = new File(imgPath);
 		BufferedImage bufferedImage = null;
 		try {
@@ -300,6 +323,98 @@ public class UImages {
 	}
 
 	/**
+	 * Create the image thumbnails
+	 * 
+	 * @param imgPath       The image path and name
+	 * @param thumbnilsSize The thumbnails size(800x600, 400x300)...
+	 * @return The thumbnail files array
+	 * @throws Exception
+	 */
+	public static File[] createResized(String imgPath, Dimension[] thumbnilsSize) throws Exception {
+		String outputExt = "jpg";
+		return createResized(imgPath, thumbnilsSize, outputExt, DEFAULT_QUALITY);
+	}
+
+	/**
+	 * Create the image thumbnails
+	 * 
+	 * @param imgPath       The image path and name
+	 * @param thumbnilsSize The thumbnails size(800x600, 400x300)...
+	 * @param outputExt     output image ext, e.g. jpg or png
+	 * @param quality       The image quality
+	 * @return The thumbnail files array
+	 * @throws Exception
+	 */
+	public static File[] createResized(String imgPath, Dimension[] thumbnilsSize, String outputExt, int quality)
+			throws Exception {
+		if (checkImageMagick()) {
+			return createResizedByImageMagick(imgPath, thumbnilsSize, outputExt, quality);
+		} else {
+			// 利用 net.coobird.thumbnailator.Thumbnails，
+			return createResizedByThumbnails(imgPath, thumbnilsSize);
+		}
+	}
+
+	/**
+	 * Check whether using ImageMagick to resize image
+	 * 
+	 * @return
+	 */
+	public static boolean checkImageMagick() {
+		ConfImageMagick conf = ConfImageMagick.getInstance();
+		if (conf == null) {
+			return false;
+		}
+		File pathMagicHome = new File(conf.getPath());
+		if (pathMagicHome.exists()) {
+			return true;
+		} else {
+			return false;
+		}
+	}
+
+	/**
+	 * Get the imageMagick's magick path
+	 * 
+	 * @return
+	 * @throws Exception
+	 */
+	public static String getImageMagick() throws Exception {
+		ConfImageMagick conf = ConfImageMagick.getInstance();
+		if (conf == null) {
+			String err = "imageMagick not found in the ewa_conf.xml, e.g. 《imageMagick path=\"D:/ImageMagick/\" /》";
+			LOGGER.error(err);
+			throw new Exception(err);
+
+		}
+		String magicHome = conf.getPath();
+
+		File home = new File(magicHome);
+		if (home.isFile()) {
+			String err = "[" + home.getAbsolutePath() + "] is a file, should be ImageMagick installed path";
+			LOGGER.error(err);
+			throw new Exception(err);
+		}
+		String command_line;
+		String os = System.getProperty("os.name").toLowerCase();
+		if (os.startsWith("windows")) {
+			command_line = home.getAbsolutePath() + "\\magick.exe";
+		} else {
+			command_line = home.getAbsolutePath() + "/magick";
+		}
+
+		// 检查magick文件是否存在
+		File f2 = new File(command_line);
+		if (!f2.exists()) {
+			String err = "Not found [" + f2.getAbsolutePath() + "]";
+			LOGGER.error(err);
+			throw new Exception(err);
+		}
+
+		return f2.getAbsolutePath();
+	}
+
+	/**
 	 * Create the image thumbnails (Using the ImageMagick)
 	 * 
 	 * @param imgPath       the image path and name
@@ -307,22 +422,49 @@ public class UImages {
 	 * @return The thumbnail files array
 	 * @throws Exception
 	 */
-	public static File[] createResizedByImageMagick(String imgPath, java.awt.Dimension[] thumbnilsSize)
-			throws Exception {
-		if (!(imgPath.toUpperCase().endsWith(".JPG") || imgPath.toUpperCase().endsWith(".JPEG")
-				|| imgPath.toUpperCase().endsWith(".PNG") || imgPath.toUpperCase().endsWith(".BMP")
-				|| imgPath.toUpperCase().endsWith(".GIF"))) {
-			return new File[0];
-		}
-		String magicHome = UPath.getCVT_IMAGEMAGICK_HOME();
-		if (magicHome == null || magicHome.trim().length() == 0) {
-			throw new Exception(
-					"magicHome 没有定义（ewa_conf.xml）<path Name=\"cvt_ImageMagick_Home\" Value=\"/usr/local/Cellar/imagemagick/6.9.6-3/bin/\" />");
+	public static File[] createResizedByImageMagick(String imgPath, Dimension[] thumbnilsSize) throws Exception {
+		return createResizedByImageMagick(imgPath, thumbnilsSize, "jpg", DEFAULT_QUALITY);
+
+	}
+
+	public static String getResizedImageName(Dimension size, String outputExt) {
+		double width = size.getWidth();
+		double height = size.getHeight();
+		return getResizedImageName((int) width, (int) height, outputExt);
+	}
+
+	public static String getResizedImageName(int width, int height, String outputExt) {
+		String name = width + "x" + height + "." + outputExt;
+		return name;
+	}
+
+	/**
+	 * Create the image thumbnails (Using the ImageMagick)
+	 * 
+	 * @param imgPath       the image path and name
+	 * @param thumbnilsSize The thumbnails size(800x600, 400x300)...
+	 * @param outputExt     jpg or png or webp or heic ...
+	 * @param quality       jpg quality
+	 * @return The thumbnail files array
+	 * @throws Exception
+	 */
+	public static File[] createResizedByImageMagick(String imgPath, Dimension[] thumbnilsSize, String outputExt,
+			int quality) throws Exception {
+		String[] exts = { ".jpg", ".jpeg", ".jiff", ".png", ".bmp", ".gif", ".webp", ".heic" };
+		if (!UCheckerIn.endsWith(imgPath, exts, true)) {
+			LOGGER.error("Invalid image ext: {}", imgPath);
+			throw new Exception("Invalid image ext: " + imgPath);
 		}
 
-		String command_line = magicHome + "convert -auto-orient -strip -resize ";
+		if (!UCheckerIn.endsWith("." + outputExt, exts, true)) {
+			LOGGER.error("Invalid image output ext: {}", outputExt);
+			throw new Exception("Invalid image output ext: " + outputExt);
+		}
 
-		// convert -resize "100x100>" -strip 360云盘/pics/DSC_0963.JPG aa1.jpg
+		String command_line = getImageMagick();
+		command_line += " convert -auto-orient -strip -resize ";
+
+		// magick convert -resize "100x100" -strip DSC_0963.JPG aa1.jpg
 		File img = new File(imgPath);
 
 		File[] names = new File[thumbnilsSize.length];
@@ -335,7 +477,7 @@ public class UImages {
 			double height = thumbnilsSize[i].getHeight();
 			int w = (int) width;
 			int h = (int) height;
-			String name = w + "x" + h + ".jpg";
+			String name = getResizedImageName(thumbnilsSize[i], outputExt);
 			File f1 = new File(pathResized.getPath() + "/" + name);
 
 			StringBuilder sb = new StringBuilder();
@@ -364,32 +506,6 @@ public class UImages {
 	}
 
 	/**
-	 * Create the image thumbnails
-	 * 
-	 * @param imgPath       The image path and name
-	 * @param thumbnilsSize The thumbnails size(800x600, 400x300)...
-	 * @return The thumbnail files array
-	 * @throws Exception
-	 */
-	public static File[] createResized(String imgPath, java.awt.Dimension[] thumbnilsSize) throws Exception {
-		String magicHome = UPath.getCVT_IMAGEMAGICK_HOME();
-		if (magicHome == null || magicHome.trim().length() == 0) {
-			// return createResizedByJava(imgPath, d);
-			// 利用 net.coobird.thumbnailator.Thumbnails，
-			return createResizedByThumbnails(imgPath, thumbnilsSize);
-		} else {
-			File pathMagicHome = new File(magicHome);
-			if (pathMagicHome.exists()) {
-				return createResizedByImageMagick(imgPath, thumbnilsSize);
-			} else {
-				LOGGER.warn("magicHome NOT defined in (ewa_conf.xml), using createResizedByThumbnails");
-				// 利用 net.coobird.thumbnailator.Thumbnails，
-				return createResizedByThumbnails(imgPath, thumbnilsSize);
-			}
-		}
-	}
-
-	/**
 	 * Create the image thumbnails (using net.coobird.thumbnailator.Thumbnails)
 	 * 
 	 * @param imgPath       the image path and name
@@ -397,21 +513,38 @@ public class UImages {
 	 * @return The thumbnail files array
 	 * @throws Exception
 	 */
-	public static File[] createResizedByThumbnails(String imgPath, java.awt.Dimension[] thumbnilsSize) {
+	public static File[] createResizedByThumbnails(String imgPath, Dimension[] thumbnilsSize) {
+
+		return createResizedByThumbnails(imgPath, thumbnilsSize, "jpg", DEFAULT_QUALITY);
+	}
+
+	/**
+	 * Create the image thumbnails (using net.coobird.thumbnailator.Thumbnails)
+	 * 
+	 * @param imgPath       the image path and name
+	 * @param thumbnilsSize The thumbnails size(800x600, 400x300)...
+	 * @param outputExt     output image ext, e.g. jpg or png
+	 * @param quality       the image quality
+	 * @return The thumbnail files array
+	 * @throws Exception
+	 */
+	public static File[] createResizedByThumbnails(String imgPath, Dimension[] thumbnilsSize, String outputExt,
+			int quality) {
 		File img = new File(imgPath);
 		String path = img.getAbsolutePath() + "$resized";
 		File pathResized = new File(path);
 		pathResized.mkdirs();
 		File[] names = new File[thumbnilsSize.length];
+		double quality1 = quality / 100.0;
 		for (int i = 0; i < thumbnilsSize.length; i++) {
 			double width = thumbnilsSize[i].getWidth();
 			double height = thumbnilsSize[i].getHeight();
 			int w = (int) width;
 			int h = (int) height;
-			String name = w + "x" + h + ".jpg";
+			String name = getResizedImageName(thumbnilsSize[i], outputExt);
 			File f1 = new File(pathResized.getPath() + "/" + name);
 			try {
-				Thumbnails.of(img).size(w, h).outputFormat("jpg").useExifOrientation(true).outputQuality(0.7)
+				Thumbnails.of(img).size(w, h).outputFormat(outputExt).useExifOrientation(true).outputQuality(quality1)
 						.toFile(f1);
 				names[i] = f1;
 			} catch (IOException e) {
@@ -618,8 +751,10 @@ public class UImages {
 		ExecuteWatchdog watchdog = new ExecuteWatchdog(60000);
 		executor.setWatchdog(watchdog);
 
-		File dir = new File(UPath.getCVT_IMAGEMAGICK_HOME());
-		executor.setWorkingDirectory(dir);
+		/*
+		 * File dir = new File(UPath.getCVT_IMAGEMAGICK_HOME());
+		 * executor.setWorkingDirectory(dir);
+		 */
 		String line1 = line;
 		try {
 			line1 = new String(line.getBytes(), "gbk");
@@ -631,11 +766,12 @@ public class UImages {
 		ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
 		PumpStreamHandler streamHandler = new PumpStreamHandler(outputStream);
 		executor.setStreamHandler(streamHandler);
+
+		LOGGER.info(line);
 		try {
 			executor.execute(commandLine);
 			String s = outputStream.toString();
 			outputStream.close();
-			LOGGER.info(s);
 			rst.put("RST", "true");
 			rst.put("MSG", s);
 		} catch (ExecuteException e) {
