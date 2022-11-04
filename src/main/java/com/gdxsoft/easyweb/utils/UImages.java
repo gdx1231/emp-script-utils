@@ -396,15 +396,21 @@ public class UImages {
 			throw new Exception(err);
 		}
 		String command_line;
+		String command_line1;
 		String os = System.getProperty("os.name").toLowerCase();
 		if (os.startsWith("windows")) {
 			command_line = home.getAbsolutePath() + "\\magick.exe";
+			command_line1= home.getAbsolutePath() + "\\convert.exe";
 		} else {
 			command_line = home.getAbsolutePath() + "/magick";
+			command_line1= home.getAbsolutePath() + "/convert";
 		}
 
 		// 检查magick文件是否存在
 		File f2 = new File(command_line);
+		if(!f2.exists()) {
+			f2 = new File(command_line1); //convert legacy
+		}
 		if (!f2.exists()) {
 			String err = "Not found [" + f2.getAbsolutePath() + "]";
 			LOGGER.error(err);
@@ -462,9 +468,13 @@ public class UImages {
 		}
 
 		String command_line = getImageMagick();
-		command_line += " convert -auto-orient -strip -resize ";
-
-		// magick convert -resize "100x100" -strip DSC_0963.JPG aa1.jpg
+		if(command_line.endsWith("convert") || command_line.endsWith("convert.exe")) {
+			// legacy
+			command_line += " -auto-orient -strip -resize ";
+		} else {
+			// magick convert -resize "100x100" -strip DSC_0963.JPG aa1.jpg
+			command_line += " convert -auto-orient -strip -resize ";
+		}
 		File img = new File(imgPath);
 
 		File[] names = new File[thumbnilsSize.length];
