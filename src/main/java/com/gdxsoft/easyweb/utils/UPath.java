@@ -720,7 +720,7 @@ public class UPath {
 	}
 
 	/**
-	 * 获取初始化参数
+	 * 获取初始化参数，大小写无关
 	 * 
 	 * @param name 初始化参数名称
 	 * @return 初始化参数
