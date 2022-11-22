@@ -1,6 +1,7 @@
 package com.gdxsoft.easyweb.utils;
 
 import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.sql.Timestamp;
 import java.time.LocalDate;
@@ -533,10 +534,10 @@ public class Utils {
 	}
 
 	/**
-	 * URLEncoder.encode 文字
+	 * URLEncoder.encode (UTF-8)编码
 	 * 
-	 * @param text 文字
-	 * @return encode 文字
+	 * @param text 明文
+	 * @return 编码后的字符串
 	 */
 	public static String textToUrl(String text) {
 		if (text == null) {
@@ -546,7 +547,28 @@ public class Utils {
 		try {
 			s1 = URLEncoder.encode(text, "utf-8");
 		} catch (UnsupportedEncodingException e) {
+			LOG.warn("URLEncoder error, {} {}", text, e.getMessage());
 			s1 = text;
+		}
+		return s1;
+	}
+
+	/**
+	 * URLDecoder.decode (UTF-8) 解码
+	 * 
+	 * @param urlEncoder URLEncoder的字符串
+	 * @return 解码后的字符串
+	 */
+	public static String urlToText(String urlEncoder) {
+		if (urlEncoder == null) {
+			return "";
+		}
+		String s1;
+		try {
+			s1 = URLDecoder.decode(urlEncoder, "utf-8");
+		} catch (UnsupportedEncodingException e) {
+			LOG.warn("URLDecoder error, {} {}", urlEncoder, e.getMessage());
+			s1 = urlEncoder;
 		}
 		return s1;
 	}
@@ -897,7 +919,7 @@ public class Utils {
 		dateString = dateString.trim();
 		if (dateString.indexOf("T") > 0) { // IS0 8601, 2017-02-22T05:07:22Z
 			dateString = dateString.replace("T", " ");
-			if(dateString.endsWith("Z")) {
+			if (dateString.endsWith("Z")) {
 				dateString = dateString.replace("Z", "");
 			}
 		}
@@ -938,7 +960,7 @@ public class Utils {
 		 */
 
 		Date date;
-		
+
 		DateTimeFormatter format = DateTimeFormatter.ofPattern(dateFormat);
 		try {
 			if (isHaveTime) {
