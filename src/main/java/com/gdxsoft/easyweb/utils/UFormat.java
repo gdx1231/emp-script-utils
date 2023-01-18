@@ -6,9 +6,20 @@ import java.util.Date;
 
 public class UFormat {
 
-	private static String[] WEEEK_NAME_ZHCN = "日,一,二,三,四,五,六".split(",");
-	private static String[] WEEEK_NAME_ENUS = "Sun,Mon,Tue,Wed,Thu,Fri,Sat".split(",");
+	private static final String[] WEEEK_NAME_ZHCN = "日,一,二,三,四,五,六".split(",");
+	private static final String[] WEEEK_NAME_ENUS = "Sun,Mon,Tue,Wed,Thu,Fri,Sat".split(",");
 
+	/**
+	 * 英式日期表达式
+	 */
+	public static final String DATE_FROMAT_UK = "dd/MM/yyyy";
+	/**
+	 * 美式日期表达式
+	 */
+	public static final String DATE_FROMAT_US = "MM/dd/yyyy";
+
+	public static String DATE_FROMAT_ZHCN = "yyyy-MM-dd";
+	public static String DATE_FROMAT_ENUS = DATE_FROMAT_US; // 默认美式表示法
 	/**
 	 * 格式化
 	 * 
@@ -133,7 +144,7 @@ public class UFormat {
 						}
 						sb.append(item);
 					}
-				}  else if (ct.equals("byte")) {
+				} else if (ct.equals("byte")) {
 					byte[] arr = (byte[]) oriValue;
 					return UConvert.ToBase64String(arr);
 				}
@@ -266,7 +277,8 @@ public class UFormat {
 			sDt = sDate + " " + sTime;
 		} else {
 			// 美国或中国
-			String dateFormat = "enus".equals(lang) ? "MM/dd/yyyy" : "yyyy-MM-dd";
+			String dateFormat = "enus".equals(lang) ? DATE_FROMAT_ENUS
+					/* MM/dd/yyyy */ : DATE_FROMAT_ZHCN /* yyyy-MM-dd */;
 
 			Date t = (Date) oriValue;
 			sDate = Utils.getDateString(t, dateFormat);

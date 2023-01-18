@@ -1020,10 +1020,10 @@ public class Utils {
 						return null;
 					}
 					if (isUKFormat) {
-						// 英式日期表达式
+						// 英式日期表达式 dd/MM/yyyy
 						s1 = s3[2] + "-" + s3[1] + "-" + s3[0] + " " + s2[1];
 					} else {
-						// 美式日期表达式
+						// 美式日期表达式 MM/dd/yyyy
 						s1 = s3[2] + "-" + s3[0] + "-" + s3[1] + " " + s2[1];
 					}
 				}
