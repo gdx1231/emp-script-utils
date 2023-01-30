@@ -456,7 +456,7 @@ public class UImages {
 	 */
 	public static File[] createResizedByImageMagick(String imgPath, Dimension[] thumbnilsSize, String outputExt,
 			int quality) throws Exception {
-		String[] exts = { ".jpg", ".jpeg", ".jiff", ".png", ".bmp", ".gif", ".webp", ".heic" };
+		String[] exts = { ".avif", ".jpg", ".jpeg", ".jiff", ".png", ".bmp", ".gif", ".webp", ".heic" };
 		if (!UCheckerIn.endsWith(imgPath, exts, true)) {
 			LOGGER.error("Invalid image ext: {}", imgPath);
 			throw new Exception("Invalid image ext: " + imgPath);
@@ -468,6 +468,7 @@ public class UImages {
 		}
 
 		String command_line = getImageMagick();
+		// -strip 删除配置文件和注释
 		if(command_line.endsWith("convert") || command_line.endsWith("convert.exe")) {
 			// legacy
 			command_line += " -auto-orient -strip -resize ";

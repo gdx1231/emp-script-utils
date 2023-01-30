@@ -20,6 +20,42 @@ public class UFormat {
 
 	public static String DATE_FROMAT_ZHCN = "yyyy-MM-dd";
 	public static String DATE_FROMAT_ENUS = DATE_FROMAT_US; // 默认美式表示法
+
+	/**
+	 * 数字转汉字大写金额<br>
+	 * 参考: https://blog.csdn.net/weixin_42333548/article/details/124662824
+	 * 
+	 * @param n 数字
+	 * @return
+	 */
+	public static String formatChineseMoney(double n) {
+		String fraction[] = { "角", "分" };
+		String digit[] = { "零", "壹", "贰", "叁", "肆", "伍", "陆", "柒", "捌", "玖" };
+		String unit[][] = { { "元", "万", "亿" }, { "", "拾", "佰", "仟" } };
+
+		String head = n < 0 ? "负" : "";
+		n = Math.abs(n);
+
+		String s = "";
+		for (int i = 0; i < fraction.length; i++) {
+			s += (digit[(int) (Math.floor(n * 10 * Math.pow(10, i)) % 10)] + fraction[i]).replaceAll("(零.)+", "");
+		}
+		if (s.length() < 1) {
+			s = "整";
+		}
+		int integerPart = (int) Math.floor(n);
+		for (int i = 0; i < unit[0].length && integerPart > 0; i++) {
+			String p = "";
+			for (int j = 0; j < unit[1].length && n > 0; j++) {
+				p = digit[integerPart % 10] + unit[1][j] + p;
+				integerPart = integerPart / 10;
+			}
+			s = p.replaceAll("(零.)*零$", "").replaceAll("^$", "零") + unit[0][i] + s;
+		}
+		return head + s.replaceAll("(零.)*零元", "元").replaceFirst("(零.)+", "").replaceAll("(零.)+", "零").replaceAll("^整$",
+				"零元整");
+	}
+
 	/**
 	 * 格式化
 	 * 
@@ -31,6 +67,7 @@ public class UFormat {
 	 *                 5 leastDecimal 清除小数后的0,没有逗号<br>
 	 *                 6 percent 百分比格式<br>
 	 *                 7 week 星期<br>
+	 *                 8 ChineseMoney 中文货币
 	 * @param oriValue 原始值
 	 * @param lang     语言 enus 或 zhcn
 	 * @return 格式化好的字符串
@@ -63,6 +100,14 @@ public class UFormat {
 			return formatPercent(oriValue);
 		} else if (f.equals("week")) {
 			return formatWeek(oriValue, lang);
+		} else if ("ChineseMoney".equalsIgnoreCase(f)) {
+			// 中文货币
+			try {
+				double v = UConvert.ToDouble(oriValue);
+				return formatChineseMoney(v);
+			} catch (Exception err) {
+				return oriValue.toString();
+			}
 		}
 		return objectToString(oriValue);
 	}

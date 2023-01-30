@@ -20,6 +20,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class UPath {
+	/**
+	 * EWA 静态文件所在目录的名称， ewa_conf中定义<br>
+	 * &lt;requestValuesGlobal &gt;<br>
+	 * &lt;rv name="rv_ewa_style_path" value="/EmpScriptV2/" &gt;
+	 */
+	public static final String RV_EWA_STYLE_PATH = "rv_ewa_style_path";
+	public static final String DEF_EWA_STYLE_PATH = "/EmpScriptV2";
 	private static boolean mainCall = false;
 	private static Logger LOG = LoggerFactory.getLogger(UPath.class);
 	/**
@@ -134,6 +141,21 @@ public class UPath {
 	public static MTableStr getVALID_DOMAINS() {
 		initPath();
 		return VALID_DOMAINS;
+	}
+
+	/**
+	 * 获取 EmpScriptV2所在路径
+	 * 
+	 * @return
+	 */
+	public static String getEmpScriptV2Path() {
+		initPath();
+		String emp = UPath.getRV_GLOBALS().getOrDefault(RV_EWA_STYLE_PATH, DEF_EWA_STYLE_PATH);
+		if (emp.endsWith("/") || emp.endsWith("\\")) {
+			emp = emp.substring(0, emp.length() - 1);
+		}
+
+		return emp;
 	}
 
 	/**
