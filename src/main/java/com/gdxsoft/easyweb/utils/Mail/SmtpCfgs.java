@@ -135,18 +135,35 @@ public class SmtpCfgs {
 	}
 
 	/**
-	 * Add from addresses to the FROM_DOMAIN_MAP or FROM_EMAIL_MAP
-	 * 
-	 * @param cfg
+	 * Add from addresses to the FROM_DOMAIN_MAP or FROM_EMAIL_MAP<br>
+	 * &lt;smtp host="smtp.test.com" port="25" user="<b>user@test.com</b>"
+	 * pwd="xxxx"&gt;<br>
+	 * &lt;from email="<b>@gdxsoft.com</b>" /&gt;<br>
+	 * &lt;from email="<b>guolei@sina.com</b>" /&gt;<br>
+	 * &lt;from email="<b>gdx1231@gmail.com</b>" /&gt;<br>
+	 * &lt;/smtp&gt;<br>
+	 * 1. Three users, <b>user@test.com, guolei@sina.com, gdx1231@gmail.com</b> add to
+	 * the FROM_EMAIL_MAP and the FROM_DOMAIN_MAP <br>
+	 * 2. The user <b>@gdxsoft.com</b> add to the FROM_DOMAIN_MAP
+	 * @param cfg     the SmtpCfg
 	 * @param eleSmtp
 	 */
 	private static void addFromMap(SmtpCfg cfg, Element eleSmtp) {
+		// <smtp host="smtp.test.com" port="465" user="user@test.com" pwd="xxx">
+		// <from email="guolei@sina.com" />
+		// <from email="gdx1231@gmail.com" />
+		// <from email="@gdxsoft.com" />
+		// </smtp>
+		
+		
 		NodeList nlFrom = eleSmtp.getElementsByTagName("from");
 		if (cfg.getUser() != null && cfg.getUser().indexOf("@") > 0) {
 			// Default SMTP user as FROM
+			// 用户user@test.com
 			addFromMap(cfg, cfg.getUser());
 		}
 		for (int i = 0; i < nlFrom.getLength(); i++) {
+			// 用户 guolei@sina.com和gdx1231@gmail.com
 			Element item = (Element) nlFrom.item(i);
 			Map<String, String> params = UXml.getElementAttributes(item, true);
 			if (!params.containsKey("email")) {
