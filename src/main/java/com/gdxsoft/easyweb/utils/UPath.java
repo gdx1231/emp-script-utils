@@ -425,13 +425,17 @@ public class UPath {
 			return true;
 		}
 
-		if (f.lastModified() == PROP_TIME) {
+		long lastModified = f.lastModified();
+		if (PROP_TIME == -1231) { // Initialized default value
+			PROP_TIME = lastModified;
+			return false;
+		}
+		if (lastModified == PROP_TIME) {
 			LAST_CHK = System.currentTimeMillis();
 			return false;
 		} else {
-			if (PROP_TIME == -1231) { // Initialized default value
-				PROP_TIME = f.lastModified();
-			}
+			LOG.info("The ewa_conf had changed. {}, {}, prev: {}", f.getAbsolutePath(), lastModified, PROP_TIME);
+			PROP_TIME = lastModified;
 			return true;
 		}
 
@@ -532,6 +536,40 @@ public class UPath {
 	 */
 	private static void initPathXml() {
 		Document doc = CFG_XML_DOC;
+
+		initPaths(doc);
+		UPath.initSmtpParas(doc);
+		// 可以进行DEBUG的ip地址
+		UPath.initDebugIps(doc);
+
+		// Workflow
+		NodeList nl = doc.getElementsByTagName("workflow");
+		if (nl.getLength() > 0) {
+			Element ele = (Element) nl.item(0);
+			WF_XML = UXml.asXml(ele);
+		}
+
+		// 数据库连接池
+		nl = doc.getElementsByTagName("databases");
+		if (nl.getLength() > 0) {
+			Element ele = (Element) nl.item(0);
+			DATABASE_XML = UXml.asXml(ele);
+		}
+
+		// 初始化的参数 用户自定义
+		initParas(doc);
+		// 加载到 RequestValue的全局变量
+		UPath.initRequestValueGlobal(doc);
+
+		UPath.initValidDomains(doc);
+
+		UPath.initCfgCacheMethod(doc);
+
+		// 初始化定义RequestValue的初始化类型，例如： USR_ID->int
+		initRequestValuesType(doc);
+	}
+
+	private static void initPaths(Document doc) {
 		NodeList nl = doc.getElementsByTagName("path");
 		for (int i = 0; i < nl.getLength(); i++) {
 			Element ele = (Element) nl.item(i);
@@ -554,7 +592,7 @@ public class UPath {
 				UPath.CVT_SWFTOOL_HOME = v;
 			} else if (name.equalsIgnoreCase("cvt_ImageMagick_Home")) {
 				UPath.CVT_IMAGEMAGICK_HOME = v;
-				System.out.println(UPath.CVT_IMAGEMAGICK_HOME);
+				// System.out.println(UPath.CVT_IMAGEMAGICK_HOME);
 			} else if (name.equals("img_tmp_path")) { // 图片缩略图保存路径
 				if (v.startsWith("@")) {
 					// @意义无效了，均为在项目外指定保存目录
@@ -565,7 +603,6 @@ public class UPath {
 				UFile.buildPaths(tmp);
 				PATH_IMG_CACHE = tmp;
 				PATH_UPLOAD = v + (v.endsWith("/") ? "" : "/");
-
 			} else if (name.equals("img_tmp_path_url")) { // 图片缩略图URL
 				PATH_IMG_CACHE_URL = v + "/" + PATH_TEMP + "/IMG/";
 				// PATH_IMG_CACHE_URL = PATH_IMG_CACHE_URL.replace("//", "/");
@@ -579,30 +616,17 @@ public class UPath {
 		if (PATH_UPLOAD_URL == null || PATH_UPLOAD_URL.length() == 0) {
 			LOG.warn("没有定义上传目录 img_tmp_path_url");
 		}
+	}
 
-		UPath.initSmtpParas(doc);
-
-		DEBUG_IPS = new MTableStr();
-		// 记录可以进行DEBUG的ip地址
-		UPath.initDebugIps(doc);
-
-		// Workflow
-		nl = doc.getElementsByTagName("workflow");
-		if (nl.getLength() > 0) {
-			Element ele = (Element) nl.item(0);
-			WF_XML = UXml.asXml(ele);
-		}
-
-		// 数据库连接池
-		nl = doc.getElementsByTagName("databases");
-		if (nl.getLength() > 0) {
-			Element ele = (Element) nl.item(0);
-			DATABASE_XML = UXml.asXml(ele);
-		}
-
+	/**
+	 * 初始化的参数 用户自定义，通过 UPath.getInitPara()调用
+	 * 
+	 * @param doc
+	 */
+	private static void initParas(Document doc) {
 		// 初始化的参数 用户自定义
 		INIT_PARAS = new MTableStr();
-		nl = doc.getElementsByTagName("para");
+		NodeList nl = doc.getElementsByTagName("para");
 		for (int i = 0; i < nl.getLength(); i++) {
 			Element ele = (Element) nl.item(i);
 
@@ -615,19 +639,13 @@ public class UPath {
 				INIT_PARAS.removeKey(n);
 			} else {
 				INIT_PARAS.put(n, v);
+				if (mainCall) {
+					System.out.println("INIT_PARAS[" + n + "]" + v);
+				} else {
+					LOG.info("INIT_PARAS[" + n + "]" + v);
+				}
 			}
-
 		}
-
-		// 加载到 RequestValue的全局变量
-		UPath.initRequestValueGlobal(doc);
-
-		UPath.initValidDomains(doc);
-
-		UPath.initCfgCacheMethod(doc);
-
-		// 初始化定义RequestValue的初始化类型，例如： USR_ID->int
-		initRequestValuesType(doc);
 	}
 
 	/**
@@ -646,6 +664,12 @@ public class UPath {
 				String[] ips1 = ips.split(",");
 				for (int i = 0; i < ips1.length; i++) {
 					DEBUG_IPS.add(ips1[i], ips1[i]);
+					if (mainCall) {
+						System.out.println("DEBUG_IPS:" + ips1[i]);
+					} else {
+						LOG.info("DEBUG_IPS:" + ips1[i]);
+					}
+
 				}
 			}
 			// 是否显示SQL执行情况 debug状态下使用
@@ -654,6 +678,11 @@ public class UPath {
 				IS_DEBUG_SQL = true;
 			} else {
 				IS_DEBUG_SQL = false;
+			}
+			if (mainCall) {
+				System.out.println("IS_DEBUG_SQL:" + IS_DEBUG_SQL);
+			} else {
+				LOG.info("IS_DEBUG_SQL:" + IS_DEBUG_SQL);
 			}
 
 		}
@@ -680,6 +709,11 @@ public class UPath {
 				CFG_CACHE_METHOD = "sqlcached";
 			}
 		}
+		if (mainCall) {
+			System.out.println("CFG_CACHE_METHOD:" + CFG_CACHE_METHOD);
+		} else {
+			LOG.info("CFG_CACHE_METHOD:" + CFG_CACHE_METHOD);
+		}
 	}
 
 	private static void initValidDomains(Document doc) {
@@ -699,7 +733,11 @@ public class UPath {
 			String host = ele.getAttribute("Host");
 			if (host != null && host.trim().length() > 0) {
 				VALID_DOMAINS.put("___HOST___", host);
-				System.out.println("combin-host:" + VALID_DOMAINS.get("___HOST___"));
+				if (mainCall) {
+					System.out.println("combin-host:" + VALID_DOMAINS.get("___HOST___"));
+				} else {
+					LOG.info("combin-host: {}", VALID_DOMAINS.get("___HOST___"));
+				}
 			}
 		}
 	}
@@ -723,6 +761,11 @@ public class UPath {
 				RV_GLOBALS.remove(n);
 			} else {
 				RV_GLOBALS.put(n, v);
+				if (mainCall) {
+					System.out.println("RV_GLOBALS[" + n + "]=" + v);
+				} else {
+					LOG.info("RV_GLOBALS[" + n + "]=" + v);
+				}
 			}
 
 		}
