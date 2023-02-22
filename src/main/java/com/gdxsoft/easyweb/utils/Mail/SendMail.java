@@ -1259,4 +1259,13 @@ public class SendMail {
 		return this;
 	}
 
+	/**
+	 * 获取附件信息
+	 * 
+	 * @return the atts
+	 */
+	public HashMap<String, Attachment> getAtts() {
+		return atts_;
+	}
+
 }
