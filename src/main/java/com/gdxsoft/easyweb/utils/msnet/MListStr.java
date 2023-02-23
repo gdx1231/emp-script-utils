@@ -10,12 +10,12 @@ public class MListStr extends MList {
 
 	public String get(int index) {
 		Object o = super.get(index);
-		return o == null ? null : (String) o;
+		return o == null ? null : String.valueOf(o);
 	}
 
 	public String getLast() {
 		Object o = super.getLast();
-		return o == null ? null : (String) o;
+		return o == null ? null : String.valueOf(o);
 	}
 
 	

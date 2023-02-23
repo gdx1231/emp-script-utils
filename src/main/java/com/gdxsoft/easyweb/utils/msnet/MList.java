@@ -77,7 +77,7 @@ public class MList implements Serializable {
 			if (i > 0) {
 				s.append(splitString);
 			}
-			s.append(v == null ? "" : v.toString());
+			s.append(v == null ? "" : v);
 		}
 		return s.toString();
 	}

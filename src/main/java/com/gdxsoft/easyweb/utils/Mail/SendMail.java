@@ -326,7 +326,7 @@ public class SendMail {
 	 */
 	public SendMail addCc(Addr cc) {
 		String keytoEmail = cc.getEmail().toUpperCase().trim();
-		bccs_.put(keytoEmail, cc);
+		 ccs_.put(keytoEmail, cc);
 		if (is_mail_debug_) {
 			log.info(cc.toString());
 		}
