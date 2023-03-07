@@ -56,6 +56,8 @@ public class UImages {
 	public static int DEFAULT_QUALITY = 70;
 	private static Logger LOGGER = LoggerFactory.getLogger(UImages.class);
 
+	public final static String RESIZED_TAG = "$resized";
+
 	/**
 	 * Add a logo in the middle of a image
 	 * 
@@ -267,7 +269,7 @@ public class UImages {
 			throw e;
 		}
 		File[] names = new File[thumbnilsSize.length];
-		String path = img.getAbsolutePath() + "$resized";
+		String path = UImages.getResizedPath(img);
 		File pathResized = new File(path);
 		pathResized.mkdirs();
 
@@ -351,7 +353,7 @@ public class UImages {
 			return createResizedByImageMagick(imgPath, thumbnilsSize, outputExt, quality);
 		} else {
 			// 利用 net.coobird.thumbnailator.Thumbnails，
-			return createResizedByThumbnails(imgPath, thumbnilsSize);
+			return createResizedByThumbnails(imgPath, thumbnilsSize, outputExt, quality);
 		}
 	}
 
@@ -400,16 +402,16 @@ public class UImages {
 		String os = System.getProperty("os.name").toLowerCase();
 		if (os.startsWith("windows")) {
 			command_line = home.getAbsolutePath() + "\\magick.exe";
-			command_line1= home.getAbsolutePath() + "\\convert.exe";
+			command_line1 = home.getAbsolutePath() + "\\convert.exe";
 		} else {
 			command_line = home.getAbsolutePath() + "/magick";
-			command_line1= home.getAbsolutePath() + "/convert";
+			command_line1 = home.getAbsolutePath() + "/convert";
 		}
 
 		// 检查magick文件是否存在
 		File f2 = new File(command_line);
-		if(!f2.exists()) {
-			f2 = new File(command_line1); //convert legacy
+		if (!f2.exists()) {
+			f2 = new File(command_line1); // convert legacy
 		}
 		if (!f2.exists()) {
 			String err = "Not found [" + f2.getAbsolutePath() + "]";
@@ -433,15 +435,56 @@ public class UImages {
 
 	}
 
+	/**
+	 * Get the thumbnail path (e.g. /var/temp/pic_xxx.jpg$resized)
+	 * 
+	 * @param img the original image
+	 * @return the thumbnail path
+	 */
+	public static String getResizedPath(File img) {
+		String path = img.getAbsolutePath() + RESIZED_TAG;
+		return path;
+	}
+
+	/**
+	 * Get the thumbnail name (width + "x" + height + "." + outputExt)
+	 * 
+	 * @param size      the thumbnail size (800x600)
+	 * @param outputExt the ext(jpg, png, webp ...)
+	 * @return the thumbnail name
+	 */
 	public static String getResizedImageName(Dimension size, String outputExt) {
 		double width = size.getWidth();
 		double height = size.getHeight();
 		return getResizedImageName((int) width, (int) height, outputExt);
 	}
 
+	/**
+	 * Get the thumbnail name (width + "x" + height + "." + outputExt)
+	 * 
+	 * @param width     the thumbnail width
+	 * @param height    the thumbnail height
+	 * @param outputExt the ext(jpg, png, webp ...)
+	 * @return the thumbnail name
+	 */
 	public static String getResizedImageName(int width, int height, String outputExt) {
 		String name = width + "x" + height + "." + outputExt;
 		return name;
+	}
+
+	/**
+	 * Get the thumbnail full path
+	 * 
+	 * @param img       the original image
+	 * @param width     the thumbnail width
+	 * @param height    the thumbnail height
+	 * @param outputExt the ext(jpg, png, webp ...)
+	 * @return the thumbnail full path
+	 */
+	public static String getResizedImageName(File img, int width, int height, String outputExt) {
+		String resizedPath = getResizedPath(img);
+		String name = getResizedImageName(width, height, outputExt);
+		return resizedPath + File.pathSeparatorChar + name;
 	}
 
 	/**
@@ -469,7 +512,7 @@ public class UImages {
 
 		String command_line = getImageMagick();
 		// -strip 删除配置文件和注释
-		if(command_line.endsWith("convert") || command_line.endsWith("convert.exe")) {
+		if (command_line.endsWith("convert") || command_line.endsWith("convert.exe")) {
 			// legacy
 			command_line += " -auto-orient -strip -resize ";
 		} else {
@@ -479,7 +522,7 @@ public class UImages {
 		File img = new File(imgPath);
 
 		File[] names = new File[thumbnilsSize.length];
-		String path = img.getAbsolutePath() + "$resized";
+		String path = UImages.getResizedPath(img);
 		File pathResized = new File(path);
 		pathResized.mkdirs();
 
@@ -542,9 +585,10 @@ public class UImages {
 	public static File[] createResizedByThumbnails(String imgPath, Dimension[] thumbnilsSize, String outputExt,
 			int quality) {
 		File img = new File(imgPath);
-		String path = img.getAbsolutePath() + "$resized";
+		String path = UImages.getResizedPath(img);
 		File pathResized = new File(path);
 		pathResized.mkdirs();
+
 		File[] names = new File[thumbnilsSize.length];
 		double quality1 = quality / 100.0;
 		for (int i = 0; i < thumbnilsSize.length; i++) {
