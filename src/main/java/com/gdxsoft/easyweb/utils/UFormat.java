@@ -298,6 +298,7 @@ public class UFormat {
 		String sTime = null;
 		String sDt = null;
 
+		Date t = null;
 		// 日期型
 		if (cName.indexOf("TIME") < 0 && cName.indexOf("DATE") < 0) {
 			String str = oriValue.toString();
@@ -325,7 +326,7 @@ public class UFormat {
 			String dateFormat = "enus".equals(lang) ? DATE_FROMAT_ENUS
 					/* MM/dd/yyyy */ : DATE_FROMAT_ZHCN /* yyyy-MM-dd */;
 
-			Date t = (Date) oriValue;
+			t = (Date) oriValue;
 			sDate = Utils.getDateString(t, dateFormat);
 			sTime = Utils.getTimeString(t);
 			sDt = sDate + " " + sTime;
@@ -360,6 +361,79 @@ public class UFormat {
 		}
 		if (f.equals("shortdate")) {
 			return sDateShort;
+		}
+
+		// 中文日期格式
+		if (f.endsWith("_zh") || f.endsWith("_zh1") && t != null) {
+			Calendar cal = Calendar.getInstance();
+			cal.setTime(t);
+			int year = cal.get(Calendar.YEAR);
+			int month = cal.get(Calendar.MONTH) + 1;
+			int day = cal.get(Calendar.DATE);
+
+			int hour = cal.get(Calendar.HOUR_OF_DAY);
+			int minute = cal.get(Calendar.MINUTE);
+			int second = cal.get(Calendar.SECOND);
+
+			String zwrq = year + "年" + (month < 10 ? "0" : "") + month + "月" + (day < 10 ? "0" : "") + day + "日";
+
+			// 中文格式日期 2002年08月09日
+			if (f.equals("date_zh")) {
+				return zwrq;
+			}
+			String zwrq1 = year + "年" + month + "月" + day + "日";
+
+			// 中文格式日期1 2002年8月9日
+			if (f.equals("date_zh1")) {
+				return zwrq1;
+			}
+			// 中文格式日期2 二零零二年八月九日
+			if (f.equals("date_zh2")) {
+				String[] hz = { "零", "一", "二", "三", "四", "五", "六", "七", "八", "九" };
+				for (int i = 0; i < 10; i++) {
+					zwrq1 = zwrq1.replace(i + "", hz[i]);
+				}
+				return zwrq1;
+			}
+			String zwsj = (hour < 10 ? "0" : "") + hour + "点" + (minute < 10 ? "0" : "") + minute + "分";
+			// 中文格式日期时间 2002年08月09日 09点07分
+			if (f.equals("dateshorttime_zh")) {
+				return zwrq + " " + zwsj;
+			}
+			// 09点07分
+			if (f.equals("shorttime_zh")) {
+				return zwsj;
+			}
+
+			String zwsj1 = hour + "点" + minute + "分";
+			// 中文格式日期时间1 2002年8月9日 9点7分
+			if (f.equals("dateshorttime_zh1")) {
+				return zwrq1 + " " + zwsj1;
+			}
+			// 9点7分
+			if (f.equals("shorttime_zh1")) {
+				return zwsj1;
+			}
+			zwsj += (second < 10 ? "0" : "") + second + "秒";
+			// 中文格式日期时间 2002年08月09日 09点07分00秒
+			if (f.equals("datetime_zh")) {
+				return zwrq + " " + zwsj;
+			}
+			// 09点07分00秒
+			if (f.equals("time_zh")) {
+				return zwsj;
+			}
+
+			zwsj1 += second + "秒";
+			// 中文格式日期时间 2002年8月9日 9点7分0秒
+			if (f.equals("datetime_zh1")) {
+				return zwrq1 + " " + zwsj1;
+			}
+			// 9点7分0秒
+			if (f.equals("time_zh1")) {
+				return zwsj1;
+			}
+
 		}
 		return oriValue.toString();
 	}
