@@ -626,6 +626,7 @@ public class SmtpCfgs {
 			mailSession = Session.getInstance(props, null);
 		}
 
+		// props.setProperty("mail.mime.allowutf8", "true");		
 		return mailSession;
 	}
 }

@@ -326,7 +326,7 @@ public class SendMail {
 	 */
 	public SendMail addCc(Addr cc) {
 		String keytoEmail = cc.getEmail().toUpperCase().trim();
-		 ccs_.put(keytoEmail, cc);
+		ccs_.put(keytoEmail, cc);
 		if (is_mail_debug_) {
 			log.info(cc.toString());
 		}
@@ -584,6 +584,8 @@ public class SendMail {
 		if (is_mail_debug_) {
 			log.info(props.toString());
 		}
+		// props.setProperty("mail.mime.allowutf8", "true");
+
 		return this;
 	}
 
@@ -679,8 +681,18 @@ public class SendMail {
 	 * @throws MessagingException
 	 */
 	private MimeBodyPart getMailContent() throws MessagingException {
+		if (this.htmlContent_ != null) {
+			// 过滤script标签
+			String scriptRegex = "<script[^>]*?>[\\s\\S]*?<\\/script>";
+			// html注释
+			String remarkRegex = "<\\!--.*-->";
+			this.htmlContent_ = this.htmlContent_.replaceAll(scriptRegex, "").replaceAll(remarkRegex, "");
+		}
 		if (this.textContent_ == null && this.isAutoTextPart_ && this.htmlContent_ != null) {
-			this.textContent_ = Utils.filterHtml(this.htmlContent_);
+			// style
+			String styleRegex = "<style[^>]*?>[\\s\\S]*?<\\/style>";
+			String plantText = this.htmlContent_.replaceAll(styleRegex, "");
+			this.textContent_ = Utils.filterHtml(plantText).trim();
 		}
 		MimeBodyPart contentPart = new MimeBodyPart();
 
