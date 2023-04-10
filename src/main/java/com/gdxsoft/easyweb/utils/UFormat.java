@@ -1,5 +1,6 @@
 package com.gdxsoft.easyweb.utils;
 
+import java.math.BigDecimal;
 import java.text.NumberFormat;
 import java.util.Calendar;
 import java.util.Date;
@@ -21,6 +22,26 @@ public class UFormat {
 	public static String DATE_FROMAT_ZHCN = "yyyy-MM-dd";
 	public static String DATE_FROMAT_ENUS = DATE_FROMAT_US; // 默认美式表示法
 
+	/**
+	 * 计算数字除以比例后的数值
+	 * 
+	 * @param ori
+	 * @param numberScale 百/千/万/十万/百万/千万
+	 * @return
+	 */
+	public static Object calcNumberScale(Object ori, BigDecimal numberScale) {
+		if (ori == null || numberScale.longValue() == 1) {
+			return ori;
+		}
+		try {
+			BigDecimal v1 = new BigDecimal(ori.toString());
+			v1 = v1.divide(numberScale);
+			return v1.doubleValue();
+		} catch (Exception err) {
+			return ori;
+		}
+	}
+	
 	/**
 	 * 数字转汉字大写金额<br>
 	 * 参考: https://blog.csdn.net/weixin_42333548/article/details/124662824
