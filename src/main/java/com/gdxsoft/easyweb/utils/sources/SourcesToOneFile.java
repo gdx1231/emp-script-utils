@@ -19,8 +19,19 @@ public class SourcesToOneFile {
 	 * @param args
 	 */
 	public static void main(String[] args) {
+		String root = args[0];
+		String[] exts = args[1].split(",");
+		String outFilePath = args[2];
 
-		SourcesToOneFile t = new SourcesToOneFile(args[0], args[1].split(","), args[2]);
+		SourcesToOneFile t = new SourcesToOneFile(root, exts, outFilePath);
+		if (args.length == 5) {
+			int pageSize = Integer.parseInt(args[3]);
+			int pages = Integer.parseInt(args[4]);
+
+			t.setPages(pages); // 共多少页
+			t.setPageSize(pageSize); // 每页的行数
+
+		}
 		try {
 			t.start();
 		} catch (IOException e) {
@@ -33,6 +44,11 @@ public class SourcesToOneFile {
 	private String[] exts = {};
 	private FilenameFilter ff;
 	private String oneFilePath;
+	private int pages = -1;
+	private int pageSize = -1;
+
+	private int totalLines = 0;
+
 	private StringBuilder text = new StringBuilder();
 
 	public SourcesToOneFile(String root, String[] exts, String oneFilePath) {
@@ -51,6 +67,10 @@ public class SourcesToOneFile {
 	}
 
 	public void walkFiles(File parent) throws IOException {
+		int needlines = this.pages * this.pageSize;
+		if (needlines > 0 && this.totalLines > needlines) {
+			return;
+		}
 		File[] sources = parent.listFiles(ff);
 		if (sources != null) {
 			int prefixLength = fRoot.getAbsolutePath().length();
@@ -61,10 +81,17 @@ public class SourcesToOneFile {
 				}
 
 				String name = source.getAbsolutePath().substring(prefixLength);
-				text.append("文件：").append(name).append("\n");
+				text.append("\n文件：").append(name).append("\n");
+				this.totalLines++;
+				
 				String sourceContent = UFile.readFileText(source.getAbsolutePath());
+				sourceContent = removeBlankLines(sourceContent);
 				text.append(sourceContent);
-				System.out.println("写入文件：" + name);
+				System.out.println("写入文件：" + name+", "+this.totalLines);
+
+				if (needlines > 0 && this.totalLines > needlines) {
+					return;
+				}
 			}
 		}
 		File[] files = parent.listFiles();
@@ -75,6 +102,70 @@ public class SourcesToOneFile {
 			}
 		}
 
+	}
+
+	private String removeBlankLines(String sourceContent) {
+		StringBuilder sb1 = new StringBuilder();
+		sourceContent = sourceContent.replace("\r\n", "\n");
+		String[] lines = sourceContent.split("\n");
+		for (int i = 0; i < lines.length; i++) {
+			String line = lines[i];
+			if (line.trim().length() == 0) {
+				continue;
+			}
+			sb1.append(line).append("\n");
+			totalLines++;
+		}
+
+		return sb1.toString().trim();
+	}
+
+	public String getRoot() {
+		return root;
+	}
+
+	public void setRoot(String root) {
+		this.root = root;
+	}
+
+	public File getfRoot() {
+		return fRoot;
+	}
+
+	public void setfRoot(File fRoot) {
+		this.fRoot = fRoot;
+	}
+
+	public String[] getExts() {
+		return exts;
+	}
+
+	public void setExts(String[] exts) {
+		this.exts = exts;
+	}
+
+	public String getOneFilePath() {
+		return oneFilePath;
+	}
+
+	public void setOneFilePath(String oneFilePath) {
+		this.oneFilePath = oneFilePath;
+	}
+
+	public int getPages() {
+		return pages;
+	}
+
+	public void setPages(int pages) {
+		this.pages = pages;
+	}
+
+	public int getPageSize() {
+		return pageSize;
+	}
+
+	public void setPageSize(int pageSize) {
+		this.pageSize = pageSize;
 	}
 
 }
