@@ -1,6 +1,11 @@
 package com.gdxsoft.easyweb.utils;
 
 import java.io.UnsupportedEncodingException;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
+
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
 
 import org.bouncycastle.crypto.Digest;
 import org.bouncycastle.crypto.ExtendedDigest;
@@ -16,6 +21,40 @@ import org.bouncycastle.crypto.digests.*;
  *
  */
 public class UDigest {
+	/**
+	 * 用HmacSHA256对二进制数据消息Bytes计算摘要，返回摘要二进制
+	 * 
+	 * @param utf8String 数据消息
+	 * @param secret     加密密钥
+	 * @return
+	 * @throws Exception
+	 */
+	public static byte[] digestHmacSHA256Bytes(String utf8String, String secret) throws Exception {
+		return digest(utf8String, "HmacSHA256", secret);
+	}
+
+	/**
+	 * 用HmacSHA256对二进制数据消息Bytes计算摘要，返回摘要BAS64
+	 * 
+	 * @param utf8String 数据消息
+	 * @param secret     加密密钥
+	 * @return
+	 */
+	public static String digestHmacSHA256Base64(String utf8String, String secret) {
+		return digestBase64(utf8String, "HmacSHA256", secret);
+
+	}
+
+	/**
+	 * 用HmacSHA256对二进制数据消息Bytes计算摘要，返回摘要HEX
+	 * 
+	 * @param utf8String 数据消息
+	 * @param secret     加密密钥
+	 * @return
+	 */
+	public static String digestHmacSHA256Hex(String utf8String, String secret) {
+		return digestHex(utf8String, "HmacSHA256", secret);
+	}
 
 	/**
 	 * 摘要算法
@@ -90,7 +129,65 @@ public class UDigest {
 		} catch (UnsupportedEncodingException e) {
 			return null;
 		}
+	}
 
+	public static String digestBase64(byte[] data, String algorithm, String secret) {
+		byte[] result;
+		try {
+			result = digest(data, algorithm, secret);
+			return UConvert.ToBase64String(result);
+		} catch (InvalidKeyException | UnsupportedEncodingException | NoSuchAlgorithmException e) {
+			return e.getLocalizedMessage();
+		}
+
+	}
+
+	public static String digestBase64(String utf8String, String algorithm, String secret) {
+		byte[] result;
+		try {
+			result = digest(utf8String, algorithm, secret);
+			return UConvert.ToBase64String(result);
+		} catch (InvalidKeyException | UnsupportedEncodingException | NoSuchAlgorithmException e) {
+			return e.getLocalizedMessage();
+		}
+
+	}
+
+	public static String digestHex(byte[] data, String algorithm, String secret) {
+		byte[] result;
+		try {
+			result = digest(data, algorithm, secret);
+			return Utils.bytes2hex(result);
+		} catch (InvalidKeyException | UnsupportedEncodingException | NoSuchAlgorithmException e) {
+			return e.getLocalizedMessage();
+		}
+
+	}
+
+	public static String digestHex(String utf8String, String algorithm, String secret) {
+		byte[] result;
+		try {
+			result = digest(utf8String, algorithm, secret);
+			return Utils.bytes2hex(result);
+		} catch (InvalidKeyException | UnsupportedEncodingException | NoSuchAlgorithmException e) {
+			return e.getLocalizedMessage();
+		}
+
+	}
+
+	public static byte[] digest(byte[] data, String algorithm, String secret)
+			throws InvalidKeyException, UnsupportedEncodingException, NoSuchAlgorithmException {
+		Mac hmacSha256 = Mac.getInstance(algorithm);
+		byte[] keyBytes = secret.getBytes("UTF-8");
+		hmacSha256.init(new SecretKeySpec(keyBytes, 0, keyBytes.length, algorithm));
+		byte[] digestBytes = hmacSha256.doFinal(data);
+		return digestBytes;
+	}
+
+	public static byte[] digest(String utf8String, String algorithm, String secret)
+			throws InvalidKeyException, UnsupportedEncodingException, NoSuchAlgorithmException {
+		byte[] data = utf8String.getBytes("utf-8");
+		return digest(data, algorithm, secret);
 	}
 
 	/**
