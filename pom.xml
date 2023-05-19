@@ -181,13 +181,13 @@
 		<dependency>
 			<groupId>org.json</groupId>
 			<artifactId>json</artifactId>
-			<version>20220320</version>
+			<version>20230227</version>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/net.coobird/thumbnailator -->
 		<dependency>
 			<groupId>net.coobird</groupId>
 			<artifactId>thumbnailator</artifactId>
-			<version>0.4.17</version>
+			<version>0.4.19</version>
 		</dependency>
 		<dependency>
 			<groupId>org.slf4j</groupId>
