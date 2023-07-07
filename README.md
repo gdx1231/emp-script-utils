@@ -5,6 +5,6 @@
 <dependency>
   <groupId>com.gdxsoft.easyweb</groupId>
   <artifactId>emp-script-utils</artifactId>
-  <version>1.1.5</version>
+  <version>1.1.6</version>
 </dependency>
 ```
