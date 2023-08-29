@@ -230,7 +230,14 @@ public class UUrl {
 	}
 
 	private void initParameters(String query) {
-
+		 this.addParameters(query);
+	}
+	
+	/**
+	 * 添加多个参数，例如：lang=zhcn&amp;login=APP
+	 * @param query
+	 */
+	public void addParameters(String query) {
 		if (query == null || query.trim().length() == 0) {
 			return;
 		}
