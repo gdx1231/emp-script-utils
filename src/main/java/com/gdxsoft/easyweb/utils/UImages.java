@@ -488,6 +488,49 @@ public class UImages {
 	}
 
 	/**
+	 * Convert image format
+	 * 
+	 * @param imgPath   the original image
+	 * @param outputExt the new format (.avif, .jpg, .png, .bmp, .gif, .webp, .heic)
+	 * @param quality   the new format quality (1-100)
+	 * @return the new image path
+	 * @throws Exception
+	 */
+	public static String convertTo(String imgPath, String outputExt, int quality) throws Exception {
+		String[] exts = { ".avif", ".jpg", ".jpeg", ".jiff", ".png", ".bmp", ".gif", ".webp", ".heic" };
+		if (!UCheckerIn.endsWith(imgPath, exts, true)) {
+			LOGGER.error("Invalid image ext: {}", imgPath);
+			throw new Exception("Invalid image ext: " + imgPath);
+		}
+		if (!UCheckerIn.endsWith("." + outputExt, exts, true)) {
+			LOGGER.error("Invalid image output ext: {}", outputExt);
+			throw new Exception("Invalid image output ext: " + outputExt);
+		}
+
+		String command_line = getImageMagick();
+		StringBuilder cmd = new StringBuilder();
+		// -strip 删除配置文件和注释
+		if (command_line.endsWith("convert") || command_line.endsWith("convert.exe")) {
+			// legacy
+			cmd.append(" -auto-orient -strip");
+		} else {
+			cmd.append(" convert -auto-orient -strip");
+		}
+		if (quality > 0) {
+			cmd.append(" -quality " + quality + "%");
+		}
+		String outPath = UFile.changeFileExt(imgPath, outputExt);
+		cmd.append("\"").append(imgPath).append("\" \"").append(outPath).append("\"");
+
+		HashMap<String, String> rst = runImageMagick(cmd.toString());
+		if (rst.get("RST").equals("true")) {
+			return outPath;
+		} else {
+			throw new Exception(rst.get("ERR"));
+		}
+	}
+
+	/**
 	 * Create the image thumbnails (Using the ImageMagick)
 	 * 
 	 * @param imgPath       the image path and name
@@ -511,14 +554,20 @@ public class UImages {
 		}
 
 		String command_line = getImageMagick();
+		StringBuilder cmd = new StringBuilder();
 		// -strip 删除配置文件和注释
 		if (command_line.endsWith("convert") || command_line.endsWith("convert.exe")) {
 			// legacy
-			command_line += " -auto-orient -strip -resize ";
+			cmd.append(" -auto-orient -strip");
 		} else {
 			// magick convert -resize "100x100" -strip DSC_0963.JPG aa1.jpg
-			command_line += " convert -auto-orient -strip -resize ";
+			cmd.append(" convert -auto-orient -strip");
 		}
+		if (quality > 0) {
+			cmd.append(" -quality " + quality + "%");
+		}
+		cmd.append(" -resize ");
+
 		File img = new File(imgPath);
 
 		File[] names = new File[thumbnilsSize.length];
