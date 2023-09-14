@@ -488,7 +488,7 @@ public class UImages {
 	}
 
 	/**
-	 * Convert image format
+	 * Convert image format, same path
 	 * 
 	 * @param imgPath   the original image
 	 * @param outputExt the new format (.avif, .jpg, .png, .bmp, .gif, .webp, .heic)
@@ -496,15 +496,31 @@ public class UImages {
 	 * @return the new image path
 	 * @throws Exception
 	 */
-	public static String convertTo(String imgPath, String outputExt, int quality) throws Exception {
+	public static String convertSamePath(String imgPath, String outputExt, int quality) throws Exception {
+		String outPath = UFile.changeFileExt(imgPath, outputExt);
+
+		return convert(imgPath, outPath, quality);
+	}
+
+	/**
+	 * Convert image format
+	 * 
+	 * @param imgPath    the original image
+	 * @param newImgPath the new image
+	 * @param quality    the new format quality (1-100)
+	 * @return the new image path
+	 * @throws Exception
+	 */
+	public static String convert(String imgPath, String newImgPath, int quality) throws Exception {
 		String[] exts = { ".avif", ".jpg", ".jpeg", ".jiff", ".png", ".bmp", ".gif", ".webp", ".heic" };
 		if (!UCheckerIn.endsWith(imgPath, exts, true)) {
 			LOGGER.error("Invalid image ext: {}", imgPath);
 			throw new Exception("Invalid image ext: " + imgPath);
 		}
-		if (!UCheckerIn.endsWith("." + outputExt, exts, true)) {
-			LOGGER.error("Invalid image output ext: {}", outputExt);
-			throw new Exception("Invalid image output ext: " + outputExt);
+		String newExt = UFile.getFileExt(newImgPath);
+		if (!UCheckerIn.endsWith("." + newExt, exts, true)) {
+			LOGGER.error("Invalid image output ext: {}", newExt);
+			throw new Exception("Invalid image output ext: " + newExt);
 		}
 
 		String command_line = getImageMagick();
@@ -517,14 +533,13 @@ public class UImages {
 			cmd.append(" convert -auto-orient -strip");
 		}
 		if (quality > 0) {
-			cmd.append(" -quality " + quality + "%");
+			cmd.append(" -quality " + quality + "% ");
 		}
-		String outPath = UFile.changeFileExt(imgPath, outputExt);
-		cmd.append("\"").append(imgPath).append("\" \"").append(outPath).append("\"");
+		cmd.append("\"").append(imgPath).append("\" \"").append(newImgPath).append("\"");
 
 		HashMap<String, String> rst = runImageMagick(cmd.toString());
 		if (rst.get("RST").equals("true")) {
-			return outPath;
+			return newImgPath;
 		} else {
 			throw new Exception(rst.get("ERR"));
 		}
