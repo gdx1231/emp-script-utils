@@ -46,6 +46,7 @@ import org.apache.http.client.methods.HttpRequestBase;
 import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
 import org.apache.http.conn.ssl.TrustStrategy;
 import org.apache.http.cookie.Cookie;
+import org.apache.http.entity.ByteArrayEntity;
 import org.apache.http.entity.ContentType;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.entity.mime.MultipartEntityBuilder;
@@ -72,7 +73,8 @@ import com.gdxsoft.easyweb.utils.msnet.MStr;
  *
  */
 public class UNet {
-	private final static RequestConfig IGNORE_COOKIES = RequestConfig.custom().setCookieSpec(CookieSpecs.IGNORE_COOKIES).build();
+	private final static RequestConfig IGNORE_COOKIES = RequestConfig.custom().setCookieSpec(CookieSpecs.IGNORE_COOKIES)
+			.build();
 	private final static RequestConfig STANDARD = RequestConfig.custom().setCookieSpec(CookieSpecs.STANDARD).build();
 	private static Logger LOGGER = LoggerFactory.getLogger(UNet.class);
 	public static String AGENT_4 = "Mozilla/4.0 (compatible; MSIE 8.0; Windows NT 5.2; Trident/4.0;)";
@@ -404,7 +406,7 @@ public class UNet {
 		if (ignoreInvalidCookieWarn) {
 			request.setConfig(IGNORE_COOKIES);
 		}
-		
+
 		this.addRequestHeaders(request);
 
 		// 设置请求和传输超时时间
@@ -493,7 +495,7 @@ public class UNet {
 		if (ignoreInvalidCookieWarn) {
 			httpDelete.setConfig(IGNORE_COOKIES);
 		}
-		
+
 		this.addRequestHeaders(httpDelete);
 
 		result = this.handleResponse(httpclient, httpDelete);
@@ -517,7 +519,7 @@ public class UNet {
 		CloseableHttpClient httpclient = this.getHttpClient(url);
 
 		HttpDeleteWithBody httpDelete = new HttpDeleteWithBody(url);
-		
+
 		if (ignoreInvalidCookieWarn) {
 			httpDelete.setConfig(IGNORE_COOKIES);
 		}
@@ -548,7 +550,7 @@ public class UNet {
 		if (ignoreInvalidCookieWarn) {
 			httpDelete.setConfig(IGNORE_COOKIES);
 		}
-		
+
 		this.addRequestHeaders(httpDelete);
 
 		try {
@@ -604,7 +606,7 @@ public class UNet {
 		if (ignoreInvalidCookieWarn) {
 			httppost.setConfig(IGNORE_COOKIES);
 		}
-		
+
 		this.addRequestHeaders(httppost);
 
 		try {
@@ -621,7 +623,7 @@ public class UNet {
 	/**
 	 * 提交body 消息
 	 * 
-	 * @param u    提交地址
+	 * @param url  提交地址
 	 * @param body 提交内容
 	 * @return 执行结果
 	 */
@@ -638,6 +640,31 @@ public class UNet {
 		this.addRequestHeaders(httpost);
 
 		StringEntity postEntity = this.createStringEntity(body);
+		httpost.setEntity(postEntity);
+
+		return this.handleResponse(httpclient, httpost);
+	}
+
+	/**
+	 * 提交body 消息
+	 * 
+	 * @param url      提交地址
+	 * @param bodyBuff 提交二进制内容
+	 * @return 执行结果
+	 */
+	public String doPost(String url, byte[] bodyBuff) {
+		if (this._IsShowLog) {
+			LOGGER.info("POST: " + url);
+		}
+		CloseableHttpClient httpclient = this.getHttpClient(url);
+
+		HttpPost httpost = new HttpPost(url);
+		if (ignoreInvalidCookieWarn) {
+			httpost.setConfig(IGNORE_COOKIES);
+		}
+		this.addRequestHeaders(httpost);
+
+		ByteArrayEntity postEntity = new ByteArrayEntity(bodyBuff);
 		httpost.setEntity(postEntity);
 
 		return this.handleResponse(httpclient, httpost);
@@ -849,8 +876,8 @@ public class UNet {
 					.setDefaultRequestConfig(requestConfig).setDefaultCookieStore(_CookieStore).build();
 		} else {
 			// 创建默认的httpClient实例.
-			httpclient = HttpClientBuilder.create().setDefaultRequestConfig(STANDARD).setDefaultCookieStore(_CookieStore)
-					.build();
+			httpclient = HttpClientBuilder.create().setDefaultRequestConfig(STANDARD)
+					.setDefaultCookieStore(_CookieStore).build();
 		}
 
 		this._LastUrl = url;
@@ -1675,6 +1702,7 @@ public class UNet {
 
 	/**
 	 * Ignore invalid cookie warning (CookieSpecs.IGNORE_COOKIES)
+	 * 
 	 * @param ignoreInvalidCookieWarn
 	 */
 	public void setIgnoreInvalidCookieWarn(boolean ignoreInvalidCookieWarn) {
