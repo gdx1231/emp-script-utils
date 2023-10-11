@@ -600,6 +600,7 @@ public class UImages {
 
 			StringBuilder sb = new StringBuilder();
 			sb.append(command_line);
+			sb.append(cmd);
 			sb.append(" \"");
 			sb.append(w);
 			sb.append("x");
