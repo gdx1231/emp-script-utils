@@ -41,7 +41,7 @@ public class UFormat {
 			return ori;
 		}
 	}
-	
+
 	/**
 	 * 数字转汉字大写金额<br>
 	 * 参考: https://blog.csdn.net/weixin_42333548/article/details/124662824
@@ -129,8 +129,52 @@ public class UFormat {
 			} catch (Exception err) {
 				return oriValue.toString();
 			}
+		} else if ("bin2base64".equalsIgnoreCase(f)) {
+			return bin2Base64(oriValue);
+		} else if ("bin2hex".equalsIgnoreCase(f)) {
+			return bin2Hex(oriValue);
 		}
 		return objectToString(oriValue);
+	}
+
+	/**
+	 * 二进制转 Base64
+	 * @param oriValue
+	 * @return
+	 * @throws Exception
+	 */
+	public static String bin2Base64(Object oriValue) throws Exception {
+		if (oriValue == null)
+			return null;
+
+		if (oriValue.getClass().isArray() && oriValue.getClass().getComponentType().isPrimitive()) {
+			String ct = oriValue.getClass().getComponentType().getSimpleName();
+			if (ct.equals("byte")) {
+				byte[] arr = (byte[]) oriValue;
+				return UConvert.ToBase64String(arr);
+			}
+		}
+		return "NOT BIN";
+	}
+
+	/**
+	 * 二进制转 Hex
+	 * @param oriValue
+	 * @return
+	 * @throws Exception
+	 */
+	public static String bin2Hex(Object oriValue) throws Exception {
+		if (oriValue == null)
+			return null;
+
+		if (oriValue.getClass().isArray() && oriValue.getClass().getComponentType().isPrimitive()) {
+			String ct = oriValue.getClass().getComponentType().getSimpleName();
+			if (ct.equals("byte")) {
+				byte[] arr = (byte[]) oriValue;
+				return Utils.bytes2hex(arr);
+			}
+		}
+		return "NOT BIN";
 	}
 
 	/**
