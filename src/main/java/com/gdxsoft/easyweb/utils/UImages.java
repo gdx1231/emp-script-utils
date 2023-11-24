@@ -24,8 +24,10 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 
 import javax.imageio.IIOImage;
 import javax.imageio.ImageIO;
@@ -39,6 +41,8 @@ import org.apache.commons.exec.DefaultExecutor;
 import org.apache.commons.exec.ExecuteException;
 import org.apache.commons.exec.ExecuteWatchdog;
 import org.apache.commons.exec.PumpStreamHandler;
+import org.apache.commons.lang3.StringUtils;
+
 import net.coobird.thumbnailator.Thumbnails;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -50,6 +54,8 @@ import com.gdxsoft.easyweb.conf.ConfImageMagick;
  *
  */
 public class UImages {
+	public static int LIMIT_WIDTH = 8000;
+	public static int LIMIT_HEIGHT = 8000;
 	/**
 	 * Default image quality
 	 */
@@ -57,6 +63,61 @@ public class UImages {
 	private static Logger LOGGER = LoggerFactory.getLogger(UImages.class);
 
 	public final static String RESIZED_TAG = "$resized";
+
+	/**
+	 * 分解尺寸表达式
+	 * 
+	 * @param sizesExp 800x600,1024x768,1000x800 ...
+	 * @return
+	 */
+	public static Dimension[] parseSizes(String sizesExp) {
+		String[] sizes = sizesExp.split("\\,");
+		List<Dimension> ds = new ArrayList<Dimension>();
+		for (int i = 0; i < sizes.length; i++) {
+			String s = sizes[i];
+			Dimension d = parseSize(s);
+			ds.add(d);
+		}
+
+		Dimension[] dd = new Dimension[ds.size()];
+		dd = ds.toArray(dd);
+
+		return dd;
+	}
+
+	/**
+	 * Parse the size string to the dimension, filter invalid char
+	 * 
+	 * @param resize 800x600
+	 * @return null or dimension
+	 */
+	public static Dimension parseSize(String resize) {
+		if (StringUtils.isBlank(resize)) {
+			return null;
+		}
+
+		String[] s1 = resize.toLowerCase().split("x");
+		if (s1.length != 2) {
+			return null;
+		}
+		int w = 0;
+		int h = 0;
+		try {
+			w = Integer.parseInt(s1[0]);
+			h = Integer.parseInt(s1[1]);
+
+			if (w > LIMIT_WIDTH || h > LIMIT_HEIGHT) {
+				LOGGER.warn("Skip, size too big: {} ", resize);
+				return null;
+			}
+			Dimension d = new Dimension(w, h);
+
+			return d;
+		} catch (Exception e) {
+			LOGGER.warn("Skip, size parse error: {},{}", resize, e.getMessage());
+			return null;
+		}
+	}
 
 	/**
 	 * Add a logo in the middle of a image
@@ -484,7 +545,7 @@ public class UImages {
 	public static String getResizedImageName(File img, int width, int height, String outputExt) {
 		String resizedPath = getResizedPath(img);
 		String name = getResizedImageName(width, height, outputExt);
-		return resizedPath + File.pathSeparatorChar + name;
+		return resizedPath + File.separator + name;
 	}
 
 	/**
