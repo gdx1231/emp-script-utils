@@ -508,7 +508,8 @@ public class UXml {
 	 */
 	public static String asXmlPretty(Node node) {
 		TransformerFactory tf = TransformerFactory.newInstance();
-		tf.setAttribute("indent-number", new Integer(2));
+		Integer i2 = 2;
+		tf.setAttribute("indent-number", i2);
 
 		// (2)
 		Transformer t;
