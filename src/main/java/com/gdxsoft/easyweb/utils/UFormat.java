@@ -102,8 +102,13 @@ public class UFormat {
 
 		String f = toFormat.trim().toLowerCase();
 		// 日期型
-		if (f.indexOf("date") >= 0 || f.indexOf("time") >= 0) {
-			return formatDate(toFormat, oriValue, lang);
+		if (f.indexOf("date") >= 0 || f.indexOf("time") >= 0 || f.equalsIgnoreCase("MM_DD_YYYY")
+				|| f.equalsIgnoreCase("DD_MM_YYYY")) {
+			try {
+				return formatDate(toFormat, oriValue, lang);
+			} catch (Exception err) {
+				return oriValue.toString();
+			}
 		} else if (f.equals("age")) { // 年龄 当前年-出生年
 			return formatAge(oriValue);
 		} else if (f.equals("int")) {
@@ -139,6 +144,7 @@ public class UFormat {
 
 	/**
 	 * 二进制转 Base64
+	 * 
 	 * @param oriValue
 	 * @return
 	 * @throws Exception
@@ -159,6 +165,7 @@ public class UFormat {
 
 	/**
 	 * 二进制转 Hex
+	 * 
 	 * @param oriValue
 	 * @return
 	 * @throws Exception
@@ -428,17 +435,31 @@ public class UFormat {
 			return sDateShort;
 		}
 
+		if (t == null) {
+			if (sTime.trim().length() == 0) {
+				t = Utils.getDate(sDate);
+			} else {
+				t = Utils.getDate(sDt);
+			}
+		}
+		Calendar cal = Calendar.getInstance();
+		cal.setTime(t);
+		int year = cal.get(Calendar.YEAR);
+		int month = cal.get(Calendar.MONTH) + 1;
+		int day = cal.get(Calendar.DATE);
+
+		int hour = cal.get(Calendar.HOUR_OF_DAY);
+		int minute = cal.get(Calendar.MINUTE);
+		int second = cal.get(Calendar.SECOND);
+
+		if (f.equalsIgnoreCase("DD_MM_YYYY")) { // 强制英国
+			return (day < 10 ? "0" : "") + day + "/" + (month < 10 ? "0" : "") + month + "/" + year;
+		}
+		if (f.equalsIgnoreCase("MM_DD_YYYY")) { // 强制美国
+			return (month < 10 ? "0" : "") + month + "/" + (day < 10 ? "0" : "") + day + "/" + year;
+		}
 		// 中文日期格式
 		if (f.endsWith("_zh") || f.endsWith("_zh1") && t != null) {
-			Calendar cal = Calendar.getInstance();
-			cal.setTime(t);
-			int year = cal.get(Calendar.YEAR);
-			int month = cal.get(Calendar.MONTH) + 1;
-			int day = cal.get(Calendar.DATE);
-
-			int hour = cal.get(Calendar.HOUR_OF_DAY);
-			int minute = cal.get(Calendar.MINUTE);
-			int second = cal.get(Calendar.SECOND);
 
 			String zwrq = year + "年" + (month < 10 ? "0" : "") + month + "月" + (day < 10 ? "0" : "") + day + "日";
 
