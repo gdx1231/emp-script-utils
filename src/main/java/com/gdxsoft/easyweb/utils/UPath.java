@@ -419,7 +419,11 @@ public class UPath {
 		if (CONF_URL == null) {
 			return true;
 		}
-
+		if ("jar".equalsIgnoreCase(CONF_URL.getProtocol())) {
+			LOG.info("The ewa_conf NOT changed. {}", CONF_URL.getProtocol());
+			// 包内文件不会改变
+			return false;
+		}
 		File f = new File(CONF_URL.getPath());
 		if (!f.exists()) {
 			return true;
@@ -445,8 +449,14 @@ public class UPath {
 	 * 初始化配置路径
 	 */
 	public static void initPath() {
+
 		long diff = System.currentTimeMillis() - LAST_CHK;
 		if (diff < CHK_DURATION) {// 60秒内不重新检查
+			return;
+		}
+		if (CONF_URL != null && "jar".equalsIgnoreCase(CONF_URL.getProtocol())) {
+			// 包内文件不会改变
+			LAST_CHK = System.currentTimeMillis();
 			return;
 		}
 		if (isConfFileChanged()) {
