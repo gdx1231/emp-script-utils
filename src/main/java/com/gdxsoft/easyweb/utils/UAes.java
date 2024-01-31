@@ -476,6 +476,7 @@ public class UAes implements IUSymmetricEncyrpt {
 	 * @param ivBytes
 	 * @return cipher
 	 */
+	@SuppressWarnings("deprecation")
 	private OpCipher getCipherBc(boolean isEncyrpt, byte[] keyBytes, byte[] ivBytes) {
 		AESEngine engine = new AESEngine();
 
