@@ -24,6 +24,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -749,6 +750,18 @@ public class UImages {
 		// java上传图片，压缩、更改尺寸等导致变色（表层蒙上一层红色）
 		// https://blog.csdn.net/qq_25446311/article/details/79140008
 		Image image = Toolkit.getDefaultToolkit().getImage(img.getAbsolutePath());
+		BufferedImage bufferedImage = toBufferedImage(image);
+		return bufferedImage;
+	}
+	/**
+	 * Get a BufferedImage from the image URL
+	 * 
+	 * @param imgUrl the image URL
+	 * @return BufferedImage the BufferedImage
+	 * @throws IOException
+	 */
+	public static BufferedImage getBufferedImage(URL imgUrl) throws IOException {
+		Image image = Toolkit.getDefaultToolkit().getImage(imgUrl);
 		BufferedImage bufferedImage = toBufferedImage(image);
 		return bufferedImage;
 	}
