@@ -596,13 +596,15 @@ public class SmtpCfgs {
 
 		Properties props = new Properties();
 		props.setProperty("mail.transport.protocol", "smtp");
-		props.setProperty("mail.host", host);
+		// props.setProperty("mail.host", host);
+		props.setProperty("mail.smtp.host", host);
 		props.setProperty("mail.smtp.port", port + ""); // smtps 端口
 
 		if (ssl) {
 			// 信任服务器的证书
 			props.put("mail.smtp.ssl.trust", host);
 			props.put("mail.smtp.ssl.enable", true);
+			
 		} else if (startTls) {
 			// If true, requires the use of the STARTTLS command. If the server doesn't
 			// support the STARTTLS command, or the command fails, the connect method will
