@@ -147,6 +147,9 @@ public class ULogic {
 	 * @param rst
 	 */
 	private static void addToCahche(String md5, boolean rst) {
+		if (CACHE.size() > 10000) {
+			CACHE.clear();
+		}
 		CACHE.put(md5, rst);
 	}
 }
