@@ -112,7 +112,8 @@
 						</goals>
 						<configuration>
 							<sourceFile>target/${project.build.finalName}.jar</sourceFile>
-							<destinationFile>target/${project.artifactId}-last.jar</destinationFile>
+							<destinationFile>
+								target/${project.artifactId}-last.jar</destinationFile>
 						</configuration>
 					</execution>
 				</executions>
@@ -165,6 +166,14 @@
 			<artifactId>json</artifactId>
 			<version>20231013</version>
 		</dependency>
+
+		<!-- https://mvnrepository.com/artifact/com.google.zxing/core -->
+		<dependency>
+			<groupId>com.google.zxing</groupId>
+			<artifactId>core</artifactId>
+			<version>3.5.3</version>
+		</dependency>
+
 
 		<!-- https://mvnrepository.com/artifact/net.coobird/thumbnailator -->
 		<dependency>
