@@ -144,8 +144,9 @@ public class UHtml {
 	 * @throws IOException
 	 */
 	/*
-	 * public static String getHttpBody(jakarta.servlet.http.HttpServletRequest request) throws IOException {
-	 * InputStream is = request.getInputStream(); String str = getHttpBody(is); return str; }
+	 * public static String getHttpBody(jakarta.servlet.http.HttpServletRequest
+	 * request) throws IOException { InputStream is = request.getInputStream();
+	 * String str = getHttpBody(is); return str; }
 	 */
 
 	/**
@@ -214,13 +215,16 @@ public class UHtml {
 	 * @return the base url
 	 */
 	/*
-	 * public static String getHttpBase(jakarta.servlet.http.HttpServletRequest request) { String port = ":" +
-	 * request.getServerPort(); String scheme = request.getHeader("x-forwarded-protocol"); if (scheme == null) { scheme
-	 * = request.getScheme(); } if (request.getServerPort() == 80 || request.getServerPort() == 443) { port = ""; }
+	 * public static String getHttpBase(jakarta.servlet.http.HttpServletRequest
+	 * request) { String port = ":" + request.getServerPort(); String scheme =
+	 * request.getHeader("x-forwarded-protocol"); if (scheme == null) { scheme =
+	 * request.getScheme(); } if (request.getServerPort() == 80 ||
+	 * request.getServerPort() == 443) { port = ""; }
 	 * 
-	 * String ctx = request.getContextPath(); int inc = 0; while (ctx.startsWith("//")) { ctx = ctx.replace("//", "/");
-	 * inc++; if (inc > 500) { break; } } String __base = "//" + request.getServerName() + port + "" + ctx; return
-	 * __base; }
+	 * String ctx = request.getContextPath(); int inc = 0; while
+	 * (ctx.startsWith("//")) { ctx = ctx.replace("//", "/"); inc++; if (inc > 500)
+	 * { break; } } String __base = "//" + request.getServerName() + port + "" +
+	 * ctx; return __base; }
 	 */
 
 	/*
@@ -233,8 +237,9 @@ public class UHtml {
 	 * @return the base url
 	 */
 	/*
-	 * public static String getHttpBase(jakarta.servlet.http.HttpServletRequest request, String baseAdd) { String __base
-	 * = getHttpBase(request); if (baseAdd != null) { __base = __base + "/" + baseAdd; } return __base; }
+	 * public static String getHttpBase(jakarta.servlet.http.HttpServletRequest
+	 * request, String baseAdd) { String __base = getHttpBase(request); if (baseAdd
+	 * != null) { __base = __base + "/" + baseAdd; } return __base; }
 	 */
 
 	public static String htmlETag() {
@@ -310,6 +315,18 @@ public class UHtml {
 	}
 
 	/**
+	 * Remove html's comments
+	 * 
+	 * @param html
+	 * @return
+	 */
+	public static String removeHtmlCommtents(String html) {
+		// html注释
+		String remarkRegex = "<\\!--.*-->";
+		return html.replaceAll(remarkRegex, "");
+	}
+
+	/**
 	 * Remote the html tag
 	 * 
 	 * @param html    the html string
@@ -377,7 +394,8 @@ public class UHtml {
 	 * @param iCurPage      the current page
 	 * @param iPageSize     the page size
 	 * @param iTotalRecords the total records
-	 * @param pageUrlRoot   the page url (../bbs/xxx/yy/{EXP}.html) the {EXP} is the page number replacement
+	 * @param pageUrlRoot   the page url (../bbs/xxx/yy/{EXP}.html) the {EXP} is the
+	 *                      page number replacement
 	 * @return the pagination html
 	 */
 	public static String createListSplit(int iCurPage, int iPageSize, int iTotalRecords, String pageUrlRoot) {
@@ -442,7 +460,8 @@ public class UHtml {
 	 * @param iCurPage      the current page
 	 * @param iPageSize     the page size
 	 * @param iTotalRecords the total records
-	 * @param pageUrlRoot   the page url (../bbs/xxx/yy/{EXP}.html) the {EXP} is the page number replacement
+	 * @param pageUrlRoot   the page url (../bbs/xxx/yy/{EXP}.html) the {EXP} is the
+	 *                      page number replacement
 	 * @return the pagination html(table)
 	 */
 	public static String createListSplitTable(int iCurPage, int iPageSize, int iTotalRecords, String pageUrlRoot) {

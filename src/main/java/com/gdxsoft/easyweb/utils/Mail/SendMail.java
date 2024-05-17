@@ -694,6 +694,7 @@ public class SendMail {
 			String plantText = this.htmlContent_.replaceAll(styleRegex, "");
 			this.textContent_ = Utils.filterHtml(plantText).trim();
 		}
+		
 		MimeBodyPart contentPart = new MimeBodyPart();
 
 		// 混合了正文和 html 降低邮件垃圾评分
@@ -772,6 +773,9 @@ public class SendMail {
 		}
 
 		// 回复人
+		// 当自动生成回复信息的地址列表时，应当注意：如果没有”Sender”，将会使用”From” .
+		// 接收者在回复信息时，邮件sender中的信息不会被自动使用。如果”Reply-To”
+		// 字段存在，将使用该字段信息，而不是”From”字段。如果有”From” 而没有”Reply-To” ，将使用”From”。
 		if (this.replayTos_.size() > 0) {
 			InternetAddress[] replayTos = this.getAddresses(this.replayTos_);
 			mm.setReplyTo(replayTos);
