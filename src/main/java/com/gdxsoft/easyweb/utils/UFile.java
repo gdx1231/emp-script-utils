@@ -14,9 +14,12 @@ import java.io.OutputStream;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.attribute.FileTime;
 import java.security.MessageDigest;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.Enumeration;
 import java.util.List;
 import java.util.zip.GZIPInputStream;
@@ -31,6 +34,56 @@ import org.apache.commons.io.IOUtils;
 import com.gdxsoft.easyweb.utils.msnet.MStr;
 
 public class UFile {
+
+	/**
+	 * Change the file creation time
+	 * 
+	 * @param filePath        the file
+	 * @param creationDate
+	 * @throws IOException
+	 */
+	public static void changeCreationTime(String filePath, Date creationTime) throws IOException {
+		changeCreationAndModifiedTime(filePath, creationTime, null);
+	}
+
+	/**
+	 * Change the file modification time
+	 * 
+	 * @param filePath        the file
+	 * @param modifiedDate
+	 * @throws IOException
+	 */
+	public static void changeModificationTime(String filePath, Date modificationTime) throws IOException {
+		changeCreationAndModifiedTime(filePath, null, modificationTime);
+	}
+
+	/**
+	 * Change the file creation and modification time
+	 * 
+	 * @param filePath         the file
+	 * @param creationTime
+	 * @param modificationTime
+	 * @throws IOException
+	 */
+	public static void changeCreationAndModifiedTime(String filePath, Date creationTime, Date modificationTime)
+			throws IOException {
+		if (filePath == null || filePath.length() == 0) {
+			return;
+		}
+
+		File f1 = new File(filePath);
+		if (!f1.exists()) {
+			return;
+		}
+		Path pathSql = Path.of(filePath);
+		if (creationTime != null) {
+			Files.setAttribute(pathSql, "basic:creationTime", FileTime.fromMillis(creationTime.getTime()));
+		}
+		if (modificationTime != null) {
+			Files.setLastModifiedTime(pathSql, FileTime.fromMillis(modificationTime.getTime()));
+		}
+	}
+
 	/**
 	 * Get the extension from the bytes of the file
 	 * 
@@ -152,7 +205,8 @@ public class UFile {
 	}
 
 	/**
-	 * Get the files in the parent directory according to the filter, excluding sub directories
+	 * Get the files in the parent directory according to the filter, excluding sub
+	 * directories
 	 * 
 	 * @param rootPath the parent directory
 	 * @param filter   filter
@@ -662,7 +716,8 @@ public class UFile {
 	}
 
 	/**
-	 * Create a binary file based on the MD5 of the binary content, and the saved file name is MD5 + extension
+	 * Create a binary file based on the MD5 of the binary content, and the saved
+	 * file name is MD5 + extension
 	 * 
 	 * @param bytes       The binary content
 	 * @param ext         The saved file extension
@@ -678,7 +733,8 @@ public class UFile {
 	}
 
 	/**
-	 * Create a binary file based on the MD5 of the binary content, and the saved file name is MD5 + extension
+	 * Create a binary file based on the MD5 of the binary content, and the saved
+	 * file name is MD5 + extension
 	 * 
 	 * @param bytes       The binary content
 	 * @param md5         The md5
@@ -756,7 +812,8 @@ public class UFile {
 	 * Get the digest of the file
 	 * 
 	 * @param file       the file
-	 * @param digestName the digest name (MD2, MD5, SHA-1, SHA-224, SHA-256, SHA-384, SHA-512)
+	 * @param digestName the digest name (MD2, MD5, SHA-1, SHA-224, SHA-256,
+	 *                   SHA-384, SHA-512)
 	 * @return the digest (hex)
 	 */
 	public static String digestFile(File file, String digestName) {
