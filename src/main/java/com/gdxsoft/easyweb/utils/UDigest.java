@@ -13,6 +13,7 @@ import org.bouncycastle.crypto.digests.*;
 
 /**
  * 摘要算法的通用类 摘要算法<br>
+ * HMAC: HmacSHA256, HmacSHA1, HmacMD5
  * md5, sha1, sha224, sha256, sha384, sha512, sha3, sm3<br>
  * RIPEMD320, RIPEMD256, RIPEMD160, RIPEMD128<br>
  * GOST3411, GOST3411_2012_256, GOST3411_2012_512, Tiger
@@ -21,6 +22,7 @@ import org.bouncycastle.crypto.digests.*;
  *
  */
 public class UDigest {
+
 	/**
 	 * 用HmacSHA256对二进制数据消息Bytes计算摘要，返回摘要二进制
 	 * 
@@ -131,6 +133,17 @@ public class UDigest {
 		}
 	}
 
+	/**
+	 * Hmac算法：Hash-Based Message Authentication Codes
+	 * 它通过一个标准算法，在计算哈希的过程中，把key混入计算过程中。
+	 * 和我们自定义的加salt算法不同，Hmac算法针对所有哈希算法都通用，无论是MD5还是SHA-1。
+	 * 采用Hmac替代我们自己的salt算法，可以使程序算法更标准化，也更安全。
+	 * 
+	 * @param data      原始数据
+	 * @param algorithm 算法 Hmac256, HmacSha1, HmacMd5
+	 * @param secret    加密
+	 * @return 摘要的二进制字符串（Base64）
+	 */
 	public static String digestBase64(byte[] data, String algorithm, String secret) {
 		byte[] result;
 		try {
@@ -142,6 +155,17 @@ public class UDigest {
 
 	}
 
+	/**
+	 * Hmac算法：Hash-Based Message Authentication Codes
+	 * 它通过一个标准算法，在计算哈希的过程中，把key混入计算过程中。
+	 * 和我们自定义的加salt算法不同，Hmac算法针对所有哈希算法都通用，无论是MD5还是SHA-1。
+	 * 采用Hmac替代我们自己的salt算法，可以使程序算法更标准化，也更安全。
+	 * 
+	 * @param utf8String 原始数据字符串
+	 * @param algorithm  算法 Hmac256, HmacSha1, HmacMd5
+	 * @param secret     加密
+	 * @return 摘要的二进制字符串（Base64）
+	 */
 	public static String digestBase64(String utf8String, String algorithm, String secret) {
 		byte[] result;
 		try {
@@ -153,6 +177,17 @@ public class UDigest {
 
 	}
 
+	/**
+	 * Hmac算法：Hash-Based Message Authentication Codes
+	 * 它通过一个标准算法，在计算哈希的过程中，把key混入计算过程中。
+	 * 和我们自定义的加salt算法不同，Hmac算法针对所有哈希算法都通用，无论是MD5还是SHA-1。
+	 * 采用Hmac替代我们自己的salt算法，可以使程序算法更标准化，也更安全。
+	 * 
+	 * @param data      原始数据
+	 * @param algorithm 算法 Hmac256, HmacSha1, HmacMd5
+	 * @param secret    加密
+	 * @return 摘要的二进制字符串（HEX）
+	 */
 	public static String digestHex(byte[] data, String algorithm, String secret) {
 		byte[] result;
 		try {
@@ -164,6 +199,20 @@ public class UDigest {
 
 	}
 
+	/**
+	 * Hmac算法：Hash-Based Message Authentication Codes
+	 * 它通过一个标准算法，在计算哈希的过程中，把key混入计算过程中。
+	 * 和我们自定义的加salt算法不同，Hmac算法针对所有哈希算法都通用，无论是MD5还是SHA-1。
+	 * 采用Hmac替代我们自己的salt算法，可以使程序算法更标准化，也更安全。
+	 * 
+	 * @param utf8String 原始数据字符串
+	 * @param algorithm  算法 Hmac256, HmacSha1, HmacMd5
+	 * @param secret     加密
+	 * @return 摘要的二进制字符串（HEX）
+	 * @throws InvalidKeyException
+	 * @throws UnsupportedEncodingException
+	 * @throws NoSuchAlgorithmException
+	 */
 	public static String digestHex(String utf8String, String algorithm, String secret) {
 		byte[] result;
 		try {
@@ -175,6 +224,20 @@ public class UDigest {
 
 	}
 
+	/**
+	 * Hmac算法：Hash-Based Message Authentication Codes
+	 * 它通过一个标准算法，在计算哈希的过程中，把key混入计算过程中。
+	 * 和我们自定义的加salt算法不同，Hmac算法针对所有哈希算法都通用，无论是MD5还是SHA-1。
+	 * 采用Hmac替代我们自己的salt算法，可以使程序算法更标准化，也更安全。
+	 * 
+	 * @param data      原始数据
+	 * @param algorithm 算法 Hmac256, HmacSha1, HmacMd5
+	 * @param secret    加密
+	 * @return 摘要的二进制数组
+	 * @throws InvalidKeyException
+	 * @throws UnsupportedEncodingException
+	 * @throws NoSuchAlgorithmException
+	 */
 	public static byte[] digest(byte[] data, String algorithm, String secret)
 			throws InvalidKeyException, UnsupportedEncodingException, NoSuchAlgorithmException {
 		Mac hmacSha256 = Mac.getInstance(algorithm);
@@ -184,6 +247,20 @@ public class UDigest {
 		return digestBytes;
 	}
 
+	/**
+	 * Hmac算法：Hash-Based Message Authentication Codes
+	 * 它通过一个标准算法，在计算哈希的过程中，把key混入计算过程中。
+	 * 和我们自定义的加salt算法不同，Hmac算法针对所有哈希算法都通用，无论是MD5还是SHA-1。
+	 * 采用Hmac替代我们自己的salt算法，可以使程序算法更标准化，也更安全。
+	 * 
+	 * @param utf8String 原始数据字符串
+	 * @param algorithm  算法 Hmac256, HmacSha1, HmacMd5
+	 * @param secret     加密
+	 * @return 摘要的二进制数组
+	 * @throws InvalidKeyException
+	 * @throws UnsupportedEncodingException
+	 * @throws NoSuchAlgorithmException
+	 */
 	public static byte[] digest(String utf8String, String algorithm, String secret)
 			throws InvalidKeyException, UnsupportedEncodingException, NoSuchAlgorithmException {
 		byte[] data = utf8String.getBytes("utf-8");
