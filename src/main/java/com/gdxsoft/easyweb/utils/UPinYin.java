@@ -7,12 +7,15 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class UPinYin {
-	//拼音库
+	// 拼音库
 	private final static String PINYIN = "/pinyin/pinyin.txt";
-	//多音字库
+	// 多音字库 - 包含复姓
 	private final static String M_PINYIN = "/pinyin/multi.txt";
-	//繁体中文-简体中文对照表
+	// 繁体中文-简体中文对照表
 	private final static String TRADITIONAL = "/pinyin/traditional.txt";
+	// 百家姓
+	private final static String XING = "/pinyin/xing.txt";
+
 	/**
 	 * 拼音库
 	 */
@@ -21,17 +24,21 @@ public class UPinYin {
 	 * 多音字库
 	 */
 	private static Map<String, String> MAP_MPY = new ConcurrentHashMap<>();
-	
+
 	/**
 	 * 繁体中文-简体中文对照表
 	 */
 	private static Map<String, String> MAP_TRADITIONAL = new ConcurrentHashMap<>();
-	
+
+	/**
+	 * 百家姓
+	 */
+	private static Map<String, String> MAP_XING = new ConcurrentHashMap<>();
 
 	private static Map<String, String> MAP_MARKED_VOWEL = new ConcurrentHashMap<>();
 
 	private static final String PINYIN_SEPARATOR = ","; // 拼音分隔符
-	private static final String ALL_UNMARKED_VOWEL = "aeiouv";
+	private static final String ALL_UNMARKED_VOWEL = "aeiouv"; // 无声调的字母
 	private static final String ALL_MARKED_VOWEL = "āáǎàēéěèīíǐìōóǒòūúǔùǖǘǚǜ"; // 所有带声调的拼音字母
 	private static final String CHINESE_REGEX = "[\\u4e00-\\u9fa5]";
 
@@ -45,48 +52,24 @@ public class UPinYin {
 		loadTable(PINYIN, MAP_PY);
 		loadTable(M_PINYIN, MAP_MPY);
 		loadTable(TRADITIONAL, MAP_TRADITIONAL);
-		
+		loadTable(XING, MAP_XING);
 	}
 
-	/**
-	 * 将字符串转换成相应格式的拼音
-	 * 
-	 * @param str          需要转换的字符串
-	 * @param separator    拼音分隔符
-	 * @param pinyinFormat 拼音格式：WITH_TONE_NUMBER--数字代表声调，WITHOUT_TONE--不带声调，WITH_TONE_MARK--带声调
-	 * @return 字符串的拼音
-	 * @throws PinyinException
-	 */
-	public static String convertToPinyinString(String str) throws Exception {
-		StringBuilder sb = new StringBuilder();
-		int i = 0;
-		int strLen = str.length();
-		while (i < strLen) {
-			char c = str.charAt(i);
-			// 判断是否为汉字或者〇
-			if (isChinese(c)) {
-				// 获取汉字拼音
-				String pinyin = MAP_PY.get(String.valueOf(c));
-				if (pinyin == null) {
-					pinyin = "";
-				}
-				sb.append(pinyin);
-			} else {
-				sb.append(c);
-			}
-		}
-		return sb.toString();
-	}
-
-	public static String[] convertToMPinyinArr(String str) {
+	private static String[] convertToMPinyinArr(String str) {
 		if (MAP_MPY.containsKey(str)) {
 			return MAP_MPY.get(str).split(PINYIN_SEPARATOR);
 		} else {
 			return null;
 		}
 	}
-	
-	private static char convertToSimpleChinese(char c) {
+
+	/**
+	 * 转换为简体中文
+	 * 
+	 * @param c
+	 * @return
+	 */
+	public static char convertToSimpleChinese(char c) {
 		String key = String.valueOf(c);
 		if (MAP_TRADITIONAL.containsKey(key)) {
 			return MAP_TRADITIONAL.get(key).charAt(0);
@@ -94,7 +77,36 @@ public class UPinYin {
 		return c;
 	}
 
-	public static List<String> convertToPinyinArr(String str) throws Exception {
+	/**
+	 * 转换为拼音首字母，例如张三，返回zs
+	 * 
+	 * @param str
+	 * @param xingFirst 姓的拼音在前
+	 * @return
+	 * @throws Exception
+	 */
+	public static String convertToPinyinFirstAlpha(String str, boolean xingFirst) throws Exception {
+		List<String> pinyins = convertToPinyinList(str, xingFirst);
+		StringBuilder sb = new StringBuilder();
+		for (int i = 0; i < pinyins.size(); i++) {
+			String py = pinyins.get(i);
+			if (py.length() == 0) {
+				continue;
+			}
+			sb.append(py.charAt(0));
+		}
+		return sb.toString();
+	}
+
+	/**
+	 * 转换为拼音列表
+	 * 
+	 * @param str
+	 * @param xingFirst 姓的拼音在前
+	 * @return
+	 * @throws Exception
+	 */
+	public static List<String> convertToPinyinList(String str, boolean xingFirst) throws Exception {
 		List<String> pinyins = new ArrayList<String>();
 		for (int i = 0; i < str.length(); i++) {
 			char c = str.charAt(i);
@@ -103,7 +115,7 @@ public class UPinYin {
 				continue;
 			}
 			c = convertToSimpleChinese(c);
-			
+
 			StringBuilder msb = new StringBuilder();
 			msb.append(c);
 			boolean isMpy = false;
@@ -125,22 +137,26 @@ public class UPinYin {
 			}
 			if (!isMpy) {
 				// 获取汉字拼音
-				String pinyin = convertToPinyin(c);
+				String pinyin = convertToPinyin(c, xingFirst);
 				pinyins.add(pinyin);
 			}
 		}
 		return pinyins;
 	}
 
-	public static String convertToPinyin(char c) throws Exception {
+	public static String convertToPinyin(char c, boolean xingFirst) throws Exception {
 		// 判断是否为汉字
 		if (isChinese(c)) {
 			// 获取汉字拼音
-			String pinyin = MAP_PY.get(String.valueOf(c));
+			String pinyin = xingFirst ? MAP_XING.get(String.valueOf(c)) : null;
 			if (pinyin == null) {
-				pinyin = "";
+				pinyin = MAP_PY.get(String.valueOf(c));
 			}
-			return pinyin.split(PINYIN_SEPARATOR)[0];
+			if (pinyin == null) {
+				return String.valueOf(c);
+			} else {
+				return pinyin.split(PINYIN_SEPARATOR)[0];
+			}
 		} else {
 			return String.valueOf(c);
 		}
@@ -149,12 +165,13 @@ public class UPinYin {
 	/**
 	 * 将带声调格式的拼音转换为不带声调格式的拼音
 	 * 
-	 * @param str 字符串
+	 * @param str       字符串
+	 * @param xingFirst 姓的拼音在前
 	 * @return 不带声调的拼音
 	 * @throws Exception
 	 */
-	public static List<String> convertWithoutTone(String str) throws Exception {
-		List<String> pinyins = convertToPinyinArr(str);
+	public static List<String> convertWithoutTone(String str, boolean xingFirst) throws Exception {
+		List<String> pinyins = convertToPinyinList(str, xingFirst);
 		List<String> result = new ArrayList<String>();
 
 		for (int i = 0; i < pinyins.size(); i++) {
@@ -167,24 +184,21 @@ public class UPinYin {
 
 		return result;
 	}
+
 	/**
 	 * 将带声调格式的拼音转换为不带声调格式的拼音字符串，用,分隔
-	 * @param str 字符串
+	 * 
+	 * @param str       字符串
+	 * @param xingFirst 姓的拼音在前
 	 * @return 不带声调格式的拼音字符串，用,分隔
 	 * @throws Exception
 	 */
-	public static String convertWithoutToneString(String str) throws Exception {
-		List<String> pinyins = convertToPinyinArr(str);
+	public static String convertWithoutToneString(String str, boolean xingFirst) throws Exception {
+		List<String> pinyins = convertWithoutTone(str, xingFirst);
 		StringBuilder result = new StringBuilder();
 
 		for (int i = 0; i < pinyins.size(); i++) {
 			String pinyin = pinyins.get(i);
-			for (String key : MAP_MARKED_VOWEL.keySet()) {
-				pinyin = pinyin.replace(key, MAP_MARKED_VOWEL.get(key));
-			}
-			if(i>0) {
-				result.append(PINYIN_SEPARATOR);
-			}
 			result.append(pinyin);
 		}
 

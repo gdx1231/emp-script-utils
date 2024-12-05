@@ -23,15 +23,21 @@ public class TestPinYin extends TestBase {
 		 
 		this.test("了如指掌 和 乐器 乐不思蜀");
 		this.test("麗人");
+		this.test("司马懿");
+		
+		this.test1("张三");
 	}
 
 	private void test(String exp) throws Exception {
-		List<String> lst = UPinYin.convertWithoutTone(exp);
+		List<String> lst = UPinYin.convertWithoutTone(exp, true);
 		StringBuilder sb = new StringBuilder();
 		for (int i = 0; i < lst.size(); i++) {
 			sb.append(lst.get(i)).append(" ");
 		}
 		System.out.println(exp + ":" +sb.toString());
 	}
-
+	private void test1(String exp) throws Exception {
+		String sb = UPinYin.convertToPinyinFirstAlpha(exp, true);
+		System.out.println(exp + ":" +sb.toString());
+	}
 }
