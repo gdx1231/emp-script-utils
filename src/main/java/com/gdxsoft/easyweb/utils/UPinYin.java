@@ -93,7 +93,15 @@ public class UPinYin {
 			if (py.length() == 0) {
 				continue;
 			}
-			sb.append(py.charAt(0));
+			String pyFirst = String.valueOf(py.charAt(0));
+			
+			if (MAP_MARKED_VOWEL.containsKey(pyFirst)) {
+				// 声母表中的字母，用无声调的字母表示
+				String unMarkdPyFirst = MAP_MARKED_VOWEL.get(pyFirst);
+				sb.append(unMarkdPyFirst);
+			} else {
+				sb.append(pyFirst);
+			}
 		}
 		return sb.toString();
 	}
