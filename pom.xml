@@ -43,6 +43,7 @@
 		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 	</properties>
 	<build>
+	<!--
 		<sourceDirectory>src/main/java</sourceDirectory>
 		<resources>
 			<resource>
@@ -54,6 +55,7 @@
 				</excludes>
 			</resource>
 		</resources>
+	-->	
 		<plugins>
 			<plugin>
 				<artifactId>maven-compiler-plugin</artifactId>
