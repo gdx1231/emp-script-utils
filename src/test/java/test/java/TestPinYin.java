@@ -19,13 +19,13 @@ public class TestPinYin extends TestBase {
 	@Test
 	public void testLogic() throws Exception {
 
-//		this.test("长沙市第一中学12班级");
-//		 
-//		this.test("了如指掌 和 乐器 乐不思蜀");
-//		this.test("麗人");
-//		this.test("司马懿");
-//		
-//		this.test1("张三");
+		this.test("长沙市第一中学12班级");
+		 
+		this.test("了如指掌 和 乐器 乐不思蜀");
+		this.test("麗人");
+		this.test("司马懿");
+		
+		this.test1("张三");
 		
 		this.test1("澳门");
 		this.test1("澳大利亚");
