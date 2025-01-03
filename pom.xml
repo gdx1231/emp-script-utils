@@ -43,7 +43,7 @@
 		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 	</properties>
 	<build>
-	<!--
+		<!--
 		<sourceDirectory>src/main/java</sourceDirectory>
 		<resources>
 			<resource>
@@ -55,7 +55,7 @@
 				</excludes>
 			</resource>
 		</resources>
-	-->	
+	-->
 		<plugins>
 			<plugin>
 				<artifactId>maven-compiler-plugin</artifactId>
@@ -166,8 +166,9 @@
 		<dependency>
 			<groupId>org.json</groupId>
 			<artifactId>json</artifactId>
-			<version>20231013</version>
+			<version>20240303</version>
 		</dependency>
+
 
 		<!-- https://mvnrepository.com/artifact/com.google.zxing/core -->
 		<dependency>
@@ -222,7 +223,7 @@
 			<artifactId>commons-codec</artifactId>
 			<version>1.15</version>
 		</dependency>
-	
+
 
 		<!-- https://mvnrepository.com/artifact/org.bouncycastle/bcprov-jdk18on -->
 		<dependency>
@@ -255,7 +256,7 @@
 			<version>4.0.1</version>
 			<scope>provided</scope>
 		</dependency>
-		 
+
 		<dependency>
 			<groupId>org.slf4j</groupId>
 			<artifactId>slf4j-jdk14</artifactId>
