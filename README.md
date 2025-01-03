@@ -11,7 +11,7 @@ https://github.com/gdx1231/emp-script-utils
 <dependency>
   <groupId>com.gdxsoft.easyweb</groupId>
   <artifactId>emp-script-utils</artifactId>
-  <version>1.1.8</version>
+  <version>1.1.10</version>
 </dependency>
 
 ```
