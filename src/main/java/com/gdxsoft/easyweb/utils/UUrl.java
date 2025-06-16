@@ -204,7 +204,12 @@ public class UUrl {
 	 */
 	public String getParamter(String name) {
 		String name1 = name.toUpperCase().trim();
-		return this.params_.get(name1);
+		if (names_.containsKey(name1)) {
+			return this.params_.get(names_.get(name1));
+		}
+		
+		return null;
+		
 	}
 
 	/**
