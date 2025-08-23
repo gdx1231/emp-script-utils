@@ -109,6 +109,15 @@ public class UNet {
 
 	// Ignore invalid cookie warning
 	private boolean ignoreInvalidCookieWarn;
+	private int timeout;
+
+	public int getTimeout() {
+		return timeout;
+	}
+
+	public void setTimeout(int timeout) {
+		this.timeout = timeout;
+	}
 
 	public UNet() {
 		this._Headers = new HashMap<String, String>();
@@ -868,18 +877,22 @@ public class UNet {
 			}
 
 		}
+		RequestConfig config = STANDARD;
+		if (this.timeout > 0) {
+			config = RequestConfig.custom().setCookieSpec(CookieSpecs.STANDARD).setConnectTimeout(timeout)
+					.setConnectionRequestTimeout(timeout).setSocketTimeout(timeout).build();
+		}
 
 		CloseableHttpClient httpclient;
 		if (url.toLowerCase().startsWith("https")) { // ssl
-			httpclient = HttpClientBuilder.create().setDefaultRequestConfig(STANDARD)
+			httpclient = HttpClientBuilder.create().setDefaultRequestConfig(config)
 					.setSSLSocketFactory(createSSLConnSocketFactory()).setConnectionManager(connMgr)
 					.setDefaultRequestConfig(requestConfig).setDefaultCookieStore(_CookieStore).build();
 		} else {
 			// 创建默认的httpClient实例.
-			httpclient = HttpClientBuilder.create().setDefaultRequestConfig(STANDARD)
+			httpclient = HttpClientBuilder.create().setDefaultRequestConfig(config)
 					.setDefaultCookieStore(_CookieStore).build();
 		}
-
 		this._LastUrl = url;
 
 		return httpclient;
