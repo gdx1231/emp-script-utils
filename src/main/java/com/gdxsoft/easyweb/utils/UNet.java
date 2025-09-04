@@ -221,6 +221,27 @@ public class UNet {
 	}
 
 	/**
+	 * 增加自定义请求 headers，content-length,origin,host,connection等头部会过滤掉
+	 * 
+	 * @param headers
+	 */
+	public void addHeaders(Map<String, String> headers) {
+		if (headers == null) {
+			return;
+		}
+		for (String key : headers.keySet()) {
+			if ("content-length".equalsIgnoreCase(key)) {
+				continue; // content-length由UNet自动处理
+			}
+			if ("origin".equalsIgnoreCase(key) || "host".equalsIgnoreCase(key) || "connection".equalsIgnoreCase(key)) {
+				continue; // origin, host, connection等头部通常不需要在API请求中设置
+			}
+			String v = headers.get(key);
+			this.addHeader(key, v);
+		}
+	}
+
+	/**
 	 * 清除自定义请求 headers
 	 */
 	public void clearHeaders() {
@@ -890,8 +911,8 @@ public class UNet {
 					.setDefaultRequestConfig(requestConfig).setDefaultCookieStore(_CookieStore).build();
 		} else {
 			// 创建默认的httpClient实例.
-			httpclient = HttpClientBuilder.create().setDefaultRequestConfig(config)
-					.setDefaultCookieStore(_CookieStore).build();
+			httpclient = HttpClientBuilder.create().setDefaultRequestConfig(config).setDefaultCookieStore(_CookieStore)
+					.build();
 		}
 		this._LastUrl = url;
 
