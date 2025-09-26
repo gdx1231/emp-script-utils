@@ -62,7 +62,6 @@ public class ULogic {
 		Connection conn = DriverManager.getConnection("jdbc:hsqldb:mem:.", "sa", "");
 		return conn;
 	}
-
 	/**
 	 * Execute the logic expression
 	 * 
