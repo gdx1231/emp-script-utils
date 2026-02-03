@@ -1010,6 +1010,14 @@ public class Utils {
 			// datetime-local (H5)
 			s1 = s1.toUpperCase().replace("T", " ");
 		}
+		 // 测试yyyy-MM-dd格式
+        String regex1 = "^\\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\\d|3[01])$";
+        String datePart = s1.split(" ")[0];
+        if (datePart.matches(regex1)) {
+        	// 手机日期选择会传递标准格式，不会按照locale格式传递
+        	java.sql.Timestamp t1 = java.sql.Timestamp.valueOf(s1);
+			return t1;
+		}
 		try {
 			if (lang != null && lang.toUpperCase().equals("ENUS")) {
 				if (s1.indexOf("-") < 0) { // 排除 yyyy-MM-dd的表达式
