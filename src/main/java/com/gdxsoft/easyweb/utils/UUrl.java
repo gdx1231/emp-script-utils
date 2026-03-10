@@ -4,6 +4,8 @@
 package com.gdxsoft.easyweb.utils;
 
 import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
@@ -43,7 +45,7 @@ public class UUrl {
 
 	private void initWithUrl(String urlString) {
 		try {
-			URL url = new URL(urlString);
+			URL url = new URI(urlString).toURL();
 
 			String getServerName = url.getHost();
 			int getServerPort = url.getPort();
@@ -63,7 +65,7 @@ public class UUrl {
 
 			this.initParameters(url.getQuery());
 
-		} catch (MalformedURLException e) {
+		} catch (MalformedURLException | URISyntaxException e) {
 			LOGGER.error("", e);
 		}
 	}
