@@ -24,6 +24,8 @@ import javax.xml.transform.stream.StreamResult;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.json.JSONObject;
+import org.json.XML;
 import org.w3c.dom.DOMImplementation;
 import org.w3c.dom.Document;
 import org.w3c.dom.DocumentType;
@@ -725,6 +727,112 @@ public class UXml {
 			return null;
 		Document newDoc = n1.getOwnerDocument();
 		return newDoc;
+	}
+
+	/**
+	 * 将XML字符串转换为JSON字符串
+	 *
+	 * @param xmlString XML字符串
+	 * @return JSON字符串
+	 */
+	public static String xml2Json(String xmlString) {
+		if (xmlString == null || xmlString.trim().isEmpty()) {
+			return null;
+		}
+		JSONObject jsonObject = XML.toJSONObject(xmlString);
+		return jsonObject.toString();
+	}
+
+	/**
+	 * 将XML字符串转换为JSON字符串，支持格式化输出
+	 *
+	 * @param xmlString    XML字符串
+	 * @param indentFactor 缩进因子，用于格式化输出
+	 * @return JSON字符串
+	 */
+	public static String xml2Json(String xmlString, int indentFactor) {
+		if (xmlString == null || xmlString.trim().isEmpty()) {
+			return null;
+		}
+		JSONObject jsonObject = XML.toJSONObject(xmlString);
+		return jsonObject.toString(indentFactor);
+	}
+
+	/**
+	 * 将XML文件转换为JSON字符串
+	 *
+	 * @param xmlFile XML文件
+	 * @return JSON字符串
+	 * @throws IOException                   文件读取异常
+	 * @throws ParserConfigurationException 解析配置异常
+	 * @throws SAXException                 SAX解析异常
+	 */
+	public static String xml2Json(File xmlFile) throws IOException, ParserConfigurationException, SAXException {
+		if (xmlFile == null || !xmlFile.exists()) {
+			throw new IOException("File not found or is null");
+		}
+		String xmlString = UFile.readFileText(xmlFile.getAbsolutePath());
+		return xml2Json(xmlString);
+	}
+
+	/**
+	 * 将XML文件转换为JSON字符串，支持格式化输出
+	 *
+	 * @param xmlFile      XML文件
+	 * @param indentFactor 缩进因子，用于格式化输出
+	 * @return JSON字符串
+	 * @throws IOException                   文件读取异常
+	 * @throws ParserConfigurationException 解析配置异常
+	 * @throws SAXException                 SAX解析异常
+	 */
+	public static String xml2Json(File xmlFile, int indentFactor)
+			throws IOException, ParserConfigurationException, SAXException {
+		if (xmlFile == null || !xmlFile.exists()) {
+			throw new IOException("File not found or is null");
+		}
+		String xmlString = UFile.readFileText(xmlFile.getAbsolutePath());
+		return xml2Json(xmlString, indentFactor);
+	}
+
+	/**
+	 * 将XML文件路径转换为JSON字符串
+	 *
+	 * @param xmlPath        XML文件路径
+	 * @param isAbsolutePath 是否为绝对路径
+	 * @return JSON字符串
+	 * @throws IOException                   文件读取异常
+	 * @throws ParserConfigurationException 解析配置异常
+	 * @throws SAXException                 SAX解析异常
+	 */
+	public static String xml2Json(String xmlPath, boolean isAbsolutePath)
+			throws IOException, ParserConfigurationException, SAXException {
+		String path = xmlPath;
+		if (!isAbsolutePath) {
+			path = UPath.getScriptPath() + "/" + xmlPath;
+		}
+		File file = new File(path);
+		return xml2Json(file);
+	}
+
+	/**
+	 * 将XML文件路径转换为JSON字符串，支持格式化输出
+	 *
+	 * @param xmlPath        XML文件路径
+	 * @param isAbsolutePath 是否为绝对路径
+	 * @param indentFactor   缩进因子，用于格式化输出
+	 * @return JSON字符串
+	 * @throws IOException                   文件读取异常
+	 * @throws ParserConfigurationException 解析配置异常
+	 * @throws SAXException                 SAX解析异常
+	 */
+	public static String xml2Json(String xmlPath, boolean isAbsolutePath, int indentFactor)
+			throws IOException, ParserConfigurationException, SAXException {
+		String path = xmlPath;
+		if (!isAbsolutePath) {
+			path = UPath.getScriptPath() + "/" + xmlPath;
+		}
+		File file = new File(path);
+		return xml2Json(file, indentFactor);
 	}
 
 }
