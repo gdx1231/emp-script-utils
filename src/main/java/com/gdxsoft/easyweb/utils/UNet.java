@@ -7,6 +7,9 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.HttpURLConnection;
+import java.net.InetSocketAddress;
+import java.net.Proxy;
+import java.net.Socket;
 import java.net.URI;
 import java.net.URL;
 import java.net.URLConnection;
@@ -29,6 +32,7 @@ import javax.net.ssl.SSLSession;
 
 import org.apache.http.Header;
 import org.apache.http.HttpEntity;
+import org.apache.http.HttpHost;
 import org.apache.http.HttpMessage;
 import org.apache.http.HttpResponse;
 import org.apache.http.ParseException;
@@ -45,6 +49,10 @@ import org.apache.http.client.methods.HttpPut;
 import org.apache.http.client.methods.HttpRequestBase;
 import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
 import org.apache.http.conn.ssl.TrustStrategy;
+import org.apache.http.conn.socket.ConnectionSocketFactory;
+import org.apache.http.conn.socket.PlainConnectionSocketFactory;
+import org.apache.http.config.Registry;
+import org.apache.http.config.RegistryBuilder;
 import org.apache.http.cookie.Cookie;
 import org.apache.http.entity.ByteArrayEntity;
 import org.apache.http.entity.ContentType;
@@ -111,12 +119,41 @@ public class UNet {
 	private boolean ignoreInvalidCookieWarn;
 	private int timeout;
 
+	// Proxy settings
+	private String _ProxyHost;
+	private int _ProxyPort;
+	private String _ProxyScheme = "http";
+
 	public int getTimeout() {
 		return timeout;
 	}
 
 	public void setTimeout(int timeout) {
 		this.timeout = timeout;
+	}
+
+	/**
+	 * 设置 HTTP 代理
+	 *
+	 * @param host   代理主机名或 IP
+	 * @param port   代理端口
+	 */
+	public void setProxy(String host, int port) {
+		this._ProxyHost = host;
+		this._ProxyPort = port;
+	}
+
+	/**
+	 * 设置 HTTP 代理
+	 *
+	 * @param host   代理主机名或 IP
+	 * @param port   代理端口
+	 * @param scheme 代理协议（http/https/socks）
+	 */
+	public void setProxy(String host, int port, String scheme) {
+		this._ProxyHost = host;
+		this._ProxyPort = port;
+		this._ProxyScheme = scheme;
 	}
 
 	public UNet() {
@@ -885,7 +922,7 @@ public class UNet {
 
 	/**
 	 * 根据url 获取 httpClient(http/https)
-	 * 
+	 *
 	 * @param url
 	 * @return CloseableHttpClient
 	 */
@@ -905,14 +942,79 @@ public class UNet {
 		}
 
 		CloseableHttpClient httpclient;
-		if (url.toLowerCase().startsWith("https")) { // ssl
-			httpclient = HttpClientBuilder.create().setDefaultRequestConfig(config)
-					.setSSLSocketFactory(createSSLConnSocketFactory()).setConnectionManager(connMgr)
-					.setDefaultRequestConfig(requestConfig).setDefaultCookieStore(_CookieStore).build();
-		} else {
-			// 创建默认的httpClient实例.
-			httpclient = HttpClientBuilder.create().setDefaultRequestConfig(config).setDefaultCookieStore(_CookieStore)
+		boolean isSocks = "socks".equalsIgnoreCase(this._ProxyScheme);
+		boolean hasProxy = this._ProxyHost != null && !this._ProxyHost.isEmpty();
+
+		if (isSocks && hasProxy) {
+			// SOCKS proxy - use custom socket factory with remote DNS resolution
+			Proxy socksProxy = new Proxy(Proxy.Type.SOCKS,
+					new InetSocketAddress(this._ProxyHost, this._ProxyPort));
+
+			ConnectionSocketFactory socksSocketFactory = new ConnectionSocketFactory() {
+				@Override
+				public Socket createSocket(org.apache.http.protocol.HttpContext context) throws IOException {
+					return new Socket(socksProxy);
+				}
+				@Override
+				public Socket connectSocket(int connectTimeout, Socket socket,
+						org.apache.http.HttpHost host, InetSocketAddress remoteAddress,
+						InetSocketAddress localAddress, org.apache.http.protocol.HttpContext context) throws IOException {
+					socket.setSoTimeout(timeout > 0 ? timeout : 30000);
+					// Use unresolved address for remote DNS resolution through SOCKS
+					InetSocketAddress unresolved = InetSocketAddress.createUnresolved(host.getHostName(), host.getPort());
+					socket.connect(unresolved, connectTimeout);
+					return socket;
+				}
+			};
+
+			// SSL socket factory that also goes through SOCKS proxy
+			ConnectionSocketFactory socksSslSocketFactory = new ConnectionSocketFactory() {
+				@Override
+				public Socket createSocket(org.apache.http.protocol.HttpContext context) throws IOException {
+					return new Socket(socksProxy);
+				}
+				@Override
+				public Socket connectSocket(int connectTimeout, Socket socket,
+						org.apache.http.HttpHost host, InetSocketAddress remoteAddress,
+						InetSocketAddress localAddress, org.apache.http.protocol.HttpContext context) throws IOException {
+					socket.setSoTimeout(timeout > 0 ? timeout : 30000);
+					InetSocketAddress unresolved = InetSocketAddress.createUnresolved(host.getHostName(), host.getPort());
+					socket.connect(unresolved, connectTimeout);
+					// Wrap with SSL
+					javax.net.ssl.SSLSocketFactory sslFactory = (javax.net.ssl.SSLSocketFactory) javax.net.ssl.SSLSocketFactory.getDefault();
+					javax.net.ssl.SSLSocket sslSocket = (javax.net.ssl.SSLSocket) sslFactory.createSocket(socket, host.getHostName(), host.getPort(), true);
+					sslSocket.startHandshake();
+					return sslSocket;
+				}
+			};
+
+			Registry<ConnectionSocketFactory> socketFactoryRegistry = RegistryBuilder.<ConnectionSocketFactory>create()
+					.register("http", socksSocketFactory)
+					.register("https", socksSslSocketFactory)
 					.build();
+			
+			PoolingHttpClientConnectionManager socksConnMgr = new PoolingHttpClientConnectionManager(socketFactoryRegistry);
+			
+			httpclient = HttpClientBuilder.create()
+					.setDefaultRequestConfig(config)
+					.setConnectionManager(socksConnMgr)
+					.setDefaultCookieStore(_CookieStore)
+					.build();
+		} else {
+			// HTTP proxy or no proxy
+			if (hasProxy && !isSocks) {
+				HttpHost proxy = new HttpHost(this._ProxyHost, this._ProxyPort, this._ProxyScheme);
+				config = RequestConfig.copy(config).setProxy(proxy).build();
+			}
+			
+			if (url.toLowerCase().startsWith("https")) { // ssl
+				httpclient = HttpClientBuilder.create().setDefaultRequestConfig(config)
+						.setSSLSocketFactory(createSSLConnSocketFactory()).setConnectionManager(connMgr)
+						.setDefaultCookieStore(_CookieStore).build();
+			} else {
+				httpclient = HttpClientBuilder.create().setDefaultRequestConfig(config).setDefaultCookieStore(_CookieStore)
+						.build();
+			}
 		}
 		this._LastUrl = url;
 
