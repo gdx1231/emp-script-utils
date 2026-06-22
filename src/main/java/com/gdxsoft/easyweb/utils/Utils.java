@@ -444,7 +444,10 @@ public class Utils {
 			return null;
 		String tmp = "{{{GDX1郭磊GdX2郭磊gDX3郭磊GDX1}}";
 		String s1 = sql.replace(tag + tag, tmp);
-		Pattern pat = Pattern.compile(tag + "[a-zA-Z0-9\u4e00-\u9fa5\\-\\._:]*\\b", Pattern.CASE_INSENSITIVE);
+		// 使用负向先行断言替代 \b，支持中文结尾的参数名（如 @姓名）
+		// \b 对中文无效，因为中文不属于 \w 字符
+		Pattern pat = Pattern.compile(tag + "([a-zA-Z0-9\u4e00-\u9fa5\\-\\._:]++)(?![a-zA-Z0-9\u4e00-\u9fa5\\-\\._:])",
+				Pattern.CASE_INSENSITIVE);
 		Matcher mat = pat.matcher(s1);
 
 		MListStr rst = new MListStr();
