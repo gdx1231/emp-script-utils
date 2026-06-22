@@ -199,7 +199,7 @@
 		<dependency>
 			<groupId>com.sun.mail</groupId>
 			<artifactId>jakarta.mail</artifactId>
-			<version>1.6.6</version>
+			<version>1.6.8</version>
 		</dependency>
 		<!--
 		https://mvnrepository.com/artifact/org.apache.httpcomponents/httpclient -->
@@ -229,7 +229,7 @@
 		<dependency>
 			<groupId>org.bouncycastle</groupId>
 			<artifactId>bcprov-jdk18on</artifactId>
-			<version>1.78.1</version>
+			<version>1.84</version>
 		</dependency>
 
 		<!-- https://mvnrepository.com/artifact/org.hsqldb/hsqldb -->
