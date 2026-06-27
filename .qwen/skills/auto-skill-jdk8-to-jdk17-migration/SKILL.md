@@ -2,7 +2,7 @@
 name: jdk8-to-jdk17-migration
 description: Comprehensive JDK 8 to 17 migration with dependency reduction — replacing commons-io, commons-lang3, commons-exec, Apache HttpClient with JDK 17 built-in APIs.
 source: auto-skill
-extracted_at: '2026-06-27T02:50:09.178Z'
+extracted_at: '2026-06-27T05:40:00.000Z'
 ---
 
 # JDK 8 → 17 Migration with Dependency Reduction
@@ -460,6 +460,78 @@ public static final String SIGNATURE_MD5withRSA = "MD5withRSA";
 
 ## Common Pitfalls
 
+### Integer Reference Comparison Bug in Caches
+When using `ConcurrentHashMap<String, Integer>` for file state tracking, comparing `Integer` objects with `==` fails for values outside `[-128, 127]`:
+```java
+// WRONG: == compares references, not values; hashCode() returns full int range
+Integer prevCode = map.get(key);
+if (prevCode != null && prevCode == statusCode) { ... }
+
+// CORRECT: use intValue() or equals()
+if (prevCode != null && prevCode.intValue() == statusCode) { ... }
+```
+Java caches Integer objects only in `[-128, 127]`. `hashCode()` can return any `int`, so `Integer ==` fails silently for most values.
+
+### Unnecessary ReentrantLock Over ConcurrentHashMap
+`ConcurrentHashMap.put()` and `ConcurrentHashMap.remove()` are already atomic since Java 8. Wrapping them with `ReentrantLock` serializes otherwise-concurrent writes:
+```java
+// BEFORE: unnecessary lock
+MAP.put(key, val);  // already atomic
+
+// AFTER: lock-free, better concurrent throughput
+MAP.put(key, val);
+```
+`removeIf()` on `ConcurrentHashMap.entrySet()` is also atomic — no external lock needed.
+
+### Single-Syscall File Attribute Reading
+`File.exists()` + `File.lastModified()` + `File.length()` = 3 `stat()` syscalls. Use `Files.readAttributes()` for 1 syscall:
+```java
+// BEFORE: 3 stat() calls
+File f = new File(path);
+boolean exists = f.exists();          // stat #1
+long modified = f.lastModified();      // stat #2
+long size = f.length();                // stat #3
+
+// AFTER: 1 stat() call, resolves symlinks
+BasicFileAttributes attr = Files.readAttributes(Path.of(path), BasicFileAttributes.class);
+String key = Path.of(path).toRealPath() + "|" + attr.lastModifiedTime().toMillis() + "|" + attr.size();
+```
+`toRealPath()` also resolves symbolic links, preventing duplicate tracking of the same file.
+
+### hashCode-Based Key Collisions in Static Caches
+
+When using `ConcurrentHashMap<Integer, ...>` as a static cache with `someString.hashCode()` as key, two problems arise:
+
+1. **Hash collisions**: Different strings can produce the same `hashCode()`, causing data loss
+2. **Inconsistent keys**: If some code paths use `path.hashCode()` and others use `(path|modified|size).hashCode()`, they never match
+
+**Fix**: Use `String` as the key type directly instead of `Integer`:
+
+```java
+// BEFORE: collision-prone
+Map<Integer, Long> cache = new ConcurrentHashMap<>();
+int key = file.getAbsolutePath().hashCode();
+cache.put(key, timestamp);
+
+// AFTER: collision-safe + merge 2 maps into 1
+private static class FileState { long time; int code; }
+Map<String, FileState> cache = new ConcurrentHashMap<>();
+String key = file.getAbsolutePath();
+cache.put(key, new FileState(time, code));
+```
+
+When making this change, add `@Deprecated` overloads for backward compatibility that wrap old `Integer` parameters to `String.valueOf()`. Also add periodic eviction to prevent unbounded memory growth:
+
+```java
+private static void evictStaleIfNeeded() {
+    if (cache.size() < 1000) return;
+    long cutoff = System.currentTimeMillis() - TimeUnit.HOURS.toMillis(1);
+    cache.entrySet().removeIf(e -> e.getValue().time < cutoff);
+}
+```
+
+### General Pitfalls
+
 | Pitfall | Symptom | Fix |
 |---------|---------|-----|
 | `AES/CBC/PKCS7Padding` with JDK Cipher | `NoSuchAlgorithmException` | Map PKCS7Padding → PKCS5Padding |
@@ -470,6 +542,135 @@ public static final String SIGNATURE_MD5withRSA = "MD5withRSA";
 | hsqldb `jdk8` classifier on JDK 17 | Wrong artifact resolved | Remove `<classifier>jdk8</classifier>` from pom.xml |
 | Maven plugin hardcodes `target/` path | `copy-rename-maven-plugin` fails when `<directory>` is changed | Replace `target/` with `${project.build.directory}/` in all plugin configs |
 | BC provider registered in constructor | BC loaded even for JDK-only users | Call `ensureBcProvider()` only in BC-specific methods, not constructors |
+| `setExpandEntityReferences(false)` alone for XXE | Incomplete XXE protection | See XML XXE Protection section below |
+| XML `createXmlValue` `&` escaped after `\r`/`\n` | `&#xD;` → `&amp;#xD;` double-escape | `&` must be escaped FIRST, before any other entity references |
+| `DocumentBuilderFactory.newInstance()` called per parse | ~1-2ms overhead per call (SPI classpath scan) | Cache in static final field |
+
+## XML XXE (XML External Entity) Protection
+
+### Incomplete approach (vulnerable)
+
+Setting only `setExpandEntityReferences(false)` is insufficient — the parser still resolves external entities (fetches URLs, reads local files), it just doesn't inline the content:
+
+```java
+// INSECURE — still resolves external entities!
+DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+factory.setExpandEntityReferences(false);
+```
+
+### Complete protection
+
+Must add these features to fully disable XXE vectors. **Important tradeoff**: `disallow-doctype-decl` is the strongest XXE prevention but can break legitimate XML parsing in some JDK parsers. Prefer the combination of `external-general-entities` + `external-parameter-entities` + `secure-processing` for broader compatibility:
+
+```java
+private static final DocumentBuilderFactory DOC_FACTORY;
+static {
+    DOC_FACTORY = DocumentBuilderFactory.newInstance();
+    DOC_FACTORY.setExpandEntityReferences(false);
+    try { DOC_FACTORY.setFeature(
+        "http://xml.org/sax/features/external-general-entities", false);
+    } catch (ParserConfigurationException ignored) {}
+    try { DOC_FACTORY.setFeature(
+        "http://xml.org/sax/features/external-parameter-entities", false);
+    } catch (ParserConfigurationException ignored) {}
+    try { DOC_FACTORY.setFeature(
+        "http://javax.xml.XMLConstants/feature/secure-processing", true);
+    } catch (ParserConfigurationException ignored) {}
+    DOC_FACTORY.setXIncludeAware(false);
+
+    // OPTIONAL: strongest XXE block — but may break valid XML docs
+    try { DOC_FACTORY.setFeature(
+        "http://apache.org/xml/features/disallow-doctype-decl", true);
+    } catch (ParserConfigurationException ignored) {}
+}
+```
+
+| Feature | Purpose | Compatibility |
+|---------|---------|---------------|
+| `external-general-entities=false` | Prevents resolution of external general entities | ✅ Safe |
+| `external-parameter-entities=false` | Prevents resolution of external parameter entities | ✅ Safe |
+| `secure-processing=true` | Limits entity expansion (Billion Laughs protection), limits maxOccurs | ✅ Safe |
+| `setXIncludeAware(false)` | Disables XInclude (entity injection vector) | ✅ Safe |
+| `disallow-doctype-decl=true` | Blocks DOCTYPE entirely — **use with caution** | ⚠️ May break parsers that rely on DOCTYPE for XML declaration, DTDs for file loading. Test thoroughly. |
+
+**Why `try/catch`**: Some XML parsers (Xerces, etc.) may not support all features. The `try/catch` ensures the code works across parser implementations while enabling all available protections. The cumulative effect is defense-in-depth.
+
+**DocumentBuilder is NOT thread-safe** — create a new `DocumentBuilder` per parse from the shared factory:
+```java
+DocumentBuilder builder = DOC_FACTORY.newDocumentBuilder();
+Document doc = builder.parse(inputSource);
+```
+
+## XML Character Escaping Order Bug
+
+When building a `createXmlValue()` / XML escaping method, `&` MUST be escaped **first**, before any other characters. Otherwise the `&` in already-escaping sequences (like `&#xD;`) gets double-escaped:
+
+```java
+// ⚠️ BUG: \r → &#xD; introduces &, then & → &amp; corrupts it
+// Input: "a\r\nb"
+s1 = s1.replace("\r", "&#xD;");   // introduces &
+s1 = s1.replace("\n", "&#xA;");   // introduces &
+s1 = s1.replace("&", "&amp;");    // &#xD; → &amp;#xD;  ← CORRUPTED!
+
+// ✅ CORRECT: & must come first
+s1 = s1.replace("&", "&amp;");    // Step 1: escape & first
+s1 = s1.replace("<", "&lt;");
+s1 = s1.replace(">", "&gt;");
+s1 = s1.replace("\"", "&quot;");
+s1 = s1.replace("'", "&apos;");   // apostrophe for attribute values
+s1 = s1.replace("\r", "&#xD;");   // Step 2: now safe to use &
+s1 = s1.replace("\n", "&#xA;");
+```
+
+**Also standard-compliant**: XML requires numeric character references to end with `;` — `&#xD;` not `&#xD`.
+
+## SSLContext Factory with Trust-All Toggle
+
+A shared factory method that returns either a trust-all or system-default `SSLContext`:
+
+```java
+public static SSLContext createSSLContext(boolean isSelfSign) {
+    if (!isSelfSign) {
+        // System default — validates against JVM trust store
+        SSLContext ctx = SSLContext.getInstance("TLS");
+        ctx.init(null, null, null); // null TrustManager = system default
+        return ctx;
+    }
+    // Trust-all — for dev/internal certs
+    SSLContext ctx = SSLContext.getInstance("TLS");
+    ctx.init(null, new TrustManager[] {
+        new X509TrustManager() {
+            public void checkClientTrusted(X509Certificate[] c, String a) {}
+            public void checkServerTrusted(X509Certificate[] c, String a) {}
+            public X509Certificate[] getAcceptedIssuers() { return new X509Certificate[0]; }
+        }
+    }, new SecureRandom());
+    return ctx;
+}
+```
+
+**Usage**: This single method serves both `java.net.http.HttpClient` (needs `SSLContext`) and `HttpsOverSocks5` (needs `SSLSocketFactory` via `ctx.getSocketFactory()`), eliminating duplicate trust-all SSL implementations.
+
+## Caching XML Factories
+
+`DocumentBuilderFactory.newInstance()` and `TransformerFactory.newInstance()` use SPI (Service Provider Interface) classpath scanning to locate implementations. Creating them every call adds ~1-2ms overhead per XML operation. Cache in static final fields:
+
+```java
+private static final DocumentBuilderFactory DOC_FACTORY;
+private static final TransformerFactory TRANS_FACTORY;
+
+static {
+    DOC_FACTORY = DocumentBuilderFactory.newInstance();
+    // ... security configuration ...
+    TRANS_FACTORY = TransformerFactory.newInstance();
+}
+
+// Usage: factory is cached, builder/transformer created per operation
+DocumentBuilder builder = DOC_FACTORY.newDocumentBuilder();  // per parse
+Transformer transformer = TRANS_FACTORY.newTransformer();     // per transform
+```
+
+**Important**: `DocumentBuilder` and `Transformer` are NOT thread-safe and must be created per operation. The `Factory` objects are thread-safe and can be shared.
 
 ## Migration Checklist
 

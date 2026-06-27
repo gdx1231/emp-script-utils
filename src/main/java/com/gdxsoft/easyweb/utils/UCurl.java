@@ -12,6 +12,7 @@ import java.util.Map;
  *   java UCurl &lt;url&gt;                    # GET
  *   java UCurl -X POST &lt;url&gt;              # POST (no body)
  *   java UCurl -d "key=val" &lt;url&gt;         # POST with form body
+ *   java UCurl --log <url>              # verbose logging
  *   java UCurl -H "Authorization: Bearer t" &lt;url&gt;
  *   java UCurl -x http://127.0.0.1:1087 &lt;url&gt;
  *   java UCurl -o /tmp/out.bin &lt;url&gt;       # download to file
@@ -28,6 +29,7 @@ public class UCurl {
 		String method = "GET";
 		String body = null;
 		String outputFile = null;
+		boolean verbose = false;
 		Map<String, String> headers = new LinkedHashMap<>();
 		String proxy = null;
 
@@ -57,12 +59,13 @@ public class UCurl {
 				outputFile = args[++i];
 				break;
 			case "-v":
-				// verbose is always on for this tool
+			case "--log":
+				verbose = true;
 				break;
 			default:
 				if (!args[i].startsWith("-")) {
-					String url = args[i];
-					execute(url, method, body, headers, proxy, outputFile);
+					String url = ensureScheme(args[i]);
+					execute(url, method, body, headers, proxy, outputFile, verbose);
 					return;
 				}
 				System.err.println("Unknown option: " + args[i]);
@@ -75,10 +78,20 @@ public class UCurl {
 		System.exit(1);
 	}
 
+	/**
+	 * Auto-prepend https:// if the URL lacks a scheme.
+	 */
+	private static String ensureScheme(String url) {
+		if (url.contains("://")) {
+			return url;
+		}
+		return "https://" + url;
+	}
+
 	private static void execute(String url, String method, String body, Map<String, String> headers,
-			String proxy, String outputFile) {
+			String proxy, String outputFile, boolean verbose) {
 		UNet net = new UNet();
-		net.setIsShowLog(true);
+		net.setIsShowLog(verbose);
 
 		// Proxy: parse URL-like string (e.g. "http://127.0.0.1:1087" or "socks://127.0.0.1:1086")
 		if (proxy != null) {
@@ -213,6 +226,7 @@ public class UCurl {
 		System.out.println("  -H \"Key: Value\"   Add request header");
 		System.out.println("  -x PROXY_URL     Set proxy (http://host:port or socks://host:port)");
 		System.out.println("  -o FILE          Write response body to file");
+		System.out.println("  -v, --log        Enable verbose request/response logging");
 		System.out.println();
 		System.out.println("Examples:");
 		System.out.println("  java UCurl https://httpbin.org/get");

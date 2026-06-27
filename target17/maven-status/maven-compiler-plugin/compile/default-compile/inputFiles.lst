@@ -1,4 +1,5 @@
 /Users/admin/java/com.gdxsoft/emp-script-utils/src/main/java/com/gdxsoft/easyweb/utils/msnet/MStr.java
+/Users/admin/java/com.gdxsoft/emp-script-utils/src/main/java/com/gdxsoft/easyweb/conf/ConfArgon2.java
 /Users/admin/java/com.gdxsoft/emp-script-utils/src/main/java/com/gdxsoft/easyweb/utils/Mail/MailLogHelper.java
 /Users/admin/java/com.gdxsoft/emp-script-utils/src/main/java/com/gdxsoft/easyweb/utils/UXml.java
 /Users/admin/java/com.gdxsoft/emp-script-utils/src/main/java/com/gdxsoft/easyweb/utils/UPath.java
@@ -49,6 +50,7 @@
 /Users/admin/java/com.gdxsoft/emp-script-utils/src/main/java/com/gdxsoft/easyweb/utils/types/UInt32.java
 /Users/admin/java/com.gdxsoft/emp-script-utils/src/main/java/com/gdxsoft/easyweb/utils/Mail/MailDecode.java
 /Users/admin/java/com.gdxsoft/emp-script-utils/src/main/java/com/gdxsoft/easyweb/utils/UDns.java
+/Users/admin/java/com.gdxsoft/emp-script-utils/src/main/java/com/gdxsoft/easyweb/utils/UCurl.java
 /Users/admin/java/com.gdxsoft/emp-script-utils/src/main/java/com/gdxsoft/easyweb/utils/UNet.java
 /Users/admin/java/com.gdxsoft/emp-script-utils/src/main/java/com/gdxsoft/easyweb/utils/Mail/SendMail.java
 /Users/admin/java/com.gdxsoft/emp-script-utils/src/main/java/com/gdxsoft/easyweb/utils/UDigest.java
