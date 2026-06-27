@@ -5,7 +5,6 @@ import java.io.File;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.StringReader;
-import java.io.StringWriter;
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.util.HashMap;
@@ -37,6 +36,23 @@ import org.xml.sax.SAXException;
 
 public class UXml {
 	private static Logger LOGGER = LoggerFactory.getLogger(UXml.class);
+
+	/** Cached DocumentBuilderFactory with XXE protection — DocumentBuilder is not thread-safe, create per parse */
+	private static final DocumentBuilderFactory DOC_FACTORY;
+	/** Cached TransformerFactory — Transformer is not thread-safe, create per transform */
+	private static final TransformerFactory TRANS_FACTORY;
+
+	static {
+		DOC_FACTORY = DocumentBuilderFactory.newInstance();
+		// 全面防范 XXE (XML External Entity) 注入
+		DOC_FACTORY.setExpandEntityReferences(false);
+		try { DOC_FACTORY.setFeature("http://xml.org/sax/features/external-general-entities", false); } catch (ParserConfigurationException ignored) {}
+		try { DOC_FACTORY.setFeature("http://xml.org/sax/features/external-parameter-entities", false); } catch (ParserConfigurationException ignored) {}
+		try { DOC_FACTORY.setFeature("http://javax.xml.XMLConstants/feature/secure-processing", true); } catch (ParserConfigurationException ignored) {}
+		DOC_FACTORY.setXIncludeAware(false);
+
+		TRANS_FACTORY = TransformerFactory.newInstance();
+	}
 
 	/**
 	 * Get XML Element all attributes
@@ -111,19 +127,21 @@ public class UXml {
 
 	/**
 	 * 生成可Xml节点值
-	 * 
+	 *
 	 * @param s1
 	 * @return 节点值
 	 */
 	public static String createXmlValue(String s1) {
 		if (s1 == null)
 			return s1;
-		s1 = s1.replace("\r", "&#xD");
-		s1 = s1.replace("\n", "&#xA");
+		// & 必须在最前面转义，否则会二次转义后面的 &#xD; 等
 		s1 = s1.replace("&", "&amp;");
 		s1 = s1.replace("<", "&lt;");
 		s1 = s1.replace(">", "&gt;");
 		s1 = s1.replace("\"", "&quot;");
+		s1 = s1.replace("'", "&apos;");
+		s1 = s1.replace("\r", "&#xD;");
+		s1 = s1.replace("\n", "&#xA;");
 		return s1;
 	}
 
@@ -477,7 +495,7 @@ public class UXml {
 			String name = retNodeValue(node, attributeName);
 			if (name == null)
 				continue;
-			if (name.toUpperCase().trim().equals(itemName.toUpperCase().trim())) {
+			if (name.trim().equalsIgnoreCase(itemName.trim())) {
 				return node;
 			}
 		}
@@ -509,7 +527,7 @@ public class UXml {
 	 * @return Xml字符串
 	 */
 	public static String asXmlPretty(Node node) {
-		TransformerFactory tf = TransformerFactory.newInstance();
+		TransformerFactory tf = TRANS_FACTORY;
 		Integer i2 = 2;
 		tf.setAttribute("indent-number", i2);
 
@@ -540,7 +558,7 @@ public class UXml {
 	 * @return Xml字符串
 	 */
 	public static String asXmlAll(Node node) {
-		TransformerFactory l_transformFactory = TransformerFactory.newInstance();
+		TransformerFactory l_transformFactory = TRANS_FACTORY;
 		Transformer l_transformer = null;
 		ByteArrayOutputStream l_byteOutStream = new ByteArrayOutputStream();
 		String s1 = "";
@@ -574,16 +592,12 @@ public class UXml {
 	}
 
 	/**
-	 * 获取安全的 DocumentBuilderFactory，避免XXE攻击
-	 * 
+	 * 获取安全的 DocumentBuilderFactory，避免 XXE 攻击
+	 *
 	 * @return DocumentBuilderFactory
 	 */
 	public static DocumentBuilderFactory getDocumentBuilder() {
-		DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
-		// 避免 XXE 注入攻击 郭磊 2018-07-05
-		factory.setExpandEntityReferences(false);
-
-		return factory;
+		return DOC_FACTORY;
 	}
 
 	/**
@@ -680,53 +694,41 @@ public class UXml {
 
 	/**
 	 * 在Xml文档中增加新的节点
-	 * 
+	 *
 	 * @param sourceDocument 源文档
 	 * @param nodeXmlString  node的Xml字符
 	 * @param tagPath        增加的路径
-	 * @return 新文档
+	 * @return 原文档（已修改）
 	 */
 	public static Document appendNode(Document sourceDocument, String nodeXmlString, String tagPath) {
+		// Parse the node XML fragment into a Node
+		String wrapped = "<__root__>" + nodeXmlString + "</__root__>";
+		Document tmpDoc = asDocument(wrapped);
+		if (tmpDoc == null) {
+			return null;
+		}
+		Element tmpRoot = tmpDoc.getDocumentElement();
+		if (!tmpRoot.hasChildNodes()) {
+			return null;
+		}
+		Node newNode = tmpRoot.getFirstChild();
 
-		String xml = asXml(sourceDocument.getDocumentElement());
-		String[] a1 = tagPath.split("/");
-
-		int m = 0;
-		for (int i = 0; i < a1.length; i++) {
-			if (m < 0) {
+		// Find parent by path
+		Node parent = retNode(sourceDocument, tagPath);
+		if (parent == null) {
+			// Fallback: if path matches the document element name, use it directly
+			if (sourceDocument.getDocumentElement() != null
+					&& sourceDocument.getDocumentElement().getNodeName().equals(tagPath)) {
+				parent = sourceDocument.getDocumentElement();
+			} else {
 				return null;
 			}
-			m = xml.indexOf("<" + a1[i], m);
-			int m1 = xml.indexOf("</" + a1[i] + ">", m);
-			if (m1 < 0) {
-				m1 = xml.indexOf("/>", m);
-				if (m1 > 0) {
-					xml = xml.substring(0, m1) + "></" + a1[i] + ">" + xml.substring(m1 + 2);
-				} else {
-					return null;
-				}
-				m = xml.indexOf("</" + a1[i] + ">", m);
-			} else {
-				m = m1;
-			}
 		}
-		// 不要用字符串，可能会内存溢出
-		StringWriter sw = new StringWriter();
-		sw.write(xml.substring(0, m));
-		sw.write(nodeXmlString);
-		sw.write(xml.substring(m));
 
-		Node n1 = asNode(sw.toString());
-		try {
-			sw.close();
-		} catch (Exception e) {
-			System.err.println(e.toString());
-		}
-		sw = null;
-		if (n1 == null)
-			return null;
-		Document newDoc = n1.getOwnerDocument();
-		return newDoc;
+		// Import and append
+		Node imported = sourceDocument.importNode(newNode, true);
+		parent.appendChild(imported);
+		return sourceDocument;
 	}
 
 	/**

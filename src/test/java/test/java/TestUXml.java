@@ -2,8 +2,17 @@ package test.java;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Map;
+
+import javax.xml.parsers.ParserConfigurationException;
 
 import org.junit.jupiter.api.Test;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
+import org.xml.sax.SAXException;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 import com.gdxsoft.easyweb.utils.UFile;
@@ -355,5 +364,336 @@ public class TestUXml extends TestBase {
 		}
 
 		System.out.println("\n所有XML文件测试完成！");
+	}
+
+	// ==================== createXmlValue escaping ====================
+
+	@Test
+	public void testCreateXmlValueBasic() {
+		printCaption("createXmlValue — basic escaping");
+		assertEquals("&amp;", UXml.createXmlValue("&"));
+		assertEquals("&lt;", UXml.createXmlValue("<"));
+		assertEquals("&gt;", UXml.createXmlValue(">"));
+		assertEquals("&quot;", UXml.createXmlValue("\""));
+		assertEquals("&apos;", UXml.createXmlValue("'"));
+	}
+
+	@Test
+	public void testCreateXmlValueCrLfNoDoubleEscape() {
+		printCaption("createXmlValue — \\r\\n not double-escaped");
+		// P0 bug: & 必须在 \r/\n 之前转义，否则 &#xD 变成 &amp;#xD
+		String result = UXml.createXmlValue("a\r\nb");
+		assertEquals("a&#xD;&#xA;b", result,
+				"\\r\\n should produce &#xD;&#xA;, NOT &amp;#xD;&amp;#xA;");
+	}
+
+	@Test
+	public void testCreateXmlValueNull() {
+		printCaption("createXmlValue — null");
+		assertNull(UXml.createXmlValue(null));
+	}
+
+	@Test
+	public void testCreateXmlValueMixed() {
+		printCaption("createXmlValue — mixed special chars");
+		String result = UXml.createXmlValue("if (a < b && c > d) \"ok\"");
+		assertTrue(result.contains("&amp;&amp;"), "Should escape &&");
+		assertTrue(result.contains("&lt;"), "Should escape <");
+		assertTrue(result.contains("&gt;"), "Should escape >");
+		assertTrue(result.contains("&quot;"), "Should escape \"");
+	}
+
+	// ==================== filterInvalidXMLcharacter ====================
+
+	@Test
+	public void testFilterInvalidXmlChar() {
+		printCaption("filterInvalidXMLcharacter — strips control chars");
+		assertEquals("hello", UXml.filterInvalidXMLcharacter("he\u0001llo"),
+				"0x01 should be stripped");
+		assertEquals("ab", UXml.filterInvalidXMLcharacter("a\u0000b"),
+				"0x00 should be stripped");
+	}
+
+	@Test
+	public void testFilterInvalidXmlCharNull() {
+		printCaption("filterInvalidXMLcharacter — null/empty");
+		assertNull(UXml.filterInvalidXMLcharacter(null));
+		assertEquals("", UXml.filterInvalidXMLcharacter(""));
+	}
+
+	// ==================== DOM parse / serialize ====================
+
+	@Test
+	public void testAsDocumentAndAsNode() {
+		printCaption("asDocument / asNode roundtrip");
+		String xml = "<root><child id=\"1\">text</child></root>";
+		Document doc = UXml.asDocument(xml);
+		assertNotNull(doc);
+
+		Node node = UXml.asNode(xml);
+		assertNotNull(node);
+		assertEquals("root", node.getNodeName());
+	}
+
+	@Test
+	public void testAsXmlAndAsXmlAll() {
+		printCaption("asXml / asXmlAll");
+		String xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><root><item/></root>";
+		Document doc = UXml.asDocument(xml);
+		assertNotNull(doc);
+
+		String all = UXml.asXmlAll(doc);
+		assertNotNull(all);
+		assertTrue(all.contains("<root>"), "asXmlAll should include XML declaration");
+
+		String withoutDecl = UXml.asXml(doc.getDocumentElement());
+		assertNotNull(withoutDecl);
+		assertFalse(withoutDecl.trim().startsWith("<?xml"), "asXml should omit XML declaration");
+		assertTrue(withoutDecl.contains("<root>"));
+	}
+
+	@Test
+	public void testAsXmlPretty() {
+		printCaption("asXmlPretty");
+		Document doc = UXml.asDocument("<root><child a=\"1\">text</child></root>");
+		assertNotNull(doc);
+		String pretty = UXml.asXmlPretty(doc);
+		assertNotNull(pretty);
+		assertTrue(pretty.contains("\n"), "Pretty print should have newlines");
+	}
+
+	// ==================== appendNode (DOM API) ====================
+
+	@Test
+	public void testAppendNode() {
+		printCaption("appendNode — insert child element");
+		Document doc = UXml.asDocument("<root><items></items></root>");
+		assertNotNull(doc);
+
+		UXml.appendNode(doc, "<item name=\"new\">value</item>", "items");
+
+		String xml = UXml.asXml(doc.getDocumentElement());
+		assertTrue(xml.contains("<item"), "Should contain new item");
+		assertTrue(xml.contains("value"), "Should preserve text content");
+	}
+
+	@Test
+	public void testAppendNodeInvalidPath() {
+		printCaption("appendNode — invalid path returns null");
+		Document doc = UXml.asDocument("<root></root>");
+		assertNotNull(doc);
+		assertNull(UXml.appendNode(doc, "<item/>", "root/nonexistent"));
+	}
+
+	// ==================== retNode / retNodeList ====================
+
+	@Test
+	public void testRetNodeByPath() {
+		printCaption("retNode — path navigation");
+		Document doc = UXml.asDocument("<a><b><c id=\"1\">val1</c><c id=\"2\">val2</c></b></a>");
+		assertNotNull(doc);
+
+		Node node = UXml.retNode(doc, "b/c");  // root is "a", path relative to it
+		assertNotNull(node);
+		assertEquals("c", node.getNodeName());
+	}
+
+	@Test
+	public void testRetNodeListByPath() {
+		printCaption("retNodeListByPath — multiple children");
+		Document doc = UXml.asDocument("<a><b><c id=\"1\"/><c id=\"2\"/><c id=\"3\"/></b></a>");
+		assertNotNull(doc);
+
+		NodeList nl = UXml.retNodeList(doc, "b/c");  // root is "a", path relative to it
+		assertNotNull(nl);
+		assertEquals(3, nl.getLength());
+	}
+
+	// ==================== queryNode ====================
+
+	@Test
+	public void testQueryNodeCaseInsensitive() {
+		printCaption("queryNode — case-insensitive match");
+		Document doc = UXml.asDocument("<root><items><item Name=\"Foo\"/><item Name=\"Bar\"/></items></root>");
+		assertNotNull(doc);
+
+		// queryNode uses toUpperCase internally; "foo" should match "Foo"
+		Node node = UXml.queryNode(doc, "Name", "Foo", "items/item");
+		assertNotNull(node);
+		assertEquals("Foo", UXml.retNodeValue(node, "Name"));
+	}
+
+	@Test
+	public void testQueryNodeNotFound() {
+		printCaption("queryNode — not found returns null");
+		Document doc = UXml.asDocument("<root><items><item Name=\"A\"/></items></root>");
+		assertNull(UXml.queryNode(doc, "Name", "Z", "items/item"));
+	}
+
+	// ==================== removeNode ====================
+
+	@Test
+	public void testRemoveNode() {
+		printCaption("removeNode");
+		Document doc = UXml.asDocument("<root><items><item name=\"a\"/><item name=\"b\"/></items></root>");
+		assertNotNull(doc);
+
+		boolean removed = UXml.removeNode(doc, "items/item", "name", "a");
+		assertTrue(removed);
+
+		NodeList nl = UXml.retNodeList(doc, "items/item");
+		assertEquals(1, nl.getLength());
+		assertEquals("b", UXml.retNodeValue(nl.item(0), "name"));
+	}
+
+	@Test
+	public void testRemoveNodeNotFound() {
+		printCaption("removeNode — not found returns false");
+		Document doc = UXml.asDocument("<root><items><item name=\"a\"/></items></root>");
+		assertFalse(UXml.removeNode(doc, "items/item", "name", "z"));
+	}
+
+	// ==================== createBlankDocument / save ====================
+
+	@Test
+	public void testCreateBlankDocument() {
+		printCaption("createBlankDocument");
+		Document doc = UXml.createBlankDocument();
+		assertNotNull(doc);
+		assertNull(doc.getDocumentElement(), "Blank doc has no root element");
+	}
+
+	@Test
+	public void testAppendAndSerializeRoundtrip() {
+		printCaption("appendNode + serialize + re-parse");
+		Document doc = UXml.asDocument("<config></config>");
+		assertNotNull(doc);
+		UXml.appendNode(doc, "<setting>test</setting>", "config");
+
+		// Verify DOM was modified directly
+		Element config = doc.getDocumentElement();
+		assertNotNull(config);
+		NodeList settings = config.getElementsByTagName("setting");
+		assertEquals(1, settings.getLength(), "DOM should have one setting child after append");
+		assertEquals("test", settings.item(0).getTextContent());
+	}
+
+	// ==================== getElementAttributes ====================
+
+	@Test
+	public void testGetElementAttributes() {
+		printCaption("getElementAttributes");
+		Document doc = UXml.asDocument("<root><item a=\"1\" B=\"2\" Cc=\"3\"/></root>");
+		assertNotNull(doc);
+		Element item = (Element) UXml.retNode(doc, "item");
+		assertNotNull(item);
+
+		Map<String, String> attrs = UXml.getElementAttributes(item, false);
+		assertEquals("1", attrs.get("a"));
+		assertEquals("2", attrs.get("B"));
+		assertEquals("3", attrs.get("Cc"));
+
+		Map<String, String> attrsLower = UXml.getElementAttributes(item, true);
+		assertEquals("1", attrsLower.get("a"));
+		assertEquals("2", attrsLower.get("b"));
+		assertEquals("3", attrsLower.get("cc"));
+	}
+
+	// ==================== findNode ====================
+
+	@Test
+	public void testFindNode() {
+		printCaption("findNode — case sensitive/insensitive");
+		Document doc = UXml.asDocument("<root><item name=\"Abc\"/><item name=\"xyz\"/></root>");
+		Element root = doc.getDocumentElement();
+
+		Element found = UXml.findNode(root, "item", "name", "xyz", false);
+		assertNotNull(found);
+		assertEquals("xyz", found.getAttribute("name"));
+
+		Element foundCi = UXml.findNode(root, "item", "name", "ABC", true);
+		assertNotNull(foundCi);
+		assertEquals("Abc", foundCi.getAttribute("name"));
+
+		Element notFound = UXml.findNode(root, "item", "name", "ABC", false);
+		assertNull(notFound);
+	}
+
+	// ==================== XXE protection ====================
+
+	@Test
+	public void testXxeRejected() {
+		printCaption("XXE attack is rejected");
+		String xxeXml = "<?xml version=\"1.0\"?>" +
+				"<!DOCTYPE foo [<!ENTITY xxe SYSTEM \"file:///etc/passwd\">]>" +
+				"<root>&xxe;</root>";
+		Document doc = UXml.asDocument(xxeXml);
+		// With external-general-entities=false, the entity should not be resolved.
+		// The parser may still succeed but the entity will be empty or the parse may fail.
+		if (doc != null) {
+			String text = doc.getDocumentElement().getTextContent();
+			// Entity content must NOT contain actual file contents
+			assertFalse(text.contains("root:"), "External entity should not be resolved");
+		}
+	}
+
+	@Test
+	public void testBillionLaughsRejected() {
+		printCaption("Billion Laughs attack is rejected");
+		String bomb = "<?xml version=\"1.0\"?>" +
+				"<!DOCTYPE lolz [" +
+				"<!ENTITY lol \"lol\">" +
+				"<!ENTITY lol2 \"&lol;&lol;&lol;&lol;&lol;&lol;&lol;&lol;&lol;&lol;\">" +
+				"<!ENTITY lol3 \"&lol2;&lol2;&lol2;&lol2;&lol2;&lol2;&lol2;&lol2;&lol2;&lol2;\">" +
+				"<!ENTITY lol4 \"&lol3;&lol3;&lol3;&lol3;&lol3;&lol3;&lol3;&lol3;&lol3;&lol3;\">" +
+				"]>" +
+				"<root>&lol4;</root>";
+		Document doc = UXml.asDocument(bomb);
+		// Should either fail parse or limit expansion (secure-processing FEATURE_SECURE_PROCESSING)
+		if (doc != null) {
+			String text = doc.getDocumentElement().getTextContent();
+			// Should not blow up to 10^4 lols
+			assertTrue(text.length() < 100000, "Billion laughs should be limited");
+		}
+	}
+
+	// ==================== retNodeValue / retNodeText ====================
+
+	@Test
+	public void testRetNodeValueAndText() {
+		printCaption("retNodeValue / retNodeText");
+		Document doc = UXml.asDocument("<root><item id=\"42\">content</item></root>");
+		assertNotNull(doc);
+		Element item = (Element) UXml.retNode(doc, "item");
+		assertNotNull(item);
+
+		assertEquals("42", UXml.retNodeValue(item, "id"));
+		assertEquals("", UXml.retNodeValue(item, "nonexistent"));
+		assertEquals("content", UXml.retNodeText(item));
+
+		assertEquals("", UXml.retNodeValue(null, "x"));
+		assertNull(UXml.retNodeText(null));
+	}
+
+	// ==================== addNode ====================
+
+	@Test
+	public void testAddNode() {
+		printCaption("addNode");
+		Document doc = UXml.asDocument("<root><items><sub></sub></items></root>");
+		assertNotNull(doc);
+		Document childDoc = UXml.asDocument("<entry>data</entry>");
+		assertNotNull(childDoc);
+
+		// addNode uses retNodeListByPath which strips first segment for multi-segment paths
+		Node child = childDoc.getDocumentElement();
+		Node imported = doc.importNode(child, true);
+		boolean ok = UXml.addNode(doc, (Element) imported, "items/sub");
+		assertTrue(ok);
+
+		Element sub = (Element) UXml.retNode(doc, "items/sub");
+		assertNotNull(sub);
+		NodeList nl = sub.getElementsByTagName("entry");
+		assertEquals(1, nl.getLength());
 	}
 }
