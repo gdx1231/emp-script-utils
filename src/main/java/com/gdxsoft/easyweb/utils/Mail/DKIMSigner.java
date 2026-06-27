@@ -20,10 +20,8 @@ import org.slf4j.LoggerFactory;
 
 import com.gdxsoft.easyweb.utils.UDigest;
 import com.gdxsoft.easyweb.utils.URsa;
-import com.sun.mail.util.CRLFOutputStream;
-import com.sun.mail.util.QPEncoderStream;
 
-import javax.mail.MessagingException;
+import jakarta.mail.MessagingException;
 
 /*
  *   DKIM RFC 4871.
@@ -426,9 +424,10 @@ public class DKIMSigner {
 		// process body
 		String body = message.getEncodedBody();
 		ByteArrayOutputStream baos = new ByteArrayOutputStream();
-		CRLFOutputStream crlfos = new CRLFOutputStream(baos);
+		// Convert body to MIME canonical CRLF line terminators
+		String bodyWithCrlf = body.replace("\r\n", "\n").replace("\n", "\r\n");
 		try {
-			crlfos.write(body.getBytes());
+			baos.write(bodyWithCrlf.getBytes());
 		} catch (IOException e) {
 			throw new Exception("The body conversion to MIME canonical CRLF line terminator failed", e);
 		}
@@ -471,26 +470,14 @@ public class DKIMSigner {
 	}
 
 	private static String QuotedPrintable(String s) {
-		QPEncoderStream encodeStream = null;
-		try {
-			ByteArrayOutputStream boas = new ByteArrayOutputStream();
-			encodeStream = new QPEncoderStream(boas);
-			encodeStream.write(s.getBytes());
-
-			String encoded = boas.toString();
-			encoded = encoded.replaceAll(";", "=3B");
-			encoded = encoded.replaceAll(" ", "=20");
-
-			return encoded;
-
-		} catch (IOException ioe) {
-		} finally {
-			if (encodeStream != null)
-				try {
-					encodeStream.close();
-				} catch (IOException e) {
-				}
+		StringBuilder sb = new StringBuilder();
+		for (byte b : s.getBytes()) {
+			if ((b >= 33 && b <= 60) || (b >= 62 && b <= 126) || b == 9 || b == 32) {
+				sb.append((char) b);
+			} else {
+				sb.append(String.format("=%02X", b & 0xFF));
+			}
 		}
-		return null;
+		return sb.toString();
 	}
 }

@@ -1,9 +1,12 @@
 ---
 name: apache-httpclient-socks-proxy
-description: Implement SOCKS proxy support for Apache HttpClient 4.x with remote DNS resolution, SSL consistency, and proper resource lifecycle management.
+description: Implement SOCKS proxy support for Apache HttpClient 4.x with remote DNS resolution, SSL consistency, and proper resource lifecycle management. (Replaced by JDK 17 native approach — see jdk8-to-jdk17-migration skill for java.net.http.HttpClient SOCKS handling.)
 source: auto-skill
-extracted_at: '2026-06-27T01:21:23.928Z'
+extracted_at: '2026-06-27T03:26:23.863Z'
+status: legacy
 ---
+
+> **Note**: This skill describes the Apache HttpClient 4.x approach which has been replaced. The project has migrated from Apache HttpClient to JDK 17's `java.net.http.HttpClient`. For SOCKS proxy with the new HTTP client, see the `jdk8-to-jdk17-migration` skill.
 
 # Apache HttpClient SOCKS Proxy Implementation
 

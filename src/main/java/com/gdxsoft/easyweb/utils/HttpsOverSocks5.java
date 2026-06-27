@@ -37,10 +37,18 @@ public class HttpsOverSocks5 {
 
 	private final String proxyHost;
 	private final int proxyPort;
+	private final String proxyUser;
+	private final String proxyPassword;
 
 	public HttpsOverSocks5(String proxyHost, int proxyPort) {
+		this(proxyHost, proxyPort, null, null);
+	}
+
+	public HttpsOverSocks5(String proxyHost, int proxyPort, String proxyUser, String proxyPassword) {
 		this.proxyHost = proxyHost;
 		this.proxyPort = proxyPort;
+		this.proxyUser = proxyUser;
+		this.proxyPassword = proxyPassword;
 	}
 
 	/**
@@ -131,9 +139,14 @@ public class HttpsOverSocks5 {
 		InputStream in = socket.getInputStream();
 		OutputStream out = socket.getOutputStream();
 
-		// Step 1: Client greeting - no authentication required
+		// Step 1: Client greeting - advertise NO AUTH and USERNAME/PASSWORD auth
 		// VER | NMETHODS | METHODS
-		out.write(new byte[] { 0x05, 0x01, 0x00 }); // SOCKS5, 1 method, NO AUTH
+		boolean hasAuth = proxyUser != null && !proxyUser.isEmpty();
+		if (hasAuth) {
+			out.write(new byte[] { 0x05, 0x02, 0x00, 0x02 }); // SOCKS5, 2 methods: NO AUTH, USER/PASS
+		} else {
+			out.write(new byte[] { 0x05, 0x01, 0x00 }); // SOCKS5, 1 method: NO AUTH
+		}
 		out.flush();
 
 		// Step 2: Server selects method
@@ -144,9 +157,32 @@ public class HttpsOverSocks5 {
 			throw new IOException("Not a SOCKS5 proxy (version=" + ver + ")");
 		}
 		if (method == 0xFF) {
-			throw new IOException("SOCKS5 proxy requires authentication (not supported)");
+			throw new IOException("SOCKS5 proxy rejected all authentication methods");
 		}
-		if (method != 0x00) {
+
+		// Step 2b: If server selected USERNAME/PASSWORD auth (0x02), do auth sub-negotiation (RFC 1929)
+		if (method == 0x02) {
+			if (!hasAuth) {
+				throw new IOException("SOCKS5 proxy requires authentication but no credentials provided");
+			}
+			byte[] userBytes = proxyUser.getBytes(StandardCharsets.UTF_8);
+			byte[] passBytes = (proxyPassword != null ? proxyPassword : "").getBytes(StandardCharsets.UTF_8);
+			ByteArrayOutputStream authBuf = new ByteArrayOutputStream();
+			authBuf.write(0x01); // VER: auth sub-negotiation version
+			authBuf.write(userBytes.length);
+			authBuf.write(userBytes);
+			authBuf.write(passBytes.length);
+			authBuf.write(passBytes);
+			out.write(authBuf.toByteArray());
+			out.flush();
+
+			// Read auth response: VER | STATUS
+			int authVer = in.read();
+			int authStatus = in.read();
+			if (authVer != 0x01 || authStatus != 0x00) {
+				throw new IOException("SOCKS5 authentication failed (status=" + authStatus + ")");
+			}
+		} else if (method != 0x00) {
 			throw new IOException("SOCKS5 proxy selected unsupported auth method: " + method);
 		}
 

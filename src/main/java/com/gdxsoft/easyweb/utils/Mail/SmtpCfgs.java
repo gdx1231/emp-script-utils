@@ -16,8 +16,8 @@ import com.gdxsoft.easyweb.utils.UMail;
 import com.gdxsoft.easyweb.utils.UXml;
 import com.gdxsoft.easyweb.utils.Utils;
 
-import javax.mail.Session;
-import javax.mail.internet.MimeMessage;
+import jakarta.mail.Session;
+import jakarta.mail.internet.MimeMessage;
 
 public class SmtpCfgs {
 	private static Logger LOG = LoggerFactory.getLogger(SmtpCfgs.class);

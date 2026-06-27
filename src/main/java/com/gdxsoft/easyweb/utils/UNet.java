@@ -88,6 +88,8 @@ public class UNet {
 	private String _ProxyHost;
 	private int _ProxyPort;
 	private String _ProxyScheme = "http";
+	private String _ProxyUser;
+	private String _ProxyPassword;
 
 	public int getTimeout() {
 		return timeout;
@@ -140,12 +142,29 @@ public class UNet {
 	}
 
 	/**
+	 * 设置网络代理（含用户名密码认证）
+	 *
+	 * @param host     代理主机名或 IP
+	 * @param port     代理端口（1-65535）
+	 * @param scheme   代理协议（http/https/socks）
+	 * @param user     代理用户名（null 表示无需认证）
+	 * @param password 代理密码（null 表示无需认证）
+	 */
+	public void setProxy(String host, int port, String scheme, String user, String password) {
+		setProxy(host, port, scheme);
+		this._ProxyUser = user;
+		this._ProxyPassword = password;
+	}
+
+	/**
 	 * 清除代理设置
 	 */
 	public void clearProxy() {
 		this._ProxyHost = null;
 		this._ProxyPort = 0;
 		this._ProxyScheme = "http";
+		this._ProxyUser = null;
+		this._ProxyPassword = null;
 	}
 
 	public UNet() {
@@ -911,7 +930,8 @@ public class UNet {
 	 */
 	private String doGetViaSocksHttps(String url) {
 		try {
-			HttpsOverSocks5 socks = new HttpsOverSocks5(this._ProxyHost, this._ProxyPort);
+			HttpsOverSocks5 socks = new HttpsOverSocks5(this._ProxyHost, this._ProxyPort,
+					this._ProxyUser, this._ProxyPassword);
 			Map<String, String> reqHeaders = new HashMap<>();
 			reqHeaders.put("User-Agent", getUserAgent());
 			String cookies = getCookies();
@@ -1018,7 +1038,8 @@ public class UNet {
 	 */
 	private byte[] downloadDataViaSocksHttps(String url) {
 		try {
-			HttpsOverSocks5 socks = new HttpsOverSocks5(this._ProxyHost, this._ProxyPort);
+			HttpsOverSocks5 socks = new HttpsOverSocks5(this._ProxyHost, this._ProxyPort,
+					this._ProxyUser, this._ProxyPassword);
 			Map<String, String> reqHeaders = new HashMap<>();
 			reqHeaders.put("User-Agent", getUserAgent());
 			String cookies = getCookies();
@@ -1061,8 +1082,18 @@ public class UNet {
 			if (this._IsShowLog) {
 				LOGGER.info("Using proxy: {}://{}:{}", this._ProxyScheme, this._ProxyHost, this._ProxyPort);
 			}
-			// java.net.http.HttpClient 不原生支持 SOCKS 代理，对于 SOCKS 也使用 HTTP 代理作为回退
 			builder.proxy(ProxySelector.of(new InetSocketAddress(this._ProxyHost, this._ProxyPort)));
+
+			// HTTP 代理认证
+			if (this._ProxyUser != null && !this._ProxyUser.isEmpty()) {
+				builder.authenticator(new java.net.Authenticator() {
+					@Override
+					protected java.net.PasswordAuthentication getPasswordAuthentication() {
+						return new java.net.PasswordAuthentication(_ProxyUser,
+								(_ProxyPassword != null ? _ProxyPassword : "").toCharArray());
+					}
+				});
+			}
 		}
 
 		// SSL trust-all for HTTPS

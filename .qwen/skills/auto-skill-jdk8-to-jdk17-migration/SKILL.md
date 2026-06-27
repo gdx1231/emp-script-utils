@@ -179,12 +179,179 @@ private String doGetViaSocks(String url) {
 }
 ```
 
-**Known limitation**: Java's `HttpURLConnection` SOCKS5 implementation handles HTTP targets correctly but **HTTPS over SOCKS5 times out** ("Read timed out"). The SOCKS tunnel is established, but TLS handshake through the tunnel fails in JDK 17. For HTTPS targets through SOCKS, users should use an HTTP proxy instead. Verified test results:
+**Known limitation (FIXED)**: Java's `HttpURLConnection` SOCKS5 implementation handles HTTP targets correctly but **HTTPS over SOCKS5 times out** ("Read timed out"). For HTTPS over SOCKS5, a custom `HttpsOverSocks5` implementation is needed (see below).
 
-| Proxy Type | HTTP Target | HTTPS Target |
-|-----------|-------------|-------------|
-| HTTP Proxy | ✅ | ✅ |
-| SOCKS5 (HttpURLConnection fallback) | ✅ | ❌ Read timed out |
+| SOCKS5 (HttpURLConnection fallback) | ✅ | ❌ Read timed out (needs HttpsOverSocks5) |
+| SOCKS5 (HttpsOverSocks5) | ✅ | ✅ |
+
+### HTTPS over SOCKS5 — HttpsOverSocks5 implementation
+
+`java.net.http.HttpClient` doesn't support SOCKS proxies at all, and `HttpURLConnection` with SOCKS proxy fails for HTTPS targets. The fix is a custom `HttpsOverSocks5` class that:
+
+1. Opens a raw TCP socket to the SOCKS5 proxy
+2. Performs SOCKS5 handshake with hostname-based connection (ATYP=0x03, remote DNS)
+3. Wraps the connected socket with `SSLSocket` for TLS
+4. Sends the HTTP request manually over the SSL socket
+5. Parses the HTTP response (status line, headers, chunked transfer encoding)
+
+Key implementation details:
+```java
+// SOCKS5 handshake with remote DNS (hostname, not IP)
+private void socks5Handshake(Socket socket, String targetHost, int targetPort) {
+    // Step 1: Client greeting
+    out.write(new byte[] { 0x05, 0x01, 0x00 }); // SOCKS5, 1 method, NO AUTH
+    // Step 2: Server selects method
+    int ver = in.read(); int method = in.read();
+    // Step 3: Connect request with DOMAINNAME (ATYP=0x03)
+    ByteArrayOutputStream reqBuf = new ByteArrayOutputStream();
+    reqBuf.write(0x05); // VER
+    reqBuf.write(0x01); // CMD=CONNECT
+    reqBuf.write(0x00); // RSV
+    reqBuf.write(0x03); // ATYP=DOMAINNAME
+    reqBuf.write(hostBytes.length);
+    reqBuf.write(hostBytes);
+    reqBuf.write((targetPort >> 8) & 0xFF);
+    reqBuf.write(targetPort & 0xFF);
+    // Step 4: Read response, skip bound address
+}
+
+// SSL over SOCKS tunnel
+SSLSocketFactory sslFactory = createTrustAllSSLSocketFactory();
+SSLSocket sslSocket = (SSLSocket) sslFactory.createSocket(
+    proxySocket, host, port, true);
+sslSocket.startHandshake();
+
+// Send HTTP request manually
+String req = "GET " + path + " HTTP/1.1\r\n" +
+    "Host: " + host + "\r\n" +
+    "Connection: close\r\n\r\n";
+out.write(req.getBytes(StandardCharsets.UTF_8));
+
+// Parse response (status line, headers, chunked body)
+return parseHttpResponse(sslSocket.getInputStream());
+```
+
+#### HTTP response parser requirements
+When sending raw HTTP over the socket, you need to parse:
+- Status line: `HTTP/1.1 200 OK` → extract status code
+- Headers: `Name: value\r\n` until blank line
+- Body: Content-Length for fixed size, Transfer-Encoding: chunked for chunked, or read-all for connection-close
+- Chunked encoding: read hex size line, then chunk data, then CRLF
+
+### Proxy Authentication
+
+#### HTTP Proxy Auth (UNet)
+Use `java.net.Authenticator` with `HttpClient.Builder`:
+```java
+if (this._ProxyUser != null && !this._ProxyUser.isEmpty()) {
+    builder.authenticator(new java.net.Authenticator() {
+        @Override
+        protected PasswordAuthentication getPasswordAuthentication() {
+            return new PasswordAuthentication(_ProxyUser,
+                    (_ProxyPassword != null ? _ProxyPassword : "").toCharArray());
+        }
+    });
+}
+```
+
+#### SOCKS5 Proxy Auth (HttpsOverSocks5)
+Implement RFC 1929 username/password authentication in the SOCKS5 handshake:
+```java
+// Step 1: Advertise both NO AUTH and USER/PASS methods
+if (hasAuth) {
+    out.write(new byte[] { 0x05, 0x02, 0x00, 0x02 }); // 2 methods
+} else {
+    out.write(new byte[] { 0x05, 0x01, 0x00 }); // 1 method
+}
+
+// Step 2b: If server selected USER/PASS (0x02), do auth sub-negotiation
+if (method == 0x02) {
+    ByteArrayOutputStream authBuf = new ByteArrayOutputStream();
+    authBuf.write(0x01); // VER: sub-negotiation version
+    authBuf.write(userBytes.length);
+    authBuf.write(userBytes);
+    authBuf.write(passBytes.length);
+    authBuf.write(passBytes);
+    out.write(authBuf.toByteArray());
+    out.flush();
+    int authVer = in.read(); int authStatus = in.read();
+    if (authVer != 0x01 || authStatus != 0x00) {
+        throw new IOException("SOCKS5 authentication failed");
+    }
+}
+```
+
+### javax.mail → jakarta.mail Migration
+
+When upgrading from `com.sun.mail/jakarta.mail 1.x` to `org.eclipse.angus/jakarta.mail 2.x`:
+
+#### pom.xml changes
+```xml
+<!-- Old -->
+<dependency>
+    <groupId>com.sun.mail</groupId>
+    <artifactId>jakarta.mail</artifactId>
+    <version>1.6.8</version>
+</dependency>
+<!-- New -->
+<dependency>
+    <groupId>org.eclipse.angus</groupId>
+    <artifactId>jakarta.mail</artifactId>
+    <version>2.0.3</version>
+</dependency>
+<!-- Required by Jakarta Mail 2.x -->
+<dependency>
+    <groupId>jakarta.activation</groupId>
+    <artifactId>jakarta.activation-api</artifactId>
+    <version>2.1.3</version>
+</dependency>
+```
+
+#### Bulk import replace
+Replace `javax.mail.*` → `jakarta.mail.*` and `javax.activation.*` → `jakarta.activation.*` in BOTH main and test sources:
+```bash
+find src/main/java -name '*.java' -exec sed -i '' \
+    's/import javax\.mail\./import jakarta.mail./g; 
+     s/import javax\.activation\./import jakarta.activation./g' {} +
+
+# Don't forget test sources!
+find src/test/java -name '*.java' -exec sed -i '' \
+    's/import javax\.mail\./import jakarta.mail./g;
+     s/import javax\.activation\./import jakarta.activation./g' {} +
+```
+
+#### com.sun.mail internal classes — no longer exist
+| Old (com.sun.mail 1.x) | New (jakarta.mail 2.x) |
+|------------------------|------------------------|
+| `com.sun.mail.smtp.SMTPMessage` | `jakarta.mail.internet.MimeMessage` (SMTPMessage extends MimeMessage) |
+| `com.sun.mail.util.CRLFOutputStream` | Self-implement: `body.replace("\r\n", "\n").replace("\n", "\r\n")` |
+| `com.sun.mail.util.QPEncoderStream` | Self-implement QP encoder (`String.format("=%02X", b & 0xFF)`) |
+| `com.sun.mail.util.LineOutputStream` | Self-implement: `os.write((line + "\r\n").getBytes(US_ASCII))` |
+
+#### DKIMMessage rewrite
+Change `extends SMTPMessage` → `extends MimeMessage`. Constructor signatures are identical (they inherit from MimeMessage). `writeTo(OutputStream, String[])` exists on both. `setAllow8bitMIME()` can be a no-op.
+
+#### DKIMSigner fixes
+Replace `CRLFOutputStream` with inline CRLF normalization:
+```java
+String bodyWithCrlf = body.replace("\r\n", "\n").replace("\n", "\r\n");
+baos.write(bodyWithCrlf.getBytes());
+```
+
+Replace `QPEncoderStream` with a simple QP encoder:
+```java
+private static String QuotedPrintable(String s) {
+    StringBuilder sb = new StringBuilder();
+    for (byte b : s.getBytes()) {
+        if ((b >= 33 && b <= 60) || (b >= 62 && b <= 126) || b == 9 || b == 32) {
+            sb.append((char) b);
+        } else {
+            sb.append(String.format("=%02X", b & 0xFF));
+        }
+    }
+    return sb.toString();
+}
+```
 
 ### javax.servlet → jakarta.servlet
 

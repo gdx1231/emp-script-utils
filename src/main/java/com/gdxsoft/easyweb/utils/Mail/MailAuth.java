@@ -1,7 +1,7 @@
 package com.gdxsoft.easyweb.utils.Mail;
 
-import javax.mail.Authenticator;
-import javax.mail.PasswordAuthentication;
+import jakarta.mail.Authenticator;
+import jakarta.mail.PasswordAuthentication;
 
 public class MailAuth extends Authenticator {
 	private String strUser;
