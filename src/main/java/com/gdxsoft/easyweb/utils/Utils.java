@@ -20,8 +20,8 @@ import java.util.regex.Pattern;
 
 import com.gdxsoft.easyweb.utils.msnet.MListStr;
 
-import org.apache.commons.lang3.BooleanUtils;
-import org.bouncycastle.util.encoders.Hex;
+import java.util.HexFormat;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -189,14 +189,12 @@ public class Utils {
 		if (object == null)
 			return false;
 
-		boolean result = BooleanUtils.toBoolean(object.toString());
-		if (result) {
-			return true;
-		}
+		String v1 = object.toString().trim().toLowerCase();
 
-		String v1 = object.toString().trim();
-
-		if (v1.equals("是") || v1.equals("1") || v1.equals("同意") || v1.equals("通过") || v1.equals("赞成")) {
+		if (Boolean.parseBoolean(v1) || "true".equals(v1)
+				|| "yes".equals(v1) || "on".equals(v1) || "y".equals(v1) || "t".equals(v1)
+				|| "1".equals(v1) || "是".equals(v1) || "同意".equals(v1)
+				|| "通过".equals(v1) || "赞成".equals(v1)) {
 			return true;
 		}
 		return false;
@@ -277,7 +275,7 @@ public class Utils {
 
 	/**
 	 * 取bytes的 sha1 摘要
-	 * 
+	 *
 	 * @param bytes 二进制数组
 	 * @return sha1 摘要(HEX)
 	 */
@@ -289,7 +287,7 @@ public class Utils {
 
 	/**
 	 * 取str的 sha1 摘要
-	 * 
+	 *
 	 * @param str 字符串
 	 * @return sha1 摘要(HEX)
 	 */
@@ -301,7 +299,7 @@ public class Utils {
 
 	/**
 	 * 取bytes的md5摘要
-	 * 
+	 *
 	 * @param bytes 二进制数组
 	 * @return md5摘要(HEX)
 	 */
@@ -313,7 +311,7 @@ public class Utils {
 
 	/**
 	 * 取str的md5摘要
-	 * 
+	 *
 	 * @param str 字符串
 	 * @return md5摘要(HEX)
 	 */
@@ -330,29 +328,29 @@ public class Utils {
 	 * @return 16进制字符串
 	 */
 	public static String bytes2hex(byte[] b) {
-		return Hex.toHexString(b).toUpperCase();
+		return HexFormat.of().withUpperCase().formatHex(b);
 	}
 
 	/**
 	 * 拼写错误，请用 bytes2hex 将byte数组转换为16进制字符串
-	 * 
+	 *
 	 * @param b byte数组
 	 * @return 16进制字符串
 	 */
 	@Deprecated
 	public static String byte2hex(byte[] b) {
-		return Hex.toHexString(b);
+		return HexFormat.of().formatHex(b);
 
 	}
 
 	/**
 	 * 转换 hex字符串为二进制
-	 * 
+	 *
 	 * @param hexs hex字符串
 	 * @return 二进制
 	 */
 	public static byte[] hex2bytes(String hexs) {
-		return Hex.decode(hexs);
+		return HexFormat.of().parseHex(hexs);
 		/*
 		 * String stmp = ""; byte[] buf = new byte[hexs.length() / 2]; for (int n = 0; n
 		 * < hexs.length() / 2; n++) { int beginIndex = n * 2; int endIndex = beginIndex

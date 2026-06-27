@@ -10,7 +10,6 @@ import java.util.regex.MatchResult;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.apache.commons.io.IOUtils;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -119,55 +118,42 @@ public class UHtml {
 	 * @return the http body string(UTF8)
 	 * @throws IOException
 	 */
-	public static String getHttpBody(javax.servlet.http.HttpServletRequest request) throws IOException {
+	public static String getHttpBody(jakarta.servlet.http.HttpServletRequest request) throws IOException {
 		return getHttpBody(request, "utf-8");
 	}
 
 	/**
 	 * Get http body content
-	 * 
-	 * @param request HttpServletRequest (javax)
+	 *
+	 * @param request HttpServletRequest (jakarta)
 	 * @param charset The charset name
 	 * @return the http body string
 	 * @throws IOException
 	 */
-	public static String getHttpBody(javax.servlet.http.HttpServletRequest request, String charset) throws IOException {
+	public static String getHttpBody(jakarta.servlet.http.HttpServletRequest request, String charset) throws IOException {
 		InputStream is = request.getInputStream();
-		return IOUtils.toString(is, charset);
+		return new String(is.readAllBytes(), charset);
 	}
 
 	/**
-	 * Get http body content (jakarta, TOMCAT10)
-	 * 
-	 * @param request HttpServletRequest (jakarta)
-	 * @return the http body string(UTF8)
-	 * @throws IOException
-	 */
-	/*
-	 * public static String getHttpBody(jakarta.servlet.http.HttpServletRequest
-	 * request) throws IOException { InputStream is = request.getInputStream();
-	 * String str = getHttpBody(is); return str; }
-	 */
-
-	/**
 	 * Get the request body content
-	 * 
+	 *
 	 * @param request
 	 * @return
 	 * @throws IOException
 	 */
-	public static byte[] getHttpBodyBytes(javax.servlet.http.HttpServletRequest request) throws IOException {
+	public static byte[] getHttpBodyBytes(jakarta.servlet.http.HttpServletRequest request) throws IOException {
 		InputStream is = request.getInputStream();
-		return IOUtils.toByteArray(is);
+		return is.readAllBytes();
 	}
 
 	/**
 	 * Get the base url from the HttpServletRequest
-	 * 
+	 *
 	 * @param request the HttpServletRequest
 	 * @return the base url
 	 */
-	public static String getHttpBase(javax.servlet.http.HttpServletRequest request) {
+	public static String getHttpBase(jakarta.servlet.http.HttpServletRequest request) {
 		String port = ":" + request.getServerPort();
 		String scheme = request.getHeader("x-forwarded-protocol");
 		if (scheme == null) {
@@ -198,7 +184,7 @@ public class UHtml {
 	 * @param baseAdd the path of attachment
 	 * @return the base url
 	 */
-	public static String getHttpBase(javax.servlet.http.HttpServletRequest request, String baseAdd) {
+	public static String getHttpBase(jakarta.servlet.http.HttpServletRequest request, String baseAdd) {
 
 		String __base = getHttpBase(request);
 		if (baseAdd != null) {

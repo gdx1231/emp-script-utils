@@ -7,6 +7,10 @@ import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.DESKeySpec;
 import javax.crypto.spec.IvParameterSpec;
 
+/**
+ * @deprecated DES uses 56-bit keys and is no longer considered secure. Use AES (UAes) instead.
+ */
+@Deprecated
 public class UDes implements IUSymmetricEncyrpt {
 	private static String DES_KEY_VALUE;
 	private static String DES_IV_VALUE;

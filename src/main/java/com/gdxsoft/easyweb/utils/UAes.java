@@ -57,8 +57,11 @@ public class UAes implements IUSymmetricEncyrpt {
 	 * 1、将要被加密和认证的数据，即明文消息P数据块 2、将要被认证，但是不需要加密的相关数据A，如协议头等。
 	 * 3、临时量N，作为负载和相关数据的补充，对每条消息N取值唯一，以防止重放攻击等。
 	 */
+	@Deprecated
 	public final static String AES_128_CCM = "aes-128-ccm";
+	@Deprecated
 	public final static String AES_192_CCM = "aes-192-ccm";
+	@Deprecated
 	public final static String AES_256_CCM = "aes-256-ccm";
 
 	// 密码分组链接模式（Cipher Block Chaining (CBC)
@@ -81,9 +84,12 @@ public class UAes implements IUSymmetricEncyrpt {
 	public final static String AES_192_OFB = "aes-192-ofb";
 	public final static String AES_256_OFB = "aes-256-ofb";
 
-	// 电码本模式（Electronic Codebook Book (ECB)）
+	// 电码本模式（Electronic Codebook Book (ECB)） - insecure, no IV
+	@Deprecated
 	public final static String AES_128_ECB = "aes-128-ecb";
+	@Deprecated
 	public final static String AES_192_ECB = "aes-192-ecb";
+	@Deprecated
 	public final static String AES_256_ECB = "aes-256-ecb";
 
 	public final static String PKCS7Padding = "PKCS7Padding";
@@ -108,12 +114,6 @@ public class UAes implements IUSymmetricEncyrpt {
 	 * 度等于16*(n+1)。在不足16的整数倍的情况下，假如原始数据长度等于16*n+m[其中m小于16]， 除了NoPadding填充之外的任何方
 	 * 式，加密数据长度都等于16*(n+1).
 	 */
-
-	static {
-		if (Security.getProvider(BouncyCastleProvider.PROVIDER_NAME) == null) {
-			Security.addProvider(new BouncyCastleProvider());
-		}
-	}
 
 	/**
 	 * Initialize the default key and iv, the algorithm is AES_128_GCM
@@ -225,7 +225,7 @@ public class UAes implements IUSymmetricEncyrpt {
 	// if (macSizeBits < 32 || macSizeBits > 128 || macSizeBits % 8 != 0)
 	private int macSizeBits = 128;
 
-	private boolean usingBc = true;
+	private boolean usingBc = false;
 
 	private boolean autoIv = false;
 
@@ -421,7 +421,12 @@ public class UAes implements IUSymmetricEncyrpt {
 		Cipher cipher;
 		String blockMode = this.getBlockCipherMode();
 		// AES/CBC/PKCS5Padding AES/CBC/NoPadding
-		String transformation = "AES/" + blockMode + "/" + this.getPaddingMethod();
+		// JDK uses PKCS5Padding which is equivalent to PKCS7Padding for AES
+		String padding = this.getPaddingMethod();
+		if ("PKCS7Padding".equalsIgnoreCase(padding)) {
+			padding = PKCS5Padding;
+		}
+		String transformation = "AES/" + blockMode + "/" + padding;
 		if (blockMode.equals("GCM")) {
 			transformation = "AES/" + blockMode + "/" + NoPadding;
 		}
@@ -477,7 +482,14 @@ public class UAes implements IUSymmetricEncyrpt {
 	 * @return cipher
 	 */
 	@SuppressWarnings("deprecation")
+	private static void ensureBcProvider() {
+		if (Security.getProvider(BouncyCastleProvider.PROVIDER_NAME) == null) {
+			Security.addProvider(new BouncyCastleProvider());
+		}
+	}
+
 	private OpCipher getCipherBc(boolean isEncyrpt, byte[] keyBytes, byte[] ivBytes) {
+		ensureBcProvider();
 		AESEngine engine = new AESEngine();
 
 		OpCipher cipher = new OpCipher();

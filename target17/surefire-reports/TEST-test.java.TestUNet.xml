@@ -1,0 +1,338 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://maven.apache.org/surefire/maven-surefire-plugin/xsd/surefire-test-report.xsd" version="3.0.2" name="test.java.TestUNet" time="3.977" tests="50" errors="0" skipped="0" failures="0">
+  <properties>
+    <property name="java.specification.version" value="25"/>
+    <property name="sun.jnu.encoding" value="UTF-8"/>
+    <property name="java.class.path" value="/Users/admin/java/com.gdxsoft/emp-script-utils/target17/test-classes:/Users/admin/java/com.gdxsoft/emp-script-utils/target17/classes:/Users/admin/.m2/repository/org/json/json/20250517/json-20250517.jar:/Users/admin/.m2/repository/com/google/zxing/core/3.5.3/core-3.5.3.jar:/Users/admin/.m2/repository/net/coobird/thumbnailator/0.4.19/thumbnailator-0.4.19.jar:/Users/admin/.m2/repository/org/slf4j/slf4j-api/1.7.36/slf4j-api-1.7.36.jar:/Users/admin/.m2/repository/com/sun/mail/jakarta.mail/1.6.8/jakarta.mail-1.6.8.jar:/Users/admin/.m2/repository/com/sun/activation/jakarta.activation/1.2.1/jakarta.activation-1.2.1.jar:/Users/admin/.m2/repository/org/bouncycastle/bcprov-jdk18on/1.84/bcprov-jdk18on-1.84.jar:/Users/admin/.m2/repository/org/hsqldb/hsqldb/2.7.1/hsqldb-2.7.1.jar:/Users/admin/.m2/repository/org/junit/jupiter/junit-jupiter-api/5.7.1/junit-jupiter-api-5.7.1.jar:/Users/admin/.m2/repository/org/apiguardian/apiguardian-api/1.1.0/apiguardian-api-1.1.0.jar:/Users/admin/.m2/repository/org/opentest4j/opentest4j/1.2.0/opentest4j-1.2.0.jar:/Users/admin/.m2/repository/org/junit/platform/junit-platform-commons/1.7.1/junit-platform-commons-1.7.1.jar:/Users/admin/.m2/repository/jakarta/servlet/jakarta.servlet-api/6.1.0/jakarta.servlet-api-6.1.0.jar:/Users/admin/.m2/repository/org/slf4j/slf4j-jdk14/1.7.32/slf4j-jdk14-1.7.32.jar:"/>
+    <property name="java.vm.vendor" value="Homebrew"/>
+    <property name="sun.arch.data.model" value="64"/>
+    <property name="java.vendor.url" value="https://github.com/Homebrew/homebrew-core/issues"/>
+    <property name="user.timezone" value="Asia/Shanghai"/>
+    <property name="os.name" value="Mac OS X"/>
+    <property name="java.vm.specification.version" value="25"/>
+    <property name="sun.java.launcher" value="SUN_STANDARD"/>
+    <property name="user.country" value="CN"/>
+    <property name="sun.boot.library.path" value="/Volumes/T2/opt/homebrew/Cellar/openjdk/25.0.2/libexec/openjdk.jdk/Contents/Home/lib"/>
+    <property name="sun.java.command" value="/Users/admin/java/com.gdxsoft/emp-script-utils/target17/surefire/surefirebooter-20260627105603125_3.jar /Users/admin/java/com.gdxsoft/emp-script-utils/target17/surefire 2026-06-27T10-56-03_075-jvmRun1 surefire-20260627105603125_1tmp surefire_0-20260627105603125_2tmp"/>
+    <property name="jdk.debug" value="release"/>
+    <property name="surefire.test.class.path" value="/Users/admin/java/com.gdxsoft/emp-script-utils/target17/test-classes:/Users/admin/java/com.gdxsoft/emp-script-utils/target17/classes:/Users/admin/.m2/repository/org/json/json/20250517/json-20250517.jar:/Users/admin/.m2/repository/com/google/zxing/core/3.5.3/core-3.5.3.jar:/Users/admin/.m2/repository/net/coobird/thumbnailator/0.4.19/thumbnailator-0.4.19.jar:/Users/admin/.m2/repository/org/slf4j/slf4j-api/1.7.36/slf4j-api-1.7.36.jar:/Users/admin/.m2/repository/com/sun/mail/jakarta.mail/1.6.8/jakarta.mail-1.6.8.jar:/Users/admin/.m2/repository/com/sun/activation/jakarta.activation/1.2.1/jakarta.activation-1.2.1.jar:/Users/admin/.m2/repository/org/bouncycastle/bcprov-jdk18on/1.84/bcprov-jdk18on-1.84.jar:/Users/admin/.m2/repository/org/hsqldb/hsqldb/2.7.1/hsqldb-2.7.1.jar:/Users/admin/.m2/repository/org/junit/jupiter/junit-jupiter-api/5.7.1/junit-jupiter-api-5.7.1.jar:/Users/admin/.m2/repository/org/apiguardian/apiguardian-api/1.1.0/apiguardian-api-1.1.0.jar:/Users/admin/.m2/repository/org/opentest4j/opentest4j/1.2.0/opentest4j-1.2.0.jar:/Users/admin/.m2/repository/org/junit/platform/junit-platform-commons/1.7.1/junit-platform-commons-1.7.1.jar:/Users/admin/.m2/repository/jakarta/servlet/jakarta.servlet-api/6.1.0/jakarta.servlet-api-6.1.0.jar:/Users/admin/.m2/repository/org/slf4j/slf4j-jdk14/1.7.32/slf4j-jdk14-1.7.32.jar:"/>
+    <property name="sun.cpu.endian" value="little"/>
+    <property name="user.home" value="/Users/admin"/>
+    <property name="user.language" value="zh"/>
+    <property name="java.specification.vendor" value="Oracle Corporation"/>
+    <property name="java.version.date" value="2026-01-20"/>
+    <property name="java.home" value="/Volumes/T2/opt/homebrew/Cellar/openjdk/25.0.2/libexec/openjdk.jdk/Contents/Home"/>
+    <property name="file.separator" value="/"/>
+    <property name="basedir" value="/Users/admin/java/com.gdxsoft/emp-script-utils"/>
+    <property name="java.vm.compressedOopsMode" value="Zero based"/>
+    <property name="line.separator" value="&#10;"/>
+    <property name="java.vm.specification.vendor" value="Oracle Corporation"/>
+    <property name="java.specification.name" value="Java Platform API Specification"/>
+    <property name="apple.awt.application.name" value="ForkedBooter"/>
+    <property name="surefire.real.class.path" value="/Users/admin/java/com.gdxsoft/emp-script-utils/target17/surefire/surefirebooter-20260627105603125_3.jar"/>
+    <property name="user.script" value="Hans"/>
+    <property name="sun.management.compiler" value="HotSpot 64-Bit Tiered Compilers"/>
+    <property name="java.runtime.version" value="25.0.2"/>
+    <property name="user.name" value="admin"/>
+    <property name="stdout.encoding" value="UTF-8"/>
+    <property name="path.separator" value=":"/>
+    <property name="os.version" value="15.5"/>
+    <property name="java.runtime.name" value="OpenJDK Runtime Environment"/>
+    <property name="file.encoding" value="UTF-8"/>
+    <property name="java.vm.name" value="OpenJDK 64-Bit Server VM"/>
+    <property name="java.vendor.version" value="Homebrew"/>
+    <property name="localRepository" value="/Users/admin/.m2/repository"/>
+    <property name="java.vendor.url.bug" value="https://github.com/Homebrew/homebrew-core/issues"/>
+    <property name="java.io.tmpdir" value="/var/folders/qc/18ckd6wn3c949_y7rbw9f6vr0000gn/T/"/>
+    <property name="java.version" value="25.0.2"/>
+    <property name="user.dir" value="/Users/admin/java/com.gdxsoft/emp-script-utils"/>
+    <property name="os.arch" value="aarch64"/>
+    <property name="java.vm.specification.name" value="Java Virtual Machine Specification"/>
+    <property name="native.encoding" value="UTF-8"/>
+    <property name="java.library.path" value="/Users/admin/Library/Java/Extensions:/Library/Java/Extensions:/Network/Library/Java/Extensions:/System/Library/Java/Extensions:/usr/lib/java:."/>
+    <property name="java.vm.info" value="mixed mode, sharing"/>
+    <property name="stderr.encoding" value="UTF-8"/>
+    <property name="java.vendor" value="Homebrew"/>
+    <property name="java.vm.version" value="25.0.2"/>
+    <property name="stdin.encoding" value="UTF-8"/>
+    <property name="sun.io.unicode.encoding" value="UnicodeBig"/>
+    <property name="java.class.version" value="69.0"/>
+  </properties>
+  <testcase name="testReadResponseCookies" classname="testReadResponseCookies()" time="0.01">
+    <system-out><![CDATA[
+----------------------------- &amp#27;[32;1mreadResponseCookies&amp#27;[39;49;0m -------------------------------
+]]></system-out>
+  </testcase>
+  <testcase name="testSocksProxyDownload" classname="testSocksProxyDownload()" time="0.529">
+    <system-out><![CDATA[
+--------------------- &amp#27;[32;1mSOCKS5 Proxy download -> httpbin.org&amp#27;[39;49;0m ----------------------
+SOCKS5 proxy download: 1024 bytes
+]]></system-out>
+  </testcase>
+  <testcase name="testDoUploadNoParams" classname="testDoUploadNoParams()" time="0.143">
+    <system-out><![CDATA[
+----------------------------- &amp#27;[32;1mdoUpload (no params)&amp#27;[39;49;0m ------------------------------
+]]></system-out>
+  </testcase>
+  <testcase name="testTimeout" classname="testTimeout()" time="0.002">
+    <system-out><![CDATA[
+----------------------------------- &amp#27;[32;1mTimeout&amp#27;[39;49;0m -------------------------------------
+]]></system-out>
+  </testcase>
+  <testcase name="testSocksProxyHttps" classname="testSocksProxyHttps()" time="0.721">
+    <system-out><![CDATA[
+----------------------- &amp#27;[32;1mSOCKS5 Proxy HTTPS -> google.com&amp#27;[39;49;0m ------------------------
+SOCKS5 HTTPS GET: status=200, length=65407
+]]></system-out>
+  </testcase>
+  <testcase name="testSocksProxyHttpsDownload" classname="testSocksProxyHttpsDownload()" time="0.673">
+    <system-out><![CDATA[
+------------------ &amp#27;[32;1mSOCKS5 Proxy HTTPS download -> google.com&amp#27;[39;49;0m --------------------
+SOCKS5 HTTPS download: 65661 bytes
+]]></system-out>
+  </testcase>
+  <testcase name="testDoPostWithParams" classname="testDoPostWithParams()" time="0.006">
+    <system-out><![CDATA[
+--------------------------- &amp#27;[32;1mdoPost with form params&amp#27;[39;49;0m -----------------------------
+]]></system-out>
+  </testcase>
+  <testcase name="testProxyValidation" classname="testProxyValidation()" time="0.003">
+    <system-out><![CDATA[
+------------------------------- &amp#27;[32;1mProxy validation&amp#27;[39;49;0m --------------------------------
+]]></system-out>
+  </testcase>
+  <testcase name="testDoGet" classname="testDoGet()" time="0.002">
+    <system-out><![CDATA[
+------------------------------------ &amp#27;[32;1mdoGet&amp#27;[39;49;0m --------------------------------------
+]]></system-out>
+  </testcase>
+  <testcase name="testDoPut" classname="testDoPut()" time="0.002">
+    <system-out><![CDATA[
+------------------------------------ &amp#27;[32;1mdoPut&amp#27;[39;49;0m --------------------------------------
+]]></system-out>
+  </testcase>
+  <testcase name="testPatch" classname="testPatch()" time="0.002">
+    <system-out><![CDATA[
+-------------------------------- &amp#27;[32;1mpatch (alias)&amp#27;[39;49;0m ----------------------------------
+]]></system-out>
+  </testcase>
+  <testcase name="testDeprecatedMethods" classname="testDeprecatedMethods()" time="0.001">
+    <system-out><![CDATA[
+------------------------ &amp#27;[32;1mDeprecated methods return null&amp#27;[39;49;0m -------------------------
+]]></system-out>
+  </testcase>
+  <testcase name="testCookieHandling" classname="testCookieHandling()" time="0.002">
+    <system-out><![CDATA[
+------------------------------- &amp#27;[32;1mCookie handling&amp#27;[39;49;0m ---------------------------------
+]]></system-out>
+  </testcase>
+  <testcase name="testHttpProxyClearThenDirect" classname="testHttpProxyClearThenDirect()" time="0.002">
+    <system-out><![CDATA[
+------------------------- &amp#27;[32;1mHTTP Proxy clear then direct&amp#27;[39;49;0m --------------------------
+]]></system-out>
+  </testcase>
+  <testcase name="testPostMsg" classname="testPostMsg()" time="0.001">
+    <system-out><![CDATA[
+------------------------------- &amp#27;[32;1mpostMsg (alias)&amp#27;[39;49;0m ---------------------------------
+]]></system-out>
+  </testcase>
+  <testcase name="testLimitRedirect" classname="testLimitRedirect()" time="0.0">
+    <system-out><![CDATA[
+------------------------------- &amp#27;[32;1mLimitRedirectInc&amp#27;[39;49;0m --------------------------------
+]]></system-out>
+  </testcase>
+  <testcase name="testPostMsgAndDownload" classname="testPostMsgAndDownload()" time="0.002">
+    <system-out><![CDATA[
+------------------------------ &amp#27;[32;1mpostMsgAndDownload&amp#27;[39;49;0m -------------------------------
+]]></system-out>
+  </testcase>
+  <testcase name="testCustomHeaders" classname="testCustomHeaders()" time="0.002">
+    <system-out><![CDATA[
+-------------------------------- &amp#27;[32;1mCustom headers&amp#27;[39;49;0m ---------------------------------
+]]></system-out>
+  </testcase>
+  <testcase name="testStatusCode" classname="testStatusCode()" time="0.009">
+    <system-out><![CDATA[
+--------------------------------- &amp#27;[32;1mStatus codes&amp#27;[39;49;0m ----------------------------------
+]]></system-out>
+    <system-err><![CDATA[6月 27, 2026 10:56:05 上午 com.gdxsoft.easyweb.utils.UNet executeAndHandleString
+严重: 404 http://127.0.0.1:65325/status?code=404
+]]></system-err>
+  </testcase>
+  <testcase name="testLastUrl" classname="testLastUrl()" time="0.001">
+    <system-out><![CDATA[
+----------------------------------- &amp#27;[32;1mlastUrl&amp#27;[39;49;0m -------------------------------------
+]]></system-out>
+  </testcase>
+  <testcase name="testDoDeleteWithBody" classname="testDoDeleteWithBody()" time="0.002">
+    <system-out><![CDATA[
+------------------------------ &amp#27;[32;1mdoDelete with body&amp#27;[39;49;0m -------------------------------
+]]></system-out>
+  </testcase>
+  <testcase name="testDoPatchWithParams" classname="testDoPatchWithParams()" time="0.002">
+    <system-out><![CDATA[
+--------------------------- &amp#27;[32;1mdoPatch with form params&amp#27;[39;49;0m ----------------------------
+]]></system-out>
+  </testcase>
+  <testcase name="testRedirect" classname="testRedirect()" time="0.003">
+    <system-out><![CDATA[
+--------------------------------- &amp#27;[32;1mRedirect 302&amp#27;[39;49;0m ----------------------------------
+]]></system-out>
+  </testcase>
+  <testcase name="testCreateStringEntity" classname="testCreateStringEntity()" time="0.0">
+    <system-out><![CDATA[
+------------------------------ &amp#27;[32;1mcreateStringEntity&amp#27;[39;49;0m -------------------------------
+]]></system-out>
+  </testcase>
+  <testcase name="testSocksProxyGet" classname="testSocksProxyGet()" time="0.257">
+    <system-out><![CDATA[
+----------------------- &amp#27;[32;1mSOCKS5 Proxy GET -> httpbin.org&amp#27;[39;49;0m -------------------------
+SOCKS5 proxy GET: status=200, length=347
+]]></system-out>
+  </testcase>
+  <testcase name="testDoPostWithBody" classname="testDoPostWithBody()" time="0.004">
+    <system-out><![CDATA[
+--------------------------- &amp#27;[32;1mdoPost with String body&amp#27;[39;49;0m -----------------------------
+]]></system-out>
+  </testcase>
+  <testcase name="testDirectGetNoProxy" classname="testDirectGetNoProxy()" time="0.004">
+    <system-out><![CDATA[
+-------------------- &amp#27;[32;1mDirect GET (no proxy) -> local server&amp#27;[39;49;0m ----------------------
+]]></system-out>
+  </testcase>
+  <testcase name="testGet302Location" classname="testGet302Location()" time="0.001">
+    <system-out><![CDATA[
+----------------------------- &amp#27;[32;1mget302Or301Location&amp#27;[39;49;0m -------------------------------
+]]></system-out>
+  </testcase>
+  <testcase name="testDoPostWithBytes" classname="testDoPostWithBytes()" time="0.003">
+    <system-out><![CDATA[
+--------------------------- &amp#27;[32;1mdoPost with byte[] body&amp#27;[39;49;0m -----------------------------
+]]></system-out>
+  </testcase>
+  <testcase name="testConstructorWithCookieAndEncode" classname="testConstructorWithCookieAndEncode()" time="0.0">
+    <system-out><![CDATA[
+---------------------- &amp#27;[32;1mConstructor with cookie and encode&amp#27;[39;49;0m -----------------------
+]]></system-out>
+  </testcase>
+  <testcase name="testDoDelete" classname="testDoDelete()" time="0.001">
+    <system-out><![CDATA[
+----------------------------------- &amp#27;[32;1mdoDelete&amp#27;[39;49;0m ------------------------------------
+]]></system-out>
+  </testcase>
+  <testcase name="testHttpProxyGet" classname="testHttpProxyGet()" time="0.799">
+    <system-out><![CDATA[
+------------------------- &amp#27;[32;1mHTTP Proxy GET -> google.com&amp#27;[39;49;0m --------------------------
+HTTP proxy GET: status=200, length=65359
+]]></system-out>
+  </testcase>
+  <testcase name="testUserAgent" classname="testUserAgent()" time="0.004">
+    <system-out><![CDATA[
+---------------------------------- &amp#27;[32;1mUserAgent&amp#27;[39;49;0m ------------------------------------
+]]></system-out>
+  </testcase>
+  <testcase name="testDefaultUserAgent" classname="testDefaultUserAgent()" time="0.0">
+    <system-out><![CDATA[
+------------------------------ &amp#27;[32;1mDefault UserAgent&amp#27;[39;49;0m --------------------------------
+]]></system-out>
+  </testcase>
+  <testcase name="testDoUpload" classname="testDoUpload()" time="0.004">
+    <system-out><![CDATA[
+----------------------------------- &amp#27;[32;1mdoUpload&amp#27;[39;49;0m ------------------------------------
+]]></system-out>
+  </testcase>
+  <testcase name="testResponseHeaders" classname="testResponseHeaders()" time="0.002">
+    <system-out><![CDATA[
+------------------------------- &amp#27;[32;1mResponse headers&amp#27;[39;49;0m --------------------------------
+]]></system-out>
+  </testcase>
+  <testcase name="testSetCookieAndInit" classname="testSetCookieAndInit()" time="0.0">
+    <system-out><![CDATA[
+---------------------------------- &amp#27;[32;1msetCookie&amp#27;[39;49;0m ------------------------------------
+]]></system-out>
+  </testcase>
+  <testcase name="testDoDeleteWithParams" classname="testDoDeleteWithParams()" time="0.001">
+    <system-out><![CDATA[
+-------------------------- &amp#27;[32;1mdoDelete with form params&amp#27;[39;49;0m ----------------------------
+]]></system-out>
+  </testcase>
+  <testcase name="testEncode" classname="testEncode()" time="0.0">
+    <system-out><![CDATA[
+------------------------------------ &amp#27;[32;1mEncode&amp#27;[39;49;0m -------------------------------------
+]]></system-out>
+  </testcase>
+  <testcase name="testDoPatch" classname="testDoPatch()" time="0.001">
+    <system-out><![CDATA[
+----------------------------------- &amp#27;[32;1mdoPatch&amp#27;[39;49;0m -------------------------------------
+]]></system-out>
+  </testcase>
+  <testcase name="testHttpProxyInvalidPort" classname="testHttpProxyInvalidPort()" time="0.002">
+    <system-out><![CDATA[
+------------------- &amp#27;[32;1mHTTP Proxy invalid port fails gracefully&amp#27;[39;49;0m --------------------
+]]></system-out>
+    <system-err><![CDATA[6月 27, 2026 10:56:06 上午 com.gdxsoft.easyweb.utils.UNet executeAndHandleString
+严重: null
+]]></system-err>
+  </testcase>
+  <testcase name="testShowLog" classname="testShowLog()" time="0.004">
+    <system-out><![CDATA[
+----------------------------------- &amp#27;[32;1mShowLog&amp#27;[39;49;0m -------------------------------------
+]]></system-out>
+    <system-err><![CDATA[6月 27, 2026 10:56:06 上午 com.gdxsoft.easyweb.utils.UNet doGet
+信息: GET http://127.0.0.1:65325/get
+6月 27, 2026 10:56:06 上午 com.gdxsoft.easyweb.utils.UNet newRequestBuilder
+信息: 设置Referer : http://127.0.0.1:65325/get
+6月 27, 2026 10:56:06 上午 com.gdxsoft.easyweb.utils.UNet lambda$saveResponseHeaders$0
+信息: content-length=[30]
+6月 27, 2026 10:56:06 上午 com.gdxsoft.easyweb.utils.UNet lambda$saveResponseHeaders$0
+信息: content-type=[application/json]
+6月 27, 2026 10:56:06 上午 com.gdxsoft.easyweb.utils.UNet lambda$saveResponseHeaders$0
+信息: date=[Sat, 27 Jun 2026 02:56:06 GMT]
+6月 27, 2026 10:56:06 上午 com.gdxsoft.easyweb.utils.UNet lambda$saveResponseHeaders$0
+信息: x-custom=[test-value]
+6月 27, 2026 10:56:06 上午 com.gdxsoft.easyweb.utils.UNet logTiming
+信息: 0s, L=30
+]]></system-err>
+  </testcase>
+  <testcase name="testClearHeaders" classname="testClearHeaders()" time="0.002">
+    <system-out><![CDATA[
+--------------------------------- &amp#27;[32;1mclearHeaders&amp#27;[39;49;0m ----------------------------------
+]]></system-out>
+  </testcase>
+  <testcase name="testHttpProxyDownload" classname="testHttpProxyDownload()" time="0.706">
+    <system-out><![CDATA[
+---------------------- &amp#27;[32;1mHTTP Proxy download -> google.com&amp#27;[39;49;0m ------------------------
+HTTP proxy download: 65658 bytes
+]]></system-out>
+  </testcase>
+  <testcase name="testCookieStore" classname="testCookieStore()" time="0.001">
+    <system-out><![CDATA[
+--------------------------------- &amp#27;[32;1mCookieStore&amp#27;[39;49;0m -----------------------------------
+]]></system-out>
+  </testcase>
+  <testcase name="testProxySetAndClear" classname="testProxySetAndClear()" time="0.001">
+    <system-out><![CDATA[
+----------------------------- &amp#27;[32;1mProxy set and clear&amp#27;[39;49;0m -------------------------------
+]]></system-out>
+  </testcase>
+  <testcase name="testDoPutWithParams" classname="testDoPutWithParams()" time="0.004">
+    <system-out><![CDATA[
+---------------------------- &amp#27;[32;1mdoPut with form params&amp#27;[39;49;0m -----------------------------
+]]></system-out>
+  </testcase>
+  <testcase name="testAddHeaders" classname="testAddHeaders()" time="0.002">
+    <system-out><![CDATA[
+---------------------------------- &amp#27;[32;1maddHeaders&amp#27;[39;49;0m -----------------------------------
+]]></system-out>
+  </testcase>
+  <testcase name="testLastResultAndBuf" classname="testLastResultAndBuf()" time="0.003">
+    <system-out><![CDATA[
+---------------------------- &amp#27;[32;1mlastResult and lastBuf&amp#27;[39;49;0m -----------------------------
+]]></system-out>
+  </testcase>
+  <testcase name="testDownloadData" classname="testDownloadData()" time="0.001">
+    <system-out><![CDATA[
+--------------------------------- &amp#27;[32;1mdownloadData&amp#27;[39;49;0m ----------------------------------
+]]></system-out>
+  </testcase>
+</testsuite>

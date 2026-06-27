@@ -37,13 +37,6 @@ import javax.imageio.ImageWriter;
 import javax.imageio.stream.ImageOutputStream;
 import javax.swing.ImageIcon;
 
-import org.apache.commons.exec.CommandLine;
-import org.apache.commons.exec.DefaultExecutor;
-import org.apache.commons.exec.ExecuteException;
-import org.apache.commons.exec.ExecuteWatchdog;
-import org.apache.commons.exec.PumpStreamHandler;
-import org.apache.commons.lang3.StringUtils;
-
 import net.coobird.thumbnailator.Thumbnails;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -93,7 +86,7 @@ public class UImages {
 	 * @return null or dimension
 	 */
 	public static Dimension parseSize(String resize) {
-		if (StringUtils.isBlank(resize)) {
+		if (resize == null || resize.isBlank()) {
 			return null;
 		}
 
@@ -929,7 +922,7 @@ public class UImages {
 
 	/**
 	 * Execute the ImageMagick command in shell
-	 * 
+	 *
 	 * @param line The command
 	 * @return the result
 	 */
@@ -937,43 +930,39 @@ public class UImages {
 		HashMap<String, String> rst = new HashMap<String, String>();
 		rst.put("CMD", line);
 
-		DefaultExecutor executor = new DefaultExecutor();
-		int[] exitValues = { 0, 1 };
-
-		executor.setExitValues(exitValues);
-
-		ExecuteWatchdog watchdog = new ExecuteWatchdog(60000);
-		executor.setWatchdog(watchdog);
-
-		/*
-		 * File dir = new File(UPath.getCVT_IMAGEMAGICK_HOME());
-		 * executor.setWorkingDirectory(dir);
-		 */
 		String line1 = line;
 		try {
 			line1 = new String(line.getBytes(), "gbk");
 		} catch (UnsupportedEncodingException e1) {
 			LOGGER.error(e1.getMessage());
 		}
-		CommandLine commandLine = CommandLine.parse(line1);
-
-		ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-		PumpStreamHandler streamHandler = new PumpStreamHandler(outputStream);
-		executor.setStreamHandler(streamHandler);
 
 		LOGGER.info(line);
 		try {
-			executor.execute(commandLine);
-			String s = outputStream.toString();
-			outputStream.close();
-			rst.put("RST", "true");
-			rst.put("MSG", s);
-		} catch (ExecuteException e) {
-			LOGGER.error(line);
-			LOGGER.error(e.getMessage());
-			rst.put("RST", "false");
-			rst.put("ERR", e.getMessage());
-		} catch (IOException e) {
+			ProcessBuilder pb = new ProcessBuilder("sh", "-c", line1);
+			if (System.getProperty("os.name").toLowerCase().startsWith("windows")) {
+				pb = new ProcessBuilder("cmd", "/c", line1);
+			}
+			pb.redirectErrorStream(true);
+			Process process = pb.start();
+			byte[] output = process.getInputStream().readAllBytes();
+			boolean finished = process.waitFor(60, java.util.concurrent.TimeUnit.SECONDS);
+			if (!finished) {
+				process.destroyForcibly();
+				rst.put("RST", "false");
+				rst.put("ERR", "Command timed out after 60 seconds");
+				return rst;
+			}
+			int exitCode = process.exitValue();
+			String s = new String(output);
+			if (exitCode == 0 || exitCode == 1) {
+				rst.put("RST", "true");
+				rst.put("MSG", s);
+			} else {
+				rst.put("RST", "false");
+				rst.put("ERR", "Exit code: " + exitCode + ", " + s);
+			}
+		} catch (Exception e) {
 			LOGGER.error(line);
 			LOGGER.error(e.getMessage());
 			rst.put("RST", "false");

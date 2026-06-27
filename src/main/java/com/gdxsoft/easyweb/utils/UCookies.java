@@ -5,9 +5,9 @@ import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.util.List;
 
-import javax.servlet.http.Cookie;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -87,7 +87,7 @@ public class UCookies {
 		if (request == null || request.getCookies() == null) {
 			return;
 		}
-		for (javax.servlet.http.Cookie cookie : request.getCookies()) {
+		for (jakarta.servlet.http.Cookie cookie : request.getCookies()) {
 			if (skipNames != null) {
 				boolean isSkip = skipNames.stream().anyMatch(item -> cookie.getName().equals(item));
 				if (isSkip) {

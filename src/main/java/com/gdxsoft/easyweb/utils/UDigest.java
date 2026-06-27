@@ -393,6 +393,14 @@ public class UDigest {
 
 	}
 
+	/**
+	 * Get a BouncyCastle Digest instance by algorithm name
+	 *
+	 * @param algorithm the algorithm name
+	 * @return BouncyCastle Digest instance
+	 * @deprecated Returns BouncyCastle internal type; use {@link #digest(byte[], String)} or JDK {@link java.security.MessageDigest} instead
+	 */
+	@Deprecated
 	public static Digest getDigest(String algorithm) {
 		if ("md5".equalsIgnoreCase(algorithm) || "md-5".equalsIgnoreCase(algorithm)) {
 			MD5Digest md5 = new MD5Digest();

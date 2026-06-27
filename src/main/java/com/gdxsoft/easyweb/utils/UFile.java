@@ -16,6 +16,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.nio.file.attribute.FileTime;
 import java.security.MessageDigest;
 import java.util.ArrayList;
@@ -27,9 +28,6 @@ import java.util.zip.GZIPOutputStream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 import java.util.zip.ZipOutputStream;
-
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.IOUtils;
 
 import com.gdxsoft.easyweb.utils.msnet.MStr;
 
@@ -296,7 +294,7 @@ public class UFile {
 				throw new IOException("The file " + path + " not exists in resource and file ");
 			}
 			// 从jar包中读取
-			return IOUtils.toByteArray(url);
+			return url.openStream().readAllBytes();
 		}
 
 	}
@@ -311,7 +309,7 @@ public class UFile {
 	public static String readFileText(String filePath) throws IOException {
 		File f1 = new File(filePath);
 		if (f1.exists()) {
-			return FileUtils.readFileToString(f1, StandardCharsets.UTF_8);
+			return Files.readString(f1.toPath(), StandardCharsets.UTF_8);
 		} else {
 			filePath = filePath.replace("\\", "/").replace("//", "/").replace("//", "/").replace("//", "/")
 					.replace("//", "/");
@@ -319,7 +317,7 @@ public class UFile {
 			if (url == null) {
 				throw new IOException("The file " + filePath + " not exists in resource and file ");
 			}
-			return IOUtils.toString(url, StandardCharsets.UTF_8);
+			return new String(url.openStream().readAllBytes(), StandardCharsets.UTF_8);
 		}
 	}
 
@@ -341,7 +339,7 @@ public class UFile {
 				ZipEntry ze = list.nextElement();
 				if (ze.getName().equals(innerFileName)) {
 					InputStream inputStream = zipFile.getInputStream(ze);
-					return IOUtils.toByteArray(inputStream);
+					return inputStream.readAllBytes();
 				}
 			}
 			return null;
@@ -398,7 +396,7 @@ public class UFile {
 				ZipEntry ze = list.nextElement();
 				if (ze.getName().equals(innerFileName)) {
 					InputStream inputStream = zipFile.getInputStream(ze);
-					return IOUtils.toString(inputStream, StandardCharsets.UTF_8);
+					return new String(inputStream.readAllBytes(), StandardCharsets.UTF_8);
 				}
 			}
 			return null;
@@ -423,7 +421,7 @@ public class UFile {
 	 * @throws IOException
 	 */
 	public static void copyFile(String fileFrom, String fileTo) throws IOException {
-		FileUtils.copyFile(new File(fileFrom), new File(fileTo));
+		Files.copy(Path.of(fileFrom), Path.of(fileTo), StandardCopyOption.REPLACE_EXISTING);
 	}
 
 	/**
@@ -711,7 +709,7 @@ public class UFile {
 		if (!file.getParentFile().exists()) {
 			UFile.buildPaths(file.getParent());
 		}
-		FileUtils.write(file, content, "UTF-8");
+		Files.writeString(file.toPath(), content, StandardCharsets.UTF_8);
 
 	}
 
@@ -854,7 +852,7 @@ public class UFile {
 		File img = new File(path);
 		UFile.buildPaths(img.getParent());
 		if (isOverWrite || (!isOverWrite && !img.exists())) {
-			FileUtils.writeByteArrayToFile(img, bytes);
+			Files.write(img.toPath(), bytes);
 		}
 	}
 

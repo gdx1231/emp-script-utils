@@ -14,8 +14,6 @@ import org.w3c.dom.NodeList;
 import com.gdxsoft.easyweb.utils.Mail.SmtpCfgs;
 import com.gdxsoft.easyweb.utils.msnet.MTableStr;
 
-import org.apache.commons.io.IOUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -400,7 +398,7 @@ public class UPath {
 	}
 
 	private static void loadConfXml(URL url) throws IOException {
-		String xml = IOUtils.toString(url, StandardCharsets.UTF_8);
+		String xml = new String(url.openStream().readAllBytes(), StandardCharsets.UTF_8);
 		CFG_XML_DOC = UXml.asDocument(xml);
 		String msg = "Loaded ewa_conf, " + url;
 
@@ -762,7 +760,7 @@ public class UPath {
 		for (int i = 0; i < nl.getLength(); i++) {
 			Element ele = (Element) nl.item(i);
 			String n = ele.getAttribute("name");
-			if (StringUtils.isBlank(n)) {
+			if (n == null || n.isBlank()) {
 				continue;
 			}
 			n = n.toUpperCase().trim();
