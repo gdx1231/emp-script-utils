@@ -300,7 +300,7 @@ public class UAes implements IUSymmetricEncyrpt {
 		} else {
 			iv = this.iv;
 		}
-		String cipherKey = new String(iv) + "," + new String(key) + ",true";
+		String cipherKey = Utils.md5(iv) + "," + Utils.md5(key) + ",true";
 		OpCipher enCipher;
 
 		if (this.mapCiphers.containsKey(cipherKey)) {
@@ -347,7 +347,7 @@ public class UAes implements IUSymmetricEncyrpt {
 			iv = this.iv;
 			cipherData = encryptedData;
 		}
-		String cipherKey = new String(iv) + "," + new String(key) + ",false";
+		String cipherKey = Utils.md5(iv) + "," + Utils.md5(key) + ",false";
 		OpCipher deCipher = null;
 
 		// A GCM cann't decrypt multiple ciphertexts with the same key and iv/nonce;
@@ -448,8 +448,7 @@ public class UAes implements IUSymmetricEncyrpt {
 				cipher.updateAAD(aad);
 			}
 		} else if (blockMode.equals("CCM")) {
-			// Create GCMParameterSpec
-			// if (macSizeBits < 32 || macSizeBits > 128 || macSizeBits % 8 != 0)
+			// JDK has no native CCM support — this path requires BouncyCastle (usingBc=true)
 			int macSizeBits = this.getMacSizeBits();
 			GCMParameterSpec gcmParameterSpec = new GCMParameterSpec(macSizeBits, ivBytes);
 			cipher.init(isEncrypt ? Cipher.ENCRYPT_MODE : Cipher.DECRYPT_MODE, keySpec, gcmParameterSpec);

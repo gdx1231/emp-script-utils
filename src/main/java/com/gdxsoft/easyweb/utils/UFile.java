@@ -83,8 +83,54 @@ public class UFile {
 	}
 
 	/**
+	 * Read the first entry name from a ZIP local file header (buf starts with PK\x03\x04).
+	 * Used to distinguish docx/xlsx/pptx/odt from generic zip.
+	 */
+	private static String readZipFirstEntryName(byte[] buf) {
+		if (buf.length < 30) {
+			return null;
+		}
+		// filename length at offset 26-27 (little-endian)
+		int nameLen = ((buf[27] & 0xFF) << 8) | (buf[26] & 0xFF);
+		int extraLen = ((buf[29] & 0xFF) << 8) | (buf[28] & 0xFF);
+		int nameStart = 30;
+		int nameEnd = nameStart + nameLen;
+		if (nameLen <= 0 || nameLen > 256 || buf.length < nameEnd) {
+			return null;
+		}
+		return new String(buf, nameStart, nameLen, StandardCharsets.UTF_8);
+	}
+
+	/**
+	 * Distinguish OLE2 compound document types by checking first sector (offset 512).
+	 * xls: BIFF8 BOF record (09 08 ... 05 00)
+	 * ppt: CurrentUserAtom (0F 00)
+	 * doc/wps: Word FIB (EC A5) or fallback
+	 */
+	private static String detectOle2Type(byte[] buf) {
+		if (buf.length < 530) {
+			return "doc"; // insufficient data, default to doc
+		}
+		int w1 = ((buf[512] & 0xFF) | ((buf[513] & 0xFF) << 8));
+		// Excel BIFF8: record type 0x0809 (BOF), sub-type 0x0005 (workbook globals)
+		if (w1 == 0x0809 && buf.length >= 518 && buf[516] == 0x05 && buf[517] == 0x00) {
+			return "xls";
+		}
+		// PowerPoint: CurrentUserAtom record type 0x000F
+		if (w1 == 0x000F) {
+			return "ppt";
+		}
+		// Word FIB: magic 0xA5EC
+		if (w1 == 0xA5EC) {
+			return "doc"; // also matches wps
+		}
+		// Default OLE2 → doc (covers wps, msi, msg, etc.)
+		return "doc";
+	}
+
+	/**
 	 * Get the extension from the bytes of the file
-	 * 
+	 *
 	 * @param buf the bytes of the file
 	 * @return the file extension
 	 */
@@ -92,39 +138,68 @@ public class UFile {
 		if (buf.length < 120) {
 			return "bin";
 		}
-		byte[] bytes = new byte[120];
-		System.arraycopy(buf, 0, bytes, 0, bytes.length);
-		String s = new String(bytes).toUpperCase();
-		if (s.substring(0, 3).equalsIgnoreCase("CWS")) {
+		// Use ISO-8859-1 to preserve raw byte values (no encoding corruption)
+		String s = new String(buf, 0, 120, StandardCharsets.ISO_8859_1);
+		char c0 = s.charAt(0);
+
+		// SWF (CWS=compressed, FWS=uncompressed)
+		if ((s.startsWith("CWS") || s.startsWith("FWS")) && s.length() > 3 && s.charAt(3) <= 20) {
 			return "swf";
-		} else if (s.toUpperCase().indexOf("JFIF") > 0 || s.toUpperCase().indexOf("XIF") > 0) {
-			return "jpg";
-		} else if (s.indexOf("PDF") > 0) {
-			return "pdf";
-		} else if (s.indexOf("RAR") == 0) {
-			return "rar";
-		} else if (s.indexOf("PK") == 0) {
-			return "zip";
-		} else if (s.indexOf("NG") == 1 || s.indexOf("PNG") >= 0) {
-			return "png";
-		} else if (s.indexOf("GIF") == 0) {
-			return "gif";
-		} else if (s.indexOf("BM") == 0) {
-			return "bmp";
-		} else if (s.indexOf("{\\rtf1") == 0) {
-			return "rtf";
-		} else {
-			// D0-CF-11-E0-A1-B1-1A-E1 doc,ppt,xls...
-			byte[] bytesDoc = new byte[8];
-			System.arraycopy(buf, 0, bytesDoc, 0, bytesDoc.length);
-			String hex = Utils.bytes2hex(bytesDoc).toUpperCase();
-			if (hex.indexOf("FFD8FF") == 0) {
-				return "jpg";
-			} else if (hex.equals("D0CF11E0A1B11AE1")) {
-				return "doc";
-			} else if (hex.indexOf("49492A00") == 0) {
-				return "tif";
+		}
+		// ZIP / JAR / Office Open XML / OpenDocument
+		if (c0 == 'P' && s.charAt(1) == 'K' && s.charAt(2) == 0x03 && s.charAt(3) == 0x04) {
+			String zipFirstEntry = readZipFirstEntryName(buf);
+			if (zipFirstEntry != null) {
+				if (zipFirstEntry.equals("mimetype")) {
+					return "odt"; // OpenDocument
+				}
+				if (zipFirstEntry.contains("word/")) {
+					return "docx";
+				}
+				if (zipFirstEntry.contains("xl/")) {
+					return "xlsx";
+				}
+				if (zipFirstEntry.contains("ppt/")) {
+					return "pptx";
+				}
 			}
+			return "zip";
+		}
+		// RAR
+		if (s.startsWith("Rar!\u001A\u0007")) {
+			return "rar";
+		}
+		// GIF
+		if (s.startsWith("GIF8")) {
+			return "gif";
+		}
+		// BMP
+		if (s.startsWith("BM")) {
+			return "bmp";
+		}
+		// PNG: byte0=0x89, byte1-3=PNG
+		if (c0 == 0x89 && s.charAt(1) == 'P' && s.charAt(2) == 'N' && s.charAt(3) == 'G') {
+			return "png";
+		}
+		// JPEG: FF D8 FF E0/E1 + JFIF/JFXX at offset 6
+		if (c0 == 0xFF && s.charAt(1) == 0xD8 && s.charAt(2) == 0xFF) {
+			// JFIF or Exif at offset 6
+			if (s.length() > 10 && (s.substring(6, 10).equals("JFIF") || s.substring(6, 10).equals("Exif"))) {
+				return "jpg";
+			}
+		}
+		// RTF
+		if (s.startsWith("{\\rtf")) {
+			return "rtf";
+		}
+		// OLE2 compound document: D0 CF 11 E0 A1 B1 1A E1 (doc, xls, ppt, wps...)
+		if (c0 == 0xD0 && s.charAt(1) == 0xCF && s.charAt(2) == 0x11 && s.charAt(3) == 0xE0
+				&& s.charAt(4) == 0xA1 && s.charAt(5) == 0xB1 && s.charAt(6) == 0x1A && s.charAt(7) == 0xE1) {
+			return detectOle2Type(buf);
+		}
+		// TIFF: II (little-endian) or MM (big-endian)
+		if ((c0 == 'I' && s.charAt(1) == 'I') || (c0 == 'M' && s.charAt(1) == 'M')) {
+			return "tif";
 		}
 		return "bin";
 	}
@@ -285,7 +360,7 @@ public class UFile {
 		if (file.exists()) { // 按照文件读取
 			return Files.readAllBytes(Paths.get(path));
 		} else {
-			path = path.replace("\\", "/").replace("//", "/").replace("//", "/").replace("//", "/").replace("//", "/");
+			path = path.replace("\\", "/").replace("//", "/");
 			URL url = UFile.class.getResource(path);
 			if (url == null) {
 				url = UFile.class.getClassLoader().getResource(path);
@@ -629,13 +704,20 @@ public class UFile {
 				continue;
 			}
 			try {
-				String filePath = path + entry.getName();
-				File ftmp = new File(filePath);
-				UFile.buildPaths(ftmp.getParentFile().getAbsolutePath());
+				// Prevent Zip Slip: validate the resolved path stays within targetPath
+				File destFile = new File(targetPath, entry.getName());
+				String canonicalTarget = new File(targetPath).getCanonicalPath();
+				String canonicalDest = destFile.getCanonicalPath();
+				if (!canonicalDest.startsWith(canonicalTarget + File.separator)
+						&& !canonicalDest.equals(canonicalTarget)) {
+					throw new IOException("Zip entry escapes target directory: " + entry.getName());
+				}
+
+				UFile.buildPaths(destFile.getParentFile().getAbsolutePath());
 
 				copyInputStream(zipFile.getInputStream(entry),
-						new BufferedOutputStream(new FileOutputStream(filePath)));
-				fileList.add(filePath);
+						new BufferedOutputStream(new FileOutputStream(destFile)));
+				fileList.add(destFile.getAbsolutePath());
 			} catch (IOException e) {
 				System.out.println(e.getMessage());
 			}
@@ -645,7 +727,7 @@ public class UFile {
 	}
 
 	private static final void copyInputStream(InputStream in, OutputStream out) throws IOException {
-		byte[] buffer = new byte[1024];
+		byte[] buffer = new byte[8192];
 		int len;
 
 		while ((len = in.read(buffer)) >= 0)
@@ -657,13 +739,15 @@ public class UFile {
 
 	/**
 	 * Rename the file
-	 * 
+	 *
 	 * @param sourcePathAndName the source file name and path
 	 * @param newName           new file name (exclude path)
 	 */
 	public static void renameFile(String sourcePathAndName, String newName) {
-		String from = UPath.getScriptPath() + sourcePathAndName.replace("|", "/");
-		File fFrom = new File(from);
+		File fFrom = new File(sourcePathAndName.replace("|", "/"));
+		if (!fFrom.isAbsolute()) {
+			fFrom = new File(UPath.getScriptPath(), sourcePathAndName.replace("|", "/"));
+		}
 		String to = fFrom.getParent() + "/" + newName;
 		File fTo = new File(to);
 		fFrom.renameTo(fTo);
@@ -681,7 +765,7 @@ public class UFile {
 	 */
 	public static String createHashTextFile(String content, String ext, String path, boolean isOverWrite)
 			throws Exception {
-		String hash = "t_" + content.hashCode();
+		String hash = "t_" + Utils.md5(content); // MD5 avoids hashCode collisions
 		path = path.trim() + "/";
 
 		if (!buildPaths(path)) {

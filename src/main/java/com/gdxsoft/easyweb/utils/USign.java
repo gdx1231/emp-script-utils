@@ -88,6 +88,9 @@ public class USign {
 					continue;
 				}
 			}
+			if (sb.length() > 0) {
+				sb.append("&");
+			}
 			sb.append(names1[i]);
 			sb.append("=");
 			sb.append(v1);
@@ -148,14 +151,15 @@ public class USign {
 
 	/**
 	 * 按照顺序JSON对象的字符串，签名的Md5
-	 * 
+	 *
 	 * @param json    需要签名的JSON对象
 	 * @param keyName 最后拼接的签名名称
 	 * @param keyVal  最后拼接的签名值
+	 * @param skipBlankValue 是否忽略空值
 	 * @return Md5
 	 */
-	public static String signMd5(JSONObject json, String keyName, String keyVal) {
-		StringBuilder sb = new StringBuilder(concatSortedStr(json, true));
+	public static String signMd5(JSONObject json, String keyName, String keyVal, boolean skipBlankValue) {
+		StringBuilder sb = new StringBuilder(concatSortedStr(json, skipBlankValue));
 
 		sb.append("&");
 		sb.append(keyName);
@@ -166,15 +170,23 @@ public class USign {
 	}
 
 	/**
+	 * 按照顺序JSON对象的字符串，签名的Md5 (默认忽略空值)
+	 */
+	public static String signMd5(JSONObject json, String keyName, String keyVal) {
+		return signMd5(json, keyName, keyVal, true);
+	}
+
+	/**
 	 * 按照顺序JSON对象的字符串，签名的 sha1
-	 * 
+	 *
 	 * @param json    需要签名的JSON对象
 	 * @param keyName 最后拼接的签名名称
 	 * @param keyVal  最后拼接的签名值
+	 * @param skipBlankValue 是否忽略空值
 	 * @return sha1
 	 */
-	public static String signSha1(JSONObject json, String keyName, String keyVal) {
-		StringBuilder sb = new StringBuilder(concatSortedStr(json, true));
+	public static String signSha1(JSONObject json, String keyName, String keyVal, boolean skipBlankValue) {
+		StringBuilder sb = new StringBuilder(concatSortedStr(json, skipBlankValue));
 
 		sb.append("&");
 		sb.append(keyName);
@@ -182,6 +194,13 @@ public class USign {
 		sb.append(keyVal);
 
 		return Utils.sha1(sb.toString());
+	}
+
+	/**
+	 * 按照顺序JSON对象的字符串，签名的sha1 (默认忽略空值)
+	 */
+	public static String signSha1(JSONObject json, String keyName, String keyVal) {
+		return signSha1(json, keyName, keyVal, true);
 	}
 
 	/**
@@ -266,9 +285,9 @@ public class USign {
 
 	/**
 	 * 在Document下添加 节点
-	 * 
+	 *
 	 * @param doc       Document
-	 * @param nodeName  创建的Node节点的tagName
+	 * @param tagName   创建的Node节点的tagName
 	 * @param innerText node内文字
 	 */
 	public static void addXmlNode(Document doc, String tagName, String innerText) {

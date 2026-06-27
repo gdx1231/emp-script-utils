@@ -2177,4 +2177,119 @@ public class UNet {
 			}
 		}
 	}
+
+	// ===================== Fluent builder API =====================
+
+	/**
+	 * Create a new UNet instance for fluent usage.
+	 * <pre>
+	 * UNet.getInstance().header("Auth", "token").agent("MyApp/1.0").get("https://api.example.com")
+	 * </pre>
+	 */
+	public static UNet getInstance() {
+		return new UNet();
+	}
+
+	public UNet header(String key, String value) {
+		this.addHeader(key, value);
+		return this;
+	}
+
+	public UNet agent(String userAgent) {
+		this.setUserAgent(userAgent);
+		return this;
+	}
+
+	public UNet timeout(int timeoutMs) {
+		this.setTimeout(timeoutMs);
+		return this;
+	}
+
+	public UNet proxy(String host, int port) {
+		this.setProxy(host, port);
+		return this;
+	}
+
+	public UNet proxy(String host, int port, String scheme) {
+		this.setProxy(host, port, scheme);
+		return this;
+	}
+
+	public UNet proxy(String host, int port, String scheme, String user, String password) {
+		this.setProxy(host, port, scheme, user, password);
+		return this;
+	}
+
+	public UNet encoding(String charset) {
+		this.setEncode(charset);
+		return this;
+	}
+
+	public UNet cookie(String cookie) {
+		this.setCookie(cookie);
+		return this;
+	}
+
+	public UNet trustAllCert(boolean trustAll) {
+		this.setTrustAllCert(trustAll);
+		return this;
+	}
+
+	public UNet log(boolean enable) {
+		this.setIsShowLog(enable);
+		return this;
+	}
+
+	public UNet authorization(String auth) {
+		setAuthorization(auth);
+		return this;
+	}
+
+	public void setAuthorization(String auth) {
+		this.addHeader("Authorization", auth);
+	}
+
+	public UNet json() {
+		setContentTypeJson();
+		return this;
+	}
+
+	public UNet form() {
+		setContentTypeFormUrlEncoded();
+		return this;
+	}
+
+	public void setContentTypeJson() {
+		this.addHeader("Content-Type", "application/json; charset=" + getCharset());
+	}
+
+	public void setContentTypeFormUrlEncoded() {
+		this.addHeader("Content-Type", "application/x-www-form-urlencoded; charset=" + getCharset());
+	}
+
+	/** Execute GET and return response body */
+	public String get(String url) {
+		return this.doGet(url);
+	}
+
+	/** Execute POST with body and return response body */
+	public String post(String url, String body) {
+		return body != null ? this.doPost(url, body)
+				: this.doPost(url, new HashMap<String, String>());
+	}
+
+	/** Execute PUT with body and return response body */
+	public String put(String url, String body) {
+		return this.doPut(url, body);
+	}
+
+	/** Execute DELETE and return response body */
+	public String delete(String url) {
+		return this.doDelete(url);
+	}
+
+	/** Download binary data */
+	public byte[] download(String url) {
+		return this.downloadData(url);
+	}
 }

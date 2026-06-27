@@ -51,18 +51,17 @@ public class UQRCode {
 		int h = matrix.getHeight();
 		int diff = -1;
 
+		outer:
 		for (int x = 0; x < w; x++) {
 			for (int y = 0; y < h; y++) {
-				boolean is_black = matrix.get(x, y);
-				if (is_black) {
-					if (x > y) {
-						diff = y;
-					} else {
-						diff = x;
-					}
-					break;
+				if (matrix.get(x, y)) {
+					diff = Math.min(x, y);
+					break outer;
 				}
 			}
+		}
+		if (diff < 0) {
+			diff = 0; // all-white (should never happen for valid QR)
 		}
 		if (diff > 1) {
 			diff = diff - 1;

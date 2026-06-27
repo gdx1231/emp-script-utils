@@ -7,8 +7,8 @@ import java.util.Date;
 
 public class UFormat {
 
-	private static final String[] WEEEK_NAME_ZHCN = "日,一,二,三,四,五,六".split(",");
-	private static final String[] WEEEK_NAME_ENUS = "Sun,Mon,Tue,Wed,Thu,Fri,Sat".split(",");
+	private static final String[] WEEK_NAME_ZHCN = "日,一,二,三,四,五,六".split(",");
+	private static final String[] WEEK_NAME_ENUS = "Sun,Mon,Tue,Wed,Thu,Fri,Sat".split(",");
 
 	/**
 	 * 英式日期表达式
@@ -67,7 +67,7 @@ public class UFormat {
 		int integerPart = (int) Math.floor(n);
 		for (int i = 0; i < unit[0].length && integerPart > 0; i++) {
 			String p = "";
-			for (int j = 0; j < unit[1].length && n > 0; j++) {
+			for (int j = 0; j < unit[1].length && integerPart > 0; j++) {
 				p = digit[integerPart % 10] + unit[1][j] + p;
 				integerPart = integerPart / 10;
 			}
@@ -304,7 +304,6 @@ public class UFormat {
 		Calendar cal = Calendar.getInstance();
 		cal.setTime(t);
 		Calendar calToday = Calendar.getInstance();
-		cal.setTime(t);
 
 		int age = calToday.get(Calendar.YEAR) - cal.get(Calendar.YEAR);
 
@@ -337,7 +336,7 @@ public class UFormat {
 		cal.setTime(t);
 
 		int wk = cal.get(java.util.Calendar.DAY_OF_WEEK) - 1;
-		String[] wks = "enus".equals(lang) ? WEEEK_NAME_ENUS : WEEEK_NAME_ZHCN;
+		String[] wks = "enus".equals(lang) ? WEEK_NAME_ENUS : WEEK_NAME_ZHCN;
 
 		return wks[wk];
 	}
@@ -459,7 +458,7 @@ public class UFormat {
 			return (month < 10 ? "0" : "") + month + "/" + (day < 10 ? "0" : "") + day + "/" + year;
 		}
 		// 中文日期格式
-		if (f.endsWith("_zh") || f.endsWith("_zh1") && t != null) {
+		if ((f.endsWith("_zh") || f.endsWith("_zh1") || f.endsWith("_zh2")) && t != null) {
 
 			String zwrq = year + "年" + (month < 10 ? "0" : "") + month + "月" + (day < 10 ? "0" : "") + day + "日";
 

@@ -12,11 +12,14 @@ import java.util.regex.Pattern;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class UHtml {
+	private static Logger LOGGER = LoggerFactory.getLogger(UHtml.class);
 
 	private static String CACHE_FILE;
-	public static Map<Integer, Integer> MAP_COMBINE_FILES;
+	private static Map<Integer, Integer> MAP_COMBINE_FILES;
 
 	static {
 		CACHE_FILE = UPath.getCachedPath() + "/uhtml_cached.json";
@@ -193,41 +196,6 @@ public class UHtml {
 		return __base;
 	}
 
-	/*
-	 * Get request base url from HttpServletRequest (Jakarta TOMCAT10)
-	 * 
-	 * @param request the HttpServletRequest
-	 * 
-	 * @return the base url
-	 */
-	/*
-	 * public static String getHttpBase(jakarta.servlet.http.HttpServletRequest
-	 * request) { String port = ":" + request.getServerPort(); String scheme =
-	 * request.getHeader("x-forwarded-protocol"); if (scheme == null) { scheme =
-	 * request.getScheme(); } if (request.getServerPort() == 80 ||
-	 * request.getServerPort() == 443) { port = ""; }
-	 * 
-	 * String ctx = request.getContextPath(); int inc = 0; while
-	 * (ctx.startsWith("//")) { ctx = ctx.replace("//", "/"); inc++; if (inc > 500)
-	 * { break; } } String __base = "//" + request.getServerName() + port + "" +
-	 * ctx; return __base; }
-	 */
-
-	/*
-	 * Get request base (Jakarta TOMCAT10)
-	 * 
-	 * @param request the HttpServletRequest
-	 * 
-	 * @param baseAdd the path of attachment
-	 * 
-	 * @return the base url
-	 */
-	/*
-	 * public static String getHttpBase(jakarta.servlet.http.HttpServletRequest
-	 * request, String baseAdd) { String __base = getHttpBase(request); if (baseAdd
-	 * != null) { __base = __base + "/" + baseAdd; } return __base; }
-	 */
-
 	public static String htmlETag() {
 		return "";
 	}
@@ -242,32 +210,20 @@ public class UHtml {
 		if (html == null || html.length() == 0) {
 			return html;
 		}
-		String regex = "<\\w+.*(on\\w+)";
+		String regex = "<\\w+[^>]*\\b(on\\w+)";
 		Pattern patternForTag = Pattern.compile(regex, Pattern.CASE_INSENSITIVE);
 		Matcher mat = patternForTag.matcher(html);
+		StringBuilder sb = new StringBuilder();
 		try {
 			while (mat.find()) {
-				MatchResult mr = mat.toMatchResult();
-				html = html.replace(mr.group(1), "_gdx_");
+				mat.appendReplacement(sb, mat.group().replace(mat.group(1), "_gdx_"));
 			}
+			mat.appendTail(sb);
+			return sb.toString();
 		} catch (Exception err) {
-			System.out.println(err.getMessage());
+			LOGGER.warn("removeHtmlEvents: {}", err.getMessage());
+			return html;
 		}
-
-		// String regex1 = "<a\\b.*\\b(href)";
-		// Pattern patternForTag1 = Pattern.compile(regex1,
-		// Pattern.CASE_INSENSITIVE);
-		// Matcher mat1 = patternForTag1.matcher(html);
-		// try {
-		// while (mat1.find()) {
-		// MatchResult mr = mat1.toMatchResult();
-		// html = html.replace(mr.group(1), "_gdx_");
-		// }
-		// } catch (Exception err) {
-		// System.out.println(err.getMessage());
-		// }
-
-		return html;
 	}
 
 	/**
@@ -302,14 +258,21 @@ public class UHtml {
 
 	/**
 	 * Remove html's comments
-	 * 
+	 *
 	 * @param html
 	 * @return
 	 */
-	public static String removeHtmlCommtents(String html) {
-		// html注释
-		String remarkRegex = "<\\!--.*-->";
+	public static String removeHtmlComments(String html) {
+		String remarkRegex = "<!--.*?-->";
 		return html.replaceAll(remarkRegex, "");
+	}
+
+	/**
+	 * @deprecated Use {@link #removeHtmlComments(String)}
+	 */
+	@Deprecated
+	public static String removeHtmlCommtents(String html) {
+		return removeHtmlComments(html);
 	}
 
 	/**
@@ -323,7 +286,8 @@ public class UHtml {
 		if (html == null || html.length() == 0) {
 			return html;
 		}
-		String regex2 = "<" + tagName + "[^>]*>[^<]*</" + tagName + "[^>]*>";
+		String q = Pattern.quote(tagName);
+		String regex2 = "<" + q + "[^>]*>[^<]*</" + q + "[^>]*>";
 		Pattern patternForTag2 = Pattern.compile(regex2, Pattern.CASE_INSENSITIVE);
 		Matcher mat2 = patternForTag2.matcher(html);
 		try {
@@ -335,7 +299,7 @@ public class UHtml {
 			System.out.println(err.getMessage());
 		}
 
-		String regex3 = "<" + tagName + ".*/>";
+		String regex3 = "<" + q + ".*/>";
 		Pattern patternForTag3 = Pattern.compile(regex3, Pattern.CASE_INSENSITIVE);
 		Matcher mat3 = patternForTag3.matcher(html);
 		try {

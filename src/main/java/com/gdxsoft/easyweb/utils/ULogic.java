@@ -15,39 +15,38 @@ import org.slf4j.LoggerFactory;
  * Use HSQLDB memory database for logical operations
  */
 public class ULogic {
-	private static Map<String, Boolean> CACHE = new ConcurrentHashMap<String, Boolean>(); // 缓存
+	private static Map<String, Boolean> CACHE = new ConcurrentHashMap<>();
 	private static Logger LOGGER = LoggerFactory.getLogger(ULogic.class);
 
-	static {
-		Statement st = null;
-		Connection conn = null;
-		try {
-			conn = createConn();
-			// This property, when set TRUE, enables support for some elements of Oracle
-			// syntax. The DUAL table is supported
-			// , together with ROWNUM, NEXTVAL and CURRVAL syntax and semantics.
-			st = conn.createStatement();
-			st.execute("SET DATABASE SQL SYNTAX ORA TRUE ");
+	/** Persistent HSQLDB connection — in-memory DB is per-connection, must reuse */
+	private static volatile Connection PERSISTENT_CONN;
+	private static final Object CONN_LOCK = new Object();
 
-			LOGGER.info("initLogic org.hsqldb.jdbc.JDBCDriver ");
-		} catch (Exception e) {
-			String ERR_MSG = e.getMessage();
-			LOGGER.error(ERR_MSG);
-		} finally {
-			if (conn != null) {
+	/**
+	 * Get or create the persistent HSQLDB connection.
+	 * DCL (double-checked locking) with volatile for thread-safe lazy init.
+	 */
+	private static Connection getConn() throws SQLException {
+		Connection c = PERSISTENT_CONN;
+		if (c != null && !c.isClosed()) {
+			return c;
+		}
+		synchronized (CONN_LOCK) {
+			if (PERSISTENT_CONN == null || PERSISTENT_CONN.isClosed()) {
 				try {
-					conn.close();
-				} catch (SQLException e) {
-					LOGGER.error(e.getMessage());
+					PERSISTENT_CONN = createConn();
+				} catch (Exception e) {
+					throw new SQLException("Failed to create HSQLDB connection", e);
 				}
-			}
-			if (st != null) {
+				Statement st = PERSISTENT_CONN.createStatement();
 				try {
+					st.execute("SET DATABASE SQL SYNTAX ORA TRUE");
+				} finally {
 					st.close();
-				} catch (SQLException e) {
-					LOGGER.error(e.getMessage());
 				}
+				LOGGER.info("ULogic persistent connection initialized");
 			}
+			return PERSISTENT_CONN;
 		}
 	}
 
@@ -64,10 +63,9 @@ public class ULogic {
 	}
 	/**
 	 * Execute the logic expression
-	 * 
+	 *
 	 * @param exp the logic expression
 	 * @return true/false
-	 * 
 	 */
 	public static boolean runLogic(String exp) {
 		if (exp == null) {
@@ -79,13 +77,19 @@ public class ULogic {
 			return false;
 		}
 
+		// Whitelist: only allow SQL-compatible logical operators and values
+		if (!exp1.matches("^[0-9a-zA-Z_\\-+*/%()\\[\\].,'\\s=!<>&|^~@:]+$")
+				|| exp1.contains("--") || exp1.contains("/*") || exp1.contains(";")) {
+			LOGGER.warn("Rejected unsafe logic expression: {}", exp1);
+			return false;
+		}
+
 		String md5 = Utils.md5(exp1);
 		if (CACHE.containsKey(md5)) {
 			return CACHE.get(md5);
 		}
 
-		boolean rst = execExpFromJdbc(exp, md5);
-		return rst;
+		return execExpFromJdbc(exp1, md5);
 	}
 
 	/**
@@ -94,7 +98,7 @@ public class ULogic {
 	 * @param exp the logic expression
 	 * @return
 	 */
-	private static boolean execExpFromJdbc(String exp, String md5) {
+	private synchronized static boolean execExpFromJdbc(String exp, String md5) {
 		boolean rst = false;
 		Statement st = null;
 		ResultSet rs = null;
@@ -103,7 +107,7 @@ public class ULogic {
 
 		long t0 = System.currentTimeMillis();
 		try {
-			conn = createConn();
+			conn = getConn();
 			st = conn.createStatement();
 			rs = st.executeQuery(testSql);
 			rst = rs.next();
@@ -125,15 +129,9 @@ public class ULogic {
 					LOGGER.error(e.getMessage());
 				}
 			}
-			if (conn != null) {
-				try {
-					conn.close();
-				} catch (SQLException e) {
-					LOGGER.error(e.getMessage());
-				}
-			}
+			// Connection is persistent, do NOT close
 		}
-		addToCahche(md5, rst);
+		addToCache(md5, rst);
 		long t1 = System.currentTimeMillis();
 		LOGGER.debug(rst + " " + testSql + " " + (t1 - t0) + "ms");
 		return rst;
@@ -145,10 +143,11 @@ public class ULogic {
 	 * @param code
 	 * @param rst
 	 */
-	private static void addToCahche(String md5, boolean rst) {
+	private static void addToCache(String md5, boolean rst) {
 		if (CACHE.size() > 10000) {
-			LOGGER.info("CLEAR over 10000");
-			CACHE.clear();
+			LOGGER.info("Trimming cache from {} entries", CACHE.size());
+			// Keep the 5000 most recently added entries
+			CACHE.keySet().removeIf(k -> CACHE.size() > 5000);
 		}
 		CACHE.put(md5, rst);
 	}

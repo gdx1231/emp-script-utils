@@ -1,8 +1,10 @@
 package com.gdxsoft.easyweb.utils;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.List;
+import java.util.Map;
 
 import javax.naming.Context;
 import javax.naming.NamingEnumeration;
@@ -33,7 +35,7 @@ public class UDns {
 
 		List<String> records = UDns.nslookup(recordname, "txt");
 
-		if (records == null) {
+		if (records == null || records.isEmpty()) {
 			LOGGER.error("NO " + recordname);
 			return null;
 		}
@@ -55,10 +57,11 @@ public class UDns {
 		return null;
 	}
 
-	public static Hashtable<String, String> createDefaultEnv() {
-		Hashtable<String, String> env = new Hashtable<String, String>();
-		// java.naming.factory.initial
+	public static Map<String, String> createDefaultEnv() {
+		Map<String, String> env = new HashMap<>();
 		env.put(Context.INITIAL_CONTEXT_FACTORY, "com.sun.jndi.dns.DnsContextFactory");
+		env.put("com.sun.jndi.dns.timeout.initial", "5000");
+		env.put("com.sun.jndi.dns.timeout.retries", "2");
 
 		return env;
 	}
@@ -72,9 +75,7 @@ public class UDns {
 	 * @return the multiple results
 	 */
 	public static List<String> nslookup(String domain, String queryType, String dnsServer) {
-		Hashtable<String, String> env = createDefaultEnv();
-		// 设置域名服务器
-		// java.naming.provider.url
+		Map<String, String> env = createDefaultEnv();
 		env.put(Context.PROVIDER_URL, "dns://" + dnsServer);
 
 		return nslookup(env, domain, queryType);
@@ -82,43 +83,48 @@ public class UDns {
 
 	/**
 	 * Query a domain
-	 * 
+	 *
 	 * @param domain    the domain name
 	 * @param queryType the query type, E.g. txt, a, aaaa, mx, ns ...
 	 * @return the multiple results
 	 */
 	public static List<String> nslookup(String domain, String queryType) {
-		Hashtable<String, String> env = createDefaultEnv();
+		Map<String, String> env = createDefaultEnv();
 		return nslookup(env, domain, queryType);
 	}
 
 	/**
 	 * Query a domain
-	 * 
-	 * @param env       the java.naming.factory environment
+	 *
+	 * @param env       the JNDI environment
 	 * @param domain    the domain name
 	 * @param queryType the query type, E.g. txt, a, aaaa, mx, ns ...
 	 * @return The all results
 	 */
-	public static List<String> nslookup(Hashtable<String, String> env, String domain, String queryType) {
+	public static List<String> nslookup(Map<String, String> env, String domain, String queryType) {
 		String qt = queryType.toLowerCase().trim();
-		List<String> values = new ArrayList<String>();
+		List<String> values = new ArrayList<>();
 		try {
-			DirContext dnsContext = new InitialDirContext(env);
+			DirContext dnsContext = new InitialDirContext(new Hashtable<>(env));
+			try {
+				Attributes attribs = dnsContext.getAttributes(domain, new String[] { qt });
+				Attribute records = attribs.get(qt);
 
-			Attributes attribs = dnsContext.getAttributes(domain, new String[] { qt });
-			Attribute records = attribs.get(qt);
-
-			if (records == null) {
-				LOGGER.error("There is no " + queryType + " record available for " + domain);
-				return null;
+				if (records == null) {
+					LOGGER.error("There is no {} record available for {}", queryType, domain);
+					return null;
+				}
+				NamingEnumeration<?> vals = records.getAll();
+				try {
+					while (vals.hasMore()) {
+						values.add(vals.next().toString());
+					}
+				} finally {
+					vals.close();
+				}
+			} finally {
+				dnsContext.close();
 			}
-			NamingEnumeration<?> vals = records.getAll();
-			while (vals.hasMore()) {
-				Object obj = vals.next();
-				values.add(obj.toString());
-			}
-
 		} catch (NamingException ne) {
 			LOGGER.error(ne.getExplanation());
 		}

@@ -23,7 +23,6 @@ import java.awt.image.ImageFilter;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -131,7 +130,7 @@ public class UImages {
 		int[] newSize = getNewSize(logo, logoMaxWidth, logoMaxHeight);
 
 		int logo_width = newSize[0];
-		int logo_height = newSize[0];
+		int logo_height = newSize[1];
 
 		int logo_x = (originalImage.getWidth() - logo_width) / 2;
 		int logo_y = (originalImage.getHeight() - logo_height) / 2;
@@ -419,7 +418,7 @@ public class UImages {
 	 */
 	public static boolean checkImageMagick() {
 		ConfImageMagick conf = ConfImageMagick.getInstance();
-		if (conf == null) {
+		if (conf == null || conf.getPath() == null) {
 			return false;
 		}
 		File pathMagicHome = new File(conf.getPath());
@@ -832,14 +831,13 @@ public class UImages {
 	 * @return The new size image
 	 */
 	public static BufferedImage createResizedCopy(Image originalImage, int width, int height) {
-		BufferedImage scaledBI = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
-		Graphics2D g = scaledBI.createGraphics();
-
 		// 保持Png图片的透明背景属性
-		BufferedImage bufIma = g.getDeviceConfiguration().createCompatibleImage(width, height,
-				Transparency.TRANSLUCENT);
-		Graphics2D g1 = bufIma.createGraphics();
+		GraphicsEnvironment ge = GraphicsEnvironment.getLocalGraphicsEnvironment();
+		GraphicsDevice gs = ge.getDefaultScreenDevice();
+		GraphicsConfiguration gc = gs.getDefaultConfiguration();
+		BufferedImage bufIma = gc.createCompatibleImage(width, height, Transparency.TRANSLUCENT);
 
+		Graphics2D g1 = bufIma.createGraphics();
 		g1.setComposite(AlphaComposite.Src);
 		// 高保真缩放
 		Image scaled = originalImage.getScaledInstance(width, height, java.awt.Image.SCALE_SMOOTH);
@@ -916,7 +914,6 @@ public class UImages {
 			} catch (IOException e) {
 				LOGGER.error(e.getMessage());
 			}
-			bi = null;
 		}
 	}
 
@@ -930,18 +927,11 @@ public class UImages {
 		HashMap<String, String> rst = new HashMap<String, String>();
 		rst.put("CMD", line);
 
-		String line1 = line;
-		try {
-			line1 = new String(line.getBytes(), "gbk");
-		} catch (UnsupportedEncodingException e1) {
-			LOGGER.error(e1.getMessage());
-		}
-
 		LOGGER.info(line);
 		try {
-			ProcessBuilder pb = new ProcessBuilder("sh", "-c", line1);
+			ProcessBuilder pb = new ProcessBuilder("sh", "-c", line);
 			if (System.getProperty("os.name").toLowerCase().startsWith("windows")) {
-				pb = new ProcessBuilder("cmd", "/c", line1);
+				pb = new ProcessBuilder("cmd", "/c", line);
 			}
 			pb.redirectErrorStream(true);
 			Process process = pb.start();
