@@ -6,8 +6,7 @@
       "Bash(git add *)",
       "Bash(git commit *)",
       "Bash(git push)",
-      "Read(//Users/admin/.qwen/**)",
-      "Read(//Users/admin/**)"
+      "Skill(review)"
     ]
   },
   "$version": 4

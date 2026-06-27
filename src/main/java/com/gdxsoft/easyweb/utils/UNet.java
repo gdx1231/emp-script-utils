@@ -50,7 +50,6 @@ import org.apache.http.client.methods.HttpRequestBase;
 import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
 import org.apache.http.conn.ssl.TrustStrategy;
 import org.apache.http.conn.socket.ConnectionSocketFactory;
-import org.apache.http.conn.socket.PlainConnectionSocketFactory;
 import org.apache.http.config.Registry;
 import org.apache.http.config.RegistryBuilder;
 import org.apache.http.cookie.Cookie;
@@ -133,27 +132,54 @@ public class UNet {
 	}
 
 	/**
-	 * 设置 HTTP 代理
+	 * 设置网络代理（默认 HTTP 协议）
 	 *
 	 * @param host   代理主机名或 IP
-	 * @param port   代理端口
+	 * @param port   代理端口（1-65535）
 	 */
 	public void setProxy(String host, int port) {
+		if (host == null || host.trim().isEmpty()) {
+			throw new IllegalArgumentException("Proxy host cannot be null or empty");
+		}
+		if (port < 1 || port > 65535) {
+			throw new IllegalArgumentException("Proxy port must be between 1 and 65535");
+		}
 		this._ProxyHost = host;
 		this._ProxyPort = port;
+		this._ProxyScheme = "http";
 	}
 
 	/**
-	 * 设置 HTTP 代理
+	 * 设置网络代理
 	 *
 	 * @param host   代理主机名或 IP
-	 * @param port   代理端口
+	 * @param port   代理端口（1-65535）
 	 * @param scheme 代理协议（http/https/socks）
 	 */
 	public void setProxy(String host, int port, String scheme) {
+		if (host == null || host.trim().isEmpty()) {
+			throw new IllegalArgumentException("Proxy host cannot be null or empty");
+		}
+		if (port < 1 || port > 65535) {
+			throw new IllegalArgumentException("Proxy port must be between 1 and 65535");
+		}
+		if (scheme != null && !"http".equalsIgnoreCase(scheme)
+				&& !"https".equalsIgnoreCase(scheme)
+				&& !"socks".equalsIgnoreCase(scheme)) {
+			throw new IllegalArgumentException("Unsupported proxy scheme: " + scheme);
+		}
 		this._ProxyHost = host;
 		this._ProxyPort = port;
-		this._ProxyScheme = scheme;
+		this._ProxyScheme = scheme != null ? scheme.toLowerCase() : "http";
+	}
+
+	/**
+	 * 清除代理设置
+	 */
+	public void clearProxy() {
+		this._ProxyHost = null;
+		this._ProxyPort = 0;
+		this._ProxyScheme = "http";
 	}
 
 	public UNet() {
@@ -945,10 +971,29 @@ public class UNet {
 		boolean isSocks = "socks".equalsIgnoreCase(this._ProxyScheme);
 		boolean hasProxy = this._ProxyHost != null && !this._ProxyHost.isEmpty();
 
+		if (hasProxy && this._IsShowLog) {
+			LOGGER.info("Using proxy: {}://{}:{}", this._ProxyScheme, this._ProxyHost, this._ProxyPort);
+		}
+
 		if (isSocks && hasProxy) {
-			// SOCKS proxy - use custom socket factory with remote DNS resolution
 			Proxy socksProxy = new Proxy(Proxy.Type.SOCKS,
 					new InetSocketAddress(this._ProxyHost, this._ProxyPort));
+
+			final int soTimeout = timeout > 0 ? timeout : 30000;
+
+			// Build trust-all SSLContext consistent with createSSLConnSocketFactory()
+			final javax.net.ssl.SSLSocketFactory trustAllSslFactory;
+			try {
+				SSLContext sslContext = new SSLContextBuilder()
+						.loadTrustMaterial(null, new TrustStrategy() {
+							public boolean isTrusted(X509Certificate[] chain, String authType) {
+								return true;
+							}
+						}).build();
+				trustAllSslFactory = sslContext.getSocketFactory();
+			} catch (GeneralSecurityException e) {
+				throw new RuntimeException("Failed to create trust-all SSL context for SOCKS proxy", e);
+			}
 
 			ConnectionSocketFactory socksSocketFactory = new ConnectionSocketFactory() {
 				@Override
@@ -959,15 +1004,15 @@ public class UNet {
 				public Socket connectSocket(int connectTimeout, Socket socket,
 						org.apache.http.HttpHost host, InetSocketAddress remoteAddress,
 						InetSocketAddress localAddress, org.apache.http.protocol.HttpContext context) throws IOException {
-					socket.setSoTimeout(timeout > 0 ? timeout : 30000);
-					// Use unresolved address for remote DNS resolution through SOCKS
-					InetSocketAddress unresolved = InetSocketAddress.createUnresolved(host.getHostName(), host.getPort());
+					socket.setSoTimeout(soTimeout);
+					int port = host.getPort() > 0 ? host.getPort()
+							: ("https".equalsIgnoreCase(host.getSchemeName()) ? 443 : 80);
+					InetSocketAddress unresolved = InetSocketAddress.createUnresolved(host.getHostName(), port);
 					socket.connect(unresolved, connectTimeout);
 					return socket;
 				}
 			};
 
-			// SSL socket factory that also goes through SOCKS proxy
 			ConnectionSocketFactory socksSslSocketFactory = new ConnectionSocketFactory() {
 				@Override
 				public Socket createSocket(org.apache.http.protocol.HttpContext context) throws IOException {
@@ -977,12 +1022,12 @@ public class UNet {
 				public Socket connectSocket(int connectTimeout, Socket socket,
 						org.apache.http.HttpHost host, InetSocketAddress remoteAddress,
 						InetSocketAddress localAddress, org.apache.http.protocol.HttpContext context) throws IOException {
-					socket.setSoTimeout(timeout > 0 ? timeout : 30000);
-					InetSocketAddress unresolved = InetSocketAddress.createUnresolved(host.getHostName(), host.getPort());
+					socket.setSoTimeout(soTimeout);
+					int port = host.getPort() > 0 ? host.getPort() : 443;
+					InetSocketAddress unresolved = InetSocketAddress.createUnresolved(host.getHostName(), port);
 					socket.connect(unresolved, connectTimeout);
-					// Wrap with SSL
-					javax.net.ssl.SSLSocketFactory sslFactory = (javax.net.ssl.SSLSocketFactory) javax.net.ssl.SSLSocketFactory.getDefault();
-					javax.net.ssl.SSLSocket sslSocket = (javax.net.ssl.SSLSocket) sslFactory.createSocket(socket, host.getHostName(), host.getPort(), true);
+					javax.net.ssl.SSLSocket sslSocket = (javax.net.ssl.SSLSocket) trustAllSslFactory
+							.createSocket(socket, host.getHostName(), port, true);
 					sslSocket.startHandshake();
 					return sslSocket;
 				}
@@ -992,12 +1037,15 @@ public class UNet {
 					.register("http", socksSocketFactory)
 					.register("https", socksSslSocketFactory)
 					.build();
-			
-			PoolingHttpClientConnectionManager socksConnMgr = new PoolingHttpClientConnectionManager(socketFactoryRegistry);
-			
+
+			if (this.connMgr != null) {
+				this.connMgr.shutdown();
+			}
+			this.connMgr = new PoolingHttpClientConnectionManager(socketFactoryRegistry);
+
 			httpclient = HttpClientBuilder.create()
 					.setDefaultRequestConfig(config)
-					.setConnectionManager(socksConnMgr)
+					.setConnectionManager(this.connMgr)
 					.setDefaultCookieStore(_CookieStore)
 					.build();
 		} else {
@@ -1006,10 +1054,10 @@ public class UNet {
 				HttpHost proxy = new HttpHost(this._ProxyHost, this._ProxyPort, this._ProxyScheme);
 				config = RequestConfig.copy(config).setProxy(proxy).build();
 			}
-			
+
 			if (url.toLowerCase().startsWith("https")) { // ssl
 				httpclient = HttpClientBuilder.create().setDefaultRequestConfig(config)
-						.setSSLSocketFactory(createSSLConnSocketFactory()).setConnectionManager(connMgr)
+						.setSSLSocketFactory(createSSLConnSocketFactory())
 						.setDefaultCookieStore(_CookieStore).build();
 			} else {
 				httpclient = HttpClientBuilder.create().setDefaultRequestConfig(config).setDefaultCookieStore(_CookieStore)

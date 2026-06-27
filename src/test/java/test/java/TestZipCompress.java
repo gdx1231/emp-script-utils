@@ -20,11 +20,19 @@ public class TestZipCompress extends TestBase {
 
 	@Test
 	public void testLogic() throws Exception {
+		String zipSource = UPath.getRealPath() + "resources/docx1";
+		String outFile = System.getProperty("java.io.tmpdir") + java.io.File.separator + "test_zip_output.docx";
 
-		// windows format zip path
-		String zip1 ="E:/Guolei/com.gdxsoft/emp-script-utils/src/test/resources/resources/docx1";
-		
-		UFile.zipPaths( zip1, "d:/test/test.docx");
+		try {
+			UFile.zipPaths(zipSource, outFile);
+
+			java.io.File f = new java.io.File(outFile);
+			org.junit.jupiter.api.Assertions.assertTrue(f.exists(), "Output zip file should exist");
+			org.junit.jupiter.api.Assertions.assertTrue(f.length() > 0, "Output zip file should not be empty");
+			System.out.println("ZIP output: " + outFile + " (" + f.length() + " bytes)");
+		} finally {
+			new java.io.File(outFile).delete();
+		}
 	}
 
 }

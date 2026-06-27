@@ -763,11 +763,9 @@ public class UXml {
 	 *
 	 * @param xmlFile XML文件
 	 * @return JSON字符串
-	 * @throws IOException                   文件读取异常
-	 * @throws ParserConfigurationException 解析配置异常
-	 * @throws SAXException                 SAX解析异常
+	 * @throws IOException 文件读取异常
 	 */
-	public static String xml2Json(File xmlFile) throws IOException, ParserConfigurationException, SAXException {
+	public static String xml2Json(File xmlFile) throws IOException {
 		if (xmlFile == null || !xmlFile.exists()) {
 			throw new IOException("File not found or is null");
 		}
@@ -781,12 +779,9 @@ public class UXml {
 	 * @param xmlFile      XML文件
 	 * @param indentFactor 缩进因子，用于格式化输出
 	 * @return JSON字符串
-	 * @throws IOException                   文件读取异常
-	 * @throws ParserConfigurationException 解析配置异常
-	 * @throws SAXException                 SAX解析异常
+	 * @throws IOException 文件读取异常
 	 */
-	public static String xml2Json(File xmlFile, int indentFactor)
-			throws IOException, ParserConfigurationException, SAXException {
+	public static String xml2Json(File xmlFile, int indentFactor) throws IOException {
 		if (xmlFile == null || !xmlFile.exists()) {
 			throw new IOException("File not found or is null");
 		}
@@ -800,17 +795,13 @@ public class UXml {
 	 * @param xmlPath        XML文件路径
 	 * @param isAbsolutePath 是否为绝对路径
 	 * @return JSON字符串
-	 * @throws IOException                   文件读取异常
-	 * @throws ParserConfigurationException 解析配置异常
-	 * @throws SAXException                 SAX解析异常
+	 * @throws IOException 文件读取异常
 	 */
-	public static String xml2Json(String xmlPath, boolean isAbsolutePath)
-			throws IOException, ParserConfigurationException, SAXException {
-		String path = xmlPath;
-		if (!isAbsolutePath) {
-			path = UPath.getScriptPath() + "/" + xmlPath;
+	public static String xml2Json(String xmlPath, boolean isAbsolutePath) throws IOException {
+		if (xmlPath == null || xmlPath.trim().isEmpty()) {
+			throw new IllegalArgumentException("xmlPath must not be null or empty");
 		}
-		File file = new File(path);
+		File file = resolveXmlFile(xmlPath, isAbsolutePath);
 		return xml2Json(file);
 	}
 
@@ -821,18 +812,33 @@ public class UXml {
 	 * @param isAbsolutePath 是否为绝对路径
 	 * @param indentFactor   缩进因子，用于格式化输出
 	 * @return JSON字符串
-	 * @throws IOException                   文件读取异常
-	 * @throws ParserConfigurationException 解析配置异常
-	 * @throws SAXException                 SAX解析异常
+	 * @throws IOException 文件读取异常
 	 */
-	public static String xml2Json(String xmlPath, boolean isAbsolutePath, int indentFactor)
-			throws IOException, ParserConfigurationException, SAXException {
+	public static String xml2Json(String xmlPath, boolean isAbsolutePath, int indentFactor) throws IOException {
+		if (xmlPath == null || xmlPath.trim().isEmpty()) {
+			throw new IllegalArgumentException("xmlPath must not be null or empty");
+		}
+		File file = resolveXmlFile(xmlPath, isAbsolutePath);
+		return xml2Json(file, indentFactor);
+	}
+
+	private static File resolveXmlFile(String xmlPath, boolean isAbsolutePath) throws IOException {
 		String path = xmlPath;
 		if (!isAbsolutePath) {
+			if (xmlPath.contains("..")) {
+				throw new IllegalArgumentException("Path traversal not allowed: " + xmlPath);
+			}
 			path = UPath.getScriptPath() + "/" + xmlPath;
 		}
 		File file = new File(path);
-		return xml2Json(file, indentFactor);
+		if (!isAbsolutePath) {
+			String basePath = new File(UPath.getScriptPath()).getCanonicalPath();
+			String filePath = file.getCanonicalPath();
+			if (!filePath.startsWith(basePath)) {
+				throw new IOException("Access denied: path escapes base directory");
+			}
+		}
+		return file;
 	}
 
 }
