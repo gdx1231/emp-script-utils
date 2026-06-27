@@ -80,18 +80,25 @@ native-image \
 Usage: ucurl [options] <url>
 
 Options:
-  -X METHOD        HTTP method (GET, POST, PUT, DELETE), default GET
-  -d DATA          Request body (implies POST when method is GET)
-  -H "Key: Value"   Add request header
-  -x PROXY_URL     Set proxy (http://host:port or socks://host:port)
-  -o FILE          Write response body to file
+  -X METHOD          HTTP method (GET, POST, PUT, DELETE), default GET
+  -d DATA            Request body (implies POST when method is GET)
+  -H "Key: Value"    Add request header
+  -x PROXY_URL       Set proxy (http://host:port or socks://host:port)
+  -o FILE            Write response body to file
+  -v, --log          Enable verbose request/response logging
+
+URL scheme 可省略，默认自动补全 https://。
+输出默认静默（仅响应 body），使用 --log 查看请求详情。
 ```
 
 ### 示例
 
 ```bash
-# GET 请求
-./target17/ucurl https://httpbin.org/get
+# GET 请求（scheme 可省略）
+./target17/ucurl ip.gezz.cn
+
+# 显示详细日志
+./target17/ucurl --log https://httpbin.org/get
 
 # POST 表单
 ./target17/ucurl -d "name=foo&age=30" https://httpbin.org/post
