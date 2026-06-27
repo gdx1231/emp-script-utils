@@ -5,6 +5,7 @@
 *.class
 /target/
 /target/classes/*.*
+/target17/
 ewa_conf.xml
 ewa_console_conf.xml
 *.properties
