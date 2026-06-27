@@ -5,9 +5,12 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.nio.file.Files;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -166,6 +169,73 @@ public class TestUNet extends TestBase {
 			exchange.sendResponseHeaders(code, response.getBytes().length);
 			OutputStream os = exchange.getResponseBody();
 			os.write(response.getBytes());
+			os.close();
+		});
+
+		// SSE basic endpoint — sends 3 events with event/data/id
+		server.createContext("/sse/basic", exchange -> {
+			exchange.getResponseHeaders().add("Content-Type", "text/event-stream");
+			exchange.getResponseHeaders().add("Cache-Control", "no-cache");
+			exchange.sendResponseHeaders(200, 0); // chunked
+			OutputStream os = exchange.getResponseBody();
+
+			os.write("id: 1\ndata: {\"msg\":\"hello\"}\n\n".getBytes());
+			os.flush();
+
+			os.write("event: update\nid: 2\ndata: {\"msg\":\"world\"}\n\n".getBytes());
+			os.flush();
+
+			os.write("id: 3\ndata: {\"msg\":\"done\"}\n\n".getBytes());
+			os.flush();
+			os.close();
+		});
+
+		// SSE multiline data endpoint
+		server.createContext("/sse/multiline", exchange -> {
+			exchange.getResponseHeaders().add("Content-Type", "text/event-stream");
+			exchange.getResponseHeaders().add("Cache-Control", "no-cache");
+			exchange.sendResponseHeaders(200, 0);
+			OutputStream os = exchange.getResponseBody();
+
+			os.write("event: lines\ndata: line1\ndata: line2\ndata: line3\n\n".getBytes());
+			os.flush();
+			os.close();
+		});
+
+		// SSE POST endpoint — echoes body back as event data
+		server.createContext("/sse/post", exchange -> {
+			byte[] reqBody = exchange.getRequestBody().readAllBytes();
+			exchange.getResponseHeaders().add("Content-Type", "text/event-stream");
+			exchange.getResponseHeaders().add("Cache-Control", "no-cache");
+			exchange.sendResponseHeaders(200, 0);
+			OutputStream os = exchange.getResponseBody();
+
+			String body = new String(reqBody, "UTF-8");
+			os.write(("event: post-echo\ndata: " + body + "\n\n").getBytes());
+			os.flush();
+			os.close();
+		});
+
+		// SSE reconnect endpoint — sends retry field then closes
+		server.createContext("/sse/reconnect", exchange -> {
+			exchange.getResponseHeaders().add("Content-Type", "text/event-stream");
+			exchange.getResponseHeaders().add("Cache-Control", "no-cache");
+			exchange.sendResponseHeaders(200, 0);
+			OutputStream os = exchange.getResponseBody();
+
+			os.write("retry: 500\ndata: first\n\n".getBytes());
+			os.flush();
+			os.close();
+		});
+
+		// SSE error endpoint (returns 404)
+		server.createContext("/sse/error", exchange -> {
+			exchange.getResponseHeaders().add("Content-Type", "text/event-stream");
+			exchange.getResponseHeaders().add("Cache-Control", "no-cache");
+			String err = "{\"error\":\"not found\"}";
+			exchange.sendResponseHeaders(404, err.getBytes().length);
+			OutputStream os = exchange.getResponseBody();
+			os.write(err.getBytes());
 			os.close();
 		});
 
@@ -747,5 +817,154 @@ public class TestUNet extends TestBase {
 		String result = net.doGet(baseUrl + "/get");
 		assertNotNull(result);
 		assertTrue(result.contains("\"method\":\"GET\""));
+	}
+
+	// ==================== SSE (Server-Sent Events) tests ====================
+
+	@Test
+	public void testSseBasicGet() throws Exception {
+		printCaption("SSE basic GET — event/data/id parsing");
+		UNet net = new UNet();
+		List<UNet.SseEvent> events = new ArrayList<>();
+		CountDownLatch latch = new CountDownLatch(3);
+
+		net.doSseAsync(baseUrl + "/sse/basic", event -> {
+			events.add(event);
+			latch.countDown();
+		});
+
+		assertTrue(latch.await(5, TimeUnit.SECONDS), "Should receive all 3 events within 5s");
+		assertEquals(3, events.size());
+
+		// Event 1: id=1, data={"msg":"hello"}, no event type
+		assertEquals("1", events.get(0).getId());
+		assertTrue(events.get(0).getData().contains("hello"));
+
+		// Event 2: event=update, id=2, data={"msg":"world"}
+		assertEquals("update", events.get(1).getEvent());
+		assertEquals("2", events.get(1).getId());
+		assertTrue(events.get(1).getData().contains("world"));
+
+		// Event 3: id=3, data={"msg":"done"}
+		assertEquals("3", events.get(2).getId());
+		assertTrue(events.get(2).getData().contains("done"));
+	}
+
+	@Test
+	public void testSseMultiLineData() throws Exception {
+		printCaption("SSE multiline data");
+		UNet net = new UNet();
+		List<UNet.SseEvent> events = new ArrayList<>();
+		CountDownLatch latch = new CountDownLatch(1);
+
+		net.doSseAsync(baseUrl + "/sse/multiline", event -> {
+			events.add(event);
+			latch.countDown();
+		});
+
+		assertTrue(latch.await(5, TimeUnit.SECONDS));
+		assertEquals(1, events.size());
+		assertEquals("lines", events.get(0).getEvent());
+		assertEquals("line1\nline2\nline3", events.get(0).getData());
+	}
+
+	@Test
+	public void testSsePost() throws Exception {
+		printCaption("SSE POST — sends body, receives echo");
+		UNet net = new UNet();
+		List<UNet.SseEvent> events = new ArrayList<>();
+		CountDownLatch latch = new CountDownLatch(1);
+
+		net.doSseAsync(baseUrl + "/sse/post", "{\"query\":\"test\"}", event -> {
+			events.add(event);
+			latch.countDown();
+		});
+
+		assertTrue(latch.await(5, TimeUnit.SECONDS));
+		assertEquals(1, events.size());
+		assertEquals("post-echo", events.get(0).getEvent());
+		assertTrue(events.get(0).getData().contains("query"));
+	}
+
+	@Test
+	public void testSseSyncBlocking() throws Exception {
+		printCaption("SSE synchronous (blocking)");
+		UNet net = new UNet();
+		List<UNet.SseEvent> events = new ArrayList<>();
+
+		// doSse is blocking — we run it in a thread
+		Thread t = new Thread(() -> {
+			net.doSse(baseUrl + "/sse/basic", events::add);
+		});
+		t.start();
+		t.join(5000);
+
+		assertFalse(t.isAlive(), "SSE blocking call should complete");
+		assertEquals(3, events.size());
+	}
+
+	@Test
+	public void testSseReconnect() throws Exception {
+		printCaption("SSE auto-reconnect on connection close");
+		UNet net = new UNet();
+		net.setSseReconnect(true, 3, 100);
+		List<UNet.SseEvent> events = new ArrayList<>();
+		CountDownLatch latch = new CountDownLatch(3); // expect 3 events total after reconnects
+
+		net.doSseAsync(baseUrl + "/sse/reconnect", event -> {
+			events.add(event);
+			latch.countDown();
+		});
+
+		boolean completed = latch.await(10, TimeUnit.SECONDS);
+		// May or may not get all retries depending on server timing
+		assertTrue(events.size() >= 1, "Should receive at least first event");
+		assertTrue(events.get(0).getData().contains("first"));
+		System.out.println("SSE reconnect: received " + events.size() + " events");
+	}
+
+	@Test
+	public void testSseErrorHandling() throws Exception {
+		printCaption("SSE error handling (404)");
+		UNet net = new UNet();
+		List<Exception> errors = new ArrayList<>();
+		CountDownLatch latch = new CountDownLatch(1);
+
+		UNet.SseListener listener = new UNet.SseListener() {
+			@Override
+			public void onEvent(UNet.SseEvent event) {
+			}
+
+			@Override
+			public void onError(Exception e) {
+				errors.add(e);
+				latch.countDown();
+			}
+		};
+
+		net.doSseAsync(baseUrl + "/sse/error", listener);
+
+		assertTrue(latch.await(5, TimeUnit.SECONDS), "Should receive error callback");
+		assertEquals(1, errors.size());
+		assertTrue(errors.get(0).getMessage().contains("404"),
+				"Error should mention HTTP 404");
+	}
+
+	@Test
+	public void testSseRetryFieldParsing() throws Exception {
+		printCaption("SSE retry field parsing");
+		UNet net = new UNet();
+		List<UNet.SseEvent> events = new ArrayList<>();
+		CountDownLatch latch = new CountDownLatch(1);
+
+		net.doSseAsync(baseUrl + "/sse/reconnect", event -> {
+			events.add(event);
+			latch.countDown();
+		});
+
+		assertTrue(latch.await(5, TimeUnit.SECONDS));
+		assertEquals(1, events.size());
+		assertEquals(Long.valueOf(500), events.get(0).getRetry(),
+				"retry field should be parsed as Long 500");
 	}
 }

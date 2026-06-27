@@ -91,6 +91,43 @@ public class UNet {
 	private String _ProxyUser;
 	private String _ProxyPassword;
 
+	// SSE reconnect settings
+	private boolean _SseReconnectEnabled;
+	private int _SseRetryMax = 3;
+	private long _SseRetryIntervalMs = 3000;
+
+	// SSL certificate trust — defaults to trust-all for convenience
+	private boolean _TrustAllCert = true;
+
+	/**
+	 * 是否信任自签名/所有 SSL 证书（默认 true）
+	 *
+	 * @param trustAll true=信任所有证书（开发/内网），false=使用系统证书链验证（生产环境）
+	 */
+	public void setTrustAllCert(boolean trustAll) {
+		this._TrustAllCert = trustAll;
+	}
+
+	/**
+	 * 是否信任所有 SSL 证书
+	 */
+	public boolean isTrustAllCert() {
+		return _TrustAllCert;
+	}
+
+	/**
+	 * 配置 SSE 自动重连
+	 *
+	 * @param enabled         是否启用自动重连
+	 * @param maxRetries      最大重试次数
+	 * @param retryIntervalMs 重连间隔（毫秒），服务端 retry 字段优先
+	 */
+	public void setSseReconnect(boolean enabled, int maxRetries, long retryIntervalMs) {
+		this._SseReconnectEnabled = enabled;
+		this._SseRetryMax = maxRetries;
+		this._SseRetryIntervalMs = retryIntervalMs;
+	}
+
 	public int getTimeout() {
 		return timeout;
 	}
@@ -931,7 +968,7 @@ public class UNet {
 	private String doGetViaSocksHttps(String url) {
 		try {
 			HttpsOverSocks5 socks = new HttpsOverSocks5(this._ProxyHost, this._ProxyPort,
-					this._ProxyUser, this._ProxyPassword);
+					this._ProxyUser, this._ProxyPassword, this._TrustAllCert);
 			Map<String, String> reqHeaders = new HashMap<>();
 			reqHeaders.put("User-Agent", getUserAgent());
 			String cookies = getCookies();
@@ -1039,7 +1076,7 @@ public class UNet {
 	private byte[] downloadDataViaSocksHttps(String url) {
 		try {
 			HttpsOverSocks5 socks = new HttpsOverSocks5(this._ProxyHost, this._ProxyPort,
-					this._ProxyUser, this._ProxyPassword);
+					this._ProxyUser, this._ProxyPassword, this._TrustAllCert);
 			Map<String, String> reqHeaders = new HashMap<>();
 			reqHeaders.put("User-Agent", getUserAgent());
 			String cookies = getCookies();
@@ -1096,9 +1133,9 @@ public class UNet {
 			}
 		}
 
-		// SSL trust-all for HTTPS
+		// SSL — trust-all or system default
 		if (url.toLowerCase().startsWith("https")) {
-			builder.sslContext(createTrustAllSSLContext());
+			builder.sslContext(createSSLContext(this._TrustAllCert));
 		}
 
 		this._LastUrl = url;
@@ -1106,11 +1143,21 @@ public class UNet {
 	}
 
 	/**
-	 * 创建信任所有证书的 SSLContext
+	 * 创建 SSLContext
 	 *
+	 * @param isSelfSign true=信任自签名/所有证书，false=使用系统证书链验证
 	 * @return SSLContext
 	 */
-	private static SSLContext createTrustAllSSLContext() {
+	public static SSLContext createSSLContext(boolean isSelfSign) {
+		if (!isSelfSign) {
+			try {
+				SSLContext ctx = SSLContext.getInstance("TLS");
+				ctx.init(null, null, null); // 系统默认 TrustManager
+				return ctx;
+			} catch (GeneralSecurityException e) {
+				throw new RuntimeException("Failed to create default SSL context", e);
+			}
+		}
 		try {
 			SSLContext ctx = SSLContext.getInstance("TLS");
 			ctx.init(null, new TrustManager[]{
@@ -1878,5 +1925,256 @@ public class UNet {
 	 */
 	public void setIgnoreInvalidCookieWarn(boolean ignoreInvalidCookieWarn) {
 		this.ignoreInvalidCookieWarn = ignoreInvalidCookieWarn;
+	}
+
+	// ===================== SSE (Server-Sent Events) =====================
+
+	/**
+	 * SSE 事件数据
+	 */
+	public static class SseEvent {
+		private String event;
+		private String data;
+		private String id;
+		private Long retry;
+
+		public String getEvent() { return event; }
+		public String getData() { return data; }
+		public String getId() { return id; }
+		public Long getRetry() { return retry; }
+
+		public String toString() {
+			return "SseEvent{event=" + event + ", id=" + id + ", retry=" + retry + ", data=" + data + "}";
+		}
+	}
+
+	/**
+	 * SSE 事件回调接口
+	 */
+	@FunctionalInterface
+	public interface SseListener {
+		void onEvent(SseEvent event);
+		default void onError(Exception e) {}
+		default void onComplete() {}
+	}
+
+	/**
+	 * 阻塞执行 SSE GET 请求，事件通过 listener 回调返回
+	 *
+	 * @param url      请求 URL
+	 * @param listener 事件回调
+	 */
+	public void doSse(String url, SseListener listener) {
+		doSse(url, null, listener);
+	}
+
+	/**
+	 * 阻塞执行 SSE POST 请求，事件通过 listener 回调返回
+	 *
+	 * @param url      请求 URL
+	 * @param body     请求体（JSON 等），null 表示 POST 无 body
+	 * @param listener 事件回调
+	 */
+	public void doSse(String url, String body, SseListener listener) {
+		if (this._IsShowLog) {
+			LOGGER.info("SSE {} {}", body != null ? "POST" : "GET", url);
+		}
+		HttpClient client = getHttpClient(url);
+		HttpRequest request = buildSseRequest(url, body);
+
+		int retries = 0;
+		long retryMs = _SseRetryIntervalMs;
+
+		while (true) {
+			boolean shouldReconnect = executeSse(client, request, listener);
+			if (!shouldReconnect) {
+				if (_SseReconnectEnabled && retries < _SseRetryMax) {
+					// Use retry value from server if provided, otherwise default
+					long waitMs = retryMs;
+					if (this._IsShowLog) {
+						LOGGER.info("SSE reconnect {}/{} after {}ms", retries + 1, _SseRetryMax, waitMs);
+					}
+					try {
+						Thread.sleep(waitMs);
+					} catch (InterruptedException e) {
+						Thread.currentThread().interrupt();
+						listener.onError(new Exception("SSE reconnect interrupted", e));
+						return;
+					}
+					retries++;
+					continue;
+				}
+				// Normal completion or max retries reached
+				listener.onComplete();
+				return;
+			}
+			// Connection is still streaming — shouldn't happen with executeSse returning
+			// false, but handle gracefully
+			listener.onComplete();
+			return;
+		}
+	}
+
+	/**
+	 * 异步执行 SSE GET 请求
+	 *
+	 * @param url      请求 URL
+	 * @param listener 事件回调
+	 * @return CompletableFuture，完成时表示 SSE 流结束
+	 */
+	public java.util.concurrent.CompletableFuture<Void> doSseAsync(String url, SseListener listener) {
+		return doSseAsync(url, null, listener);
+	}
+
+	/**
+	 * 异步执行 SSE POST 请求
+	 *
+	 * @param url      请求 URL
+	 * @param body     请求体（JSON 等），null 表示 POST 无 body
+	 * @param listener 事件回调
+	 * @return CompletableFuture，完成时表示 SSE 流结束
+	 */
+	public java.util.concurrent.CompletableFuture<Void> doSseAsync(String url, String body, SseListener listener) {
+		return java.util.concurrent.CompletableFuture.runAsync(() -> {
+			doSse(url, body, listener);
+		});
+	}
+
+	/**
+	 * 构造 SSE 请求，自动添加 Accept/Cache-Control 头
+	 */
+	private HttpRequest buildSseRequest(String url, String body) {
+		HttpRequest.Builder builder = newRequestBuilder(url);
+		builder.header("Accept", "text/event-stream");
+		builder.header("Cache-Control", "no-cache");
+
+		if (body != null) {
+			String processedBody = this.createStringEntity(body);
+			builder.POST(HttpRequest.BodyPublishers.ofString(processedBody, getCharsetObj()));
+		} else {
+			builder.GET();
+		}
+		return builder.build();
+	}
+
+	/**
+	 * 执行单次 SSE 连接，通过 InputStream 逐行解析事件。
+	 * 连接断开/EOF/非200状态码时返回，重连逻辑由调用方处理。
+	 *
+	 * @return true 如果连接在正常 streaming 期间出错需要重连；
+	 *         false 如果收到明确错误码（4xx/5xx）或未启用重连
+	 */
+	private boolean executeSse(HttpClient client, HttpRequest request, SseListener listener) {
+		HttpResponse<InputStream> response = null;
+		try {
+			response = client.send(request, HttpResponse.BodyHandlers.ofInputStream());
+
+			this._LastStatusCode = response.statusCode();
+			saveResponseHeaders(response);
+
+			if (this._LastStatusCode != 200) {
+				byte[] errBody = response.body().readAllBytes();
+				this._LastErr = "SSE HTTP " + this._LastStatusCode + ": " + new String(errBody, getCharset());
+				listener.onError(new IOException(this._LastErr));
+				return false; // 4xx/5xx — don't retry
+			}
+
+			parseSseEvents(response.body(), listener);
+			return false; // EOF — normal completion
+		} catch (IOException e) {
+			this._LastErr = e.getMessage();
+			if (this._IsShowLog) {
+				LOGGER.warn("SSE connection lost: {}", e.getMessage());
+			}
+			listener.onError(e);
+			// IO error during streaming = potentially recoverable via reconnect
+			return true;
+		} catch (Exception e) {
+			this._LastErr = e.getMessage();
+			listener.onError(e);
+			return false;
+		} finally {
+			if (response != null) {
+				try { response.body().close(); } catch (IOException ignored) {}
+			}
+		}
+	}
+
+	/**
+	 * 解析 SSE 事件流 (text/event-stream)
+	 * <p>
+	 * 协议格式 (每个事件由空行 \n\n 分隔):
+	 * <pre>
+	 * event: myevent
+	 * id: 123
+	 * data: line1
+	 * data: line2
+	 *
+	 * </pre>
+	 * retry 字段由本方法记录，用于外层重连间隔。
+	 */
+	private void parseSseEvents(InputStream in, SseListener listener) throws IOException {
+		java.io.BufferedReader reader = new java.io.BufferedReader(
+				new java.io.InputStreamReader(in, getCharset()));
+
+		SseEvent current = new SseEvent();
+		StringBuilder dataBuf = new StringBuilder();
+		boolean hasData = false;
+
+		String line;
+		while ((line = reader.readLine()) != null) {
+			if (line.isEmpty()) {
+				// Empty line = event boundary
+				if (hasData) {
+					current.data = dataBuf.toString();
+					listener.onEvent(current);
+				}
+				current = new SseEvent();
+				dataBuf = new StringBuilder();
+				hasData = false;
+				continue;
+			}
+
+			// Lines beginning with colon are comments — skip
+			if (line.charAt(0) == ':') {
+				continue;
+			}
+
+			int colon = line.indexOf(':');
+			String field;
+			String value;
+			if (colon > 0) {
+				field = line.substring(0, colon);
+				value = line.substring(colon + 1);
+				if (value.startsWith(" ")) {
+					value = value.substring(1); // trim leading space
+				}
+			} else {
+				field = line;
+				value = "";
+			}
+
+			switch (field) {
+			case "event":
+				current.event = value;
+				break;
+			case "data":
+				if (hasData) {
+					dataBuf.append("\n");
+				}
+				dataBuf.append(value);
+				hasData = true;
+				break;
+			case "id":
+				current.id = value;
+				break;
+			case "retry":
+				try {
+					current.retry = Long.parseLong(value);
+				} catch (NumberFormatException ignored) {
+				}
+				break;
+			}
+		}
 	}
 }

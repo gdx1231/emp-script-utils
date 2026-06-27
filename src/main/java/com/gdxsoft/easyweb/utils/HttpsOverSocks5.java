@@ -12,11 +12,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
-import javax.net.ssl.TrustManager;
-import javax.net.ssl.X509TrustManager;
 
 /**
  * HTTPS over SOCKS5 proxy implementation.
@@ -39,16 +36,23 @@ public class HttpsOverSocks5 {
 	private final int proxyPort;
 	private final String proxyUser;
 	private final String proxyPassword;
+	private final boolean trustAllCert;
 
 	public HttpsOverSocks5(String proxyHost, int proxyPort) {
-		this(proxyHost, proxyPort, null, null);
+		this(proxyHost, proxyPort, null, null, true);
 	}
 
 	public HttpsOverSocks5(String proxyHost, int proxyPort, String proxyUser, String proxyPassword) {
+		this(proxyHost, proxyPort, proxyUser, proxyPassword, true);
+	}
+
+	public HttpsOverSocks5(String proxyHost, int proxyPort, String proxyUser, String proxyPassword,
+			boolean trustAllCert) {
 		this.proxyHost = proxyHost;
 		this.proxyPort = proxyPort;
 		this.proxyUser = proxyUser;
 		this.proxyPassword = proxyPassword;
+		this.trustAllCert = trustAllCert;
 	}
 
 	/**
@@ -99,7 +103,9 @@ public class HttpsOverSocks5 {
 			socks5Handshake(proxySocket, host, port);
 
 			// Wrap with SSL
-			SSLSocketFactory sslFactory = createTrustAllSSLSocketFactory();
+			SSLSocketFactory sslFactory = trustAllCert
+					? UNet.createSSLContext(true).getSocketFactory()
+					: (SSLSocketFactory) SSLSocketFactory.getDefault();
 			SSLSocket sslSocket = (SSLSocket) sslFactory.createSocket(proxySocket, host, port, true);
 			sslSocket.startHandshake();
 
@@ -342,23 +348,5 @@ public class HttpsOverSocks5 {
 		}
 		if (b == -1 && buf.size() == 0) return null;
 		return buf.toString(StandardCharsets.UTF_8);
-	}
-
-	private static SSLSocketFactory createTrustAllSSLSocketFactory() {
-		try {
-			SSLContext ctx = SSLContext.getInstance("TLS");
-			ctx.init(null, new TrustManager[] {
-					new X509TrustManager() {
-						public void checkClientTrusted(java.security.cert.X509Certificate[] chain, String authType) {}
-						public void checkServerTrusted(java.security.cert.X509Certificate[] chain, String authType) {}
-						public java.security.cert.X509Certificate[] getAcceptedIssuers() {
-							return new java.security.cert.X509Certificate[0];
-						}
-					}
-			}, new java.security.SecureRandom());
-			return ctx.getSocketFactory();
-		} catch (Exception e) {
-			throw new RuntimeException("Failed to create SSL socket factory", e);
-		}
 	}
 }
