@@ -56,6 +56,23 @@ public class TestLogic extends TestBase {
 	}
 
 	@Test
+	public void testUnicodeStringLogic() {
+		printCaption("Unicode string literals (Chinese, Japanese)");
+		// Chinese characters in string comparisons
+		assertTrue(ULogic.runLogic("'管理员' = '管理员'"));
+		assertFalse(ULogic.runLogic("'管理员' = '普通用户'"));
+		assertTrue(ULogic.runLogic("'管理员' <> ''"));
+
+		// Mixed ASCII/Unicode
+		assertTrue(ULogic.runLogic("'管理员' <> 'admin'"));
+		assertTrue(ULogic.runLogic("'ユーザー' = 'ユーザー'"));
+
+		// Unicode in empty string comparisons
+		assertFalse(ULogic.runLogic("'管理员' = ''"));
+		assertTrue(ULogic.runLogic("'' = ''"));
+	}
+
+	@Test
 	public void testAndOr() {
 		printCaption("AND/OR expressions");
 		assertTrue(ULogic.runLogic("1=1 AND 2=2"));

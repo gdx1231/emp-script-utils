@@ -78,7 +78,7 @@ public class ULogic {
 		}
 
 		// Whitelist: only allow SQL-compatible logical operators and values
-		if (!exp1.matches("^[0-9a-zA-Z_\\-+*/%()\\[\\].,'\\s=!<>&|^~@:]+$")
+		if (!exp1.matches("^[0-9a-zA-Z_\\p{L}\\-+*/%()\\[\\].,'\\s=!<>&|^~@:]+$")
 				|| exp1.contains("--") || exp1.contains("/*") || exp1.contains(";")) {
 			LOGGER.warn("Rejected unsafe logic expression: {}", exp1);
 			return false;
