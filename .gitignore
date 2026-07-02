@@ -4,6 +4,7 @@
 /build/
 *.class
 /target/
+/target17/
 /target/classes/*.*
 ewa_conf.xml
 ewa_console_conf.xml
