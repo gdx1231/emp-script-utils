@@ -89,6 +89,8 @@ public class UNet {
 	public static int C_TIME_OUT = 500000;
 	public static int R_TIME_OUT = 500000;
 	private String _LastUrl;
+	private String _LastMethod;
+	private String _LastBody;
 	private boolean _IsShowLog = false;
 	private HashMap<String, String> _Headers;
 	private HashMap<String, String> _Cookies;
@@ -387,6 +389,7 @@ public class UNet {
 		if (this._IsShowLog) {
 			LOGGER.info("PATCH: " + u);
 		}
+		this.recordLastRequest("PATCH", body);
 		CloseableHttpClient httpclient = this.getHttpClient(u);
 		HttpPatch httppost = new HttpPatch(u);
 		if (ignoreInvalidCookieWarn) {
@@ -425,7 +428,7 @@ public class UNet {
 		if (this._IsShowLog) {
 			LOGGER.info("PATCH " + url);
 		}
-
+		this.recordLastRequest("PATCH", encodeFormData(vals));
 		CloseableHttpClient httpclient = this.getHttpClient(url);
 
 		HttpPatch httPatch = new HttpPatch(url);
@@ -492,6 +495,7 @@ public class UNet {
 		if (this._IsShowLog) {
 			LOGGER.info("DW " + url);
 		}
+		this.recordLastRequest("GET", null);
 
 		byte[] result = null;
 		CloseableHttpClient httpclient = this.getHttpClient(url);
@@ -522,6 +526,7 @@ public class UNet {
 		if (this._IsShowLog) {
 			LOGGER.info("PUT " + url);
 		}
+		this.recordLastRequest("PUT", body);
 		String result = null;
 
 		CloseableHttpClient httpclient = this.getHttpClient(url);
@@ -550,6 +555,7 @@ public class UNet {
 		if (this._IsShowLog) {
 			LOGGER.info("PUT " + url);
 		}
+		this.recordLastRequest("PUT", encodeFormData(vals));
 		CloseableHttpClient httpclient = this.getHttpClient(url);
 
 		HttpPut httpPut = new HttpPut(url);
@@ -580,6 +586,7 @@ public class UNet {
 		if (this._IsShowLog) {
 			LOGGER.info("DELETE " + url);
 		}
+		this.recordLastRequest("DELETE", null);
 		String result = null;
 
 		CloseableHttpClient httpclient = this.getHttpClient(url);
@@ -607,6 +614,7 @@ public class UNet {
 		if (this._IsShowLog) {
 			LOGGER.info("DELETE " + url);
 		}
+		this.recordLastRequest("DELETE", body);
 		String result = null;
 
 		CloseableHttpClient httpclient = this.getHttpClient(url);
@@ -636,6 +644,7 @@ public class UNet {
 		if (this._IsShowLog) {
 			LOGGER.info("DELETE " + url);
 		}
+		this.recordLastRequest("DELETE", encodeFormData(vals));
 
 		CloseableHttpClient httpclient = this.getHttpClient(url);
 
@@ -667,6 +676,7 @@ public class UNet {
 		if (this._IsShowLog) {
 			LOGGER.info("GET " + url);
 		}
+		this.recordLastRequest("GET", null);
 
 		CloseableHttpClient httpclient = this.getHttpClient(url);
 
@@ -692,6 +702,7 @@ public class UNet {
 		if (this._IsShowLog) {
 			LOGGER.info("POST " + url);
 		}
+		this.recordLastRequest("POST", encodeFormData(vals));
 
 		CloseableHttpClient httpclient = this.getHttpClient(url);
 
@@ -724,6 +735,7 @@ public class UNet {
 		if (this._IsShowLog) {
 			LOGGER.info("POST: " + url);
 		}
+		this.recordLastRequest("POST", body);
 		CloseableHttpClient httpclient = this.getHttpClient(url);
 
 		HttpPost httpost = new HttpPost(url);
@@ -749,6 +761,7 @@ public class UNet {
 		if (this._IsShowLog) {
 			LOGGER.info("POST: " + url);
 		}
+		this.recordLastRequest("POST", "<binary " + (bodyBuff != null ? bodyBuff.length : 0) + " bytes>");
 		CloseableHttpClient httpclient = this.getHttpClient(url);
 
 		HttpPost httpost = new HttpPost(url);
@@ -905,6 +918,7 @@ public class UNet {
 		if (this._IsShowLog) {
 			LOGGER.info("U " + url);
 		}
+		this.recordLastRequest("POST", "<multipart upload>");
 
 		CloseableHttpClient httpclient = this.getHttpClient(url);
 		// 创建httpget.
@@ -1891,5 +1905,122 @@ public class UNet {
 	 */
 	public void setIgnoreInvalidCookieWarn(boolean ignoreInvalidCookieWarn) {
 		this.ignoreInvalidCookieWarn = ignoreInvalidCookieWarn;
+	}
+
+	/**
+	 * 记录最后一次请求的 HTTP 方法和请求体
+	 *
+	 * @param method HTTP 方法（GET, POST, PUT, DELETE, PATCH 等）
+	 * @param body   请求体（可为 null）
+	 */
+	private void recordLastRequest(String method, String body) {
+		this._LastMethod = method;
+		this._LastBody = body;
+	}
+
+	/**
+	 * @return 最后一次请求的 HTTP 方法
+	 */
+	public String getLastMethod() {
+		return _LastMethod;
+	}
+
+	/**
+	 * @return 最后一次请求的请求体
+	 */
+	public String getLastBody() {
+		return _LastBody;
+	}
+
+	/**
+	 * 生成最后一次请求的等效 curl 命令（带换行，便于阅读）
+	 * <p>
+	 * 包含 URL、请求方法、请求头、Cookie、User-Agent、代理、请求体等信息。
+	 * 如果尚未执行任何请求，返回 null。
+	 *
+	 * @return curl 命令字符串，或 null
+	 */
+	public String createLastCurl() {
+		if (this._LastUrl == null || this._LastMethod == null) {
+			return null;
+		}
+
+		StringBuilder sb = new StringBuilder();
+		sb.append("curl");
+
+		// -X METHOD
+		sb.append(" -X ").append(this._LastMethod);
+
+		// URL
+		sb.append(" \\\n  '").append(escapeShell(this._LastUrl)).append("'");
+
+		// User-Agent
+		String ua = this.getUserAgent();
+		if (ua != null && !ua.isEmpty()) {
+			sb.append(" \\\n  -H 'User-Agent: ").append(escapeShell(ua)).append("'");
+		}
+
+		// Custom headers
+		if (this._Headers != null) {
+			for (Map.Entry<String, String> entry : this._Headers.entrySet()) {
+				sb.append(" \\\n  -H '").append(escapeShell(entry.getKey()))
+						.append(": ").append(escapeShell(entry.getValue())).append("'");
+			}
+		}
+
+		// Cookies
+		String cookies = this.getCookies();
+		if (cookies != null && !cookies.isEmpty()) {
+			sb.append(" \\\n  -H 'Cookie: ").append(escapeShell(cookies)).append("'");
+		}
+
+		// Proxy
+		if (this._ProxyHost != null && !this._ProxyHost.isEmpty()) {
+			String proxyScheme = this._ProxyScheme != null ? this._ProxyScheme : "http";
+			sb.append(" \\\n  --proxy '").append(escapeShell(proxyScheme))
+					.append("://").append(escapeShell(this._ProxyHost))
+					.append(":").append(this._ProxyPort).append("'");
+		}
+
+		// Body
+		if (this._LastBody != null && !this._LastBody.isEmpty()) {
+			sb.append(" \\\n  -d '").append(escapeShell(this._LastBody)).append("'");
+		}
+
+		return sb.toString();
+	}
+
+	/**
+	 * 将 Map 参数编码为 form-urlencoded 字符串
+	 */
+	private String encodeFormData(Map<String, String> vals) {
+		if (vals == null || vals.isEmpty()) {
+			return null;
+		}
+		StringBuilder sb = new StringBuilder();
+		String code = this._Encode == null ? "UTF-8" : this._Encode;
+		for (Map.Entry<String, String> entry : vals.entrySet()) {
+			if (sb.length() > 0) {
+				sb.append("&");
+			}
+			try {
+				sb.append(URLEncoder.encode(entry.getKey(), code))
+						.append("=")
+						.append(URLEncoder.encode(entry.getValue(), code));
+			} catch (UnsupportedEncodingException e) {
+				sb.append(entry.getKey()).append("=").append(entry.getValue());
+			}
+		}
+		return sb.toString();
+	}
+
+	/**
+	 * 转义 shell 单引号中的单引号（' → '\''）
+	 */
+	private static String escapeShell(String value) {
+		if (value == null) {
+			return "";
+		}
+		return value.replace("'", "'\\''");
 	}
 }
