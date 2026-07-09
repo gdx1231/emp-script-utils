@@ -215,4 +215,48 @@ public class TestUNet extends TestBase {
 		assertNull(m.invoke(net, (Map<String, String>) null));
 		assertNull(m.invoke(net, new HashMap<>()));
 	}
+
+	@Test
+	public void testCreateLastCurl_UrlEncoding() throws Exception {
+		// 中文字符应被 percent-encode
+		setField("_LastUrl", "http://localhost:8080/api?location=北京&date=2026-07-09");
+		setField("_LastMethod", "GET");
+		setField("_LastBody", null);
+
+		String curl = net.createLastCurl();
+		assertNotNull(curl);
+		// 北京 → %E5%8C%97%E4%BA%AC
+		assertTrue(curl.contains("location=%E5%8C%97%E4%BA%AC"), "中文字符应被 URL 编码");
+		assertTrue(curl.contains("date=2026-07-09"), "ASCII 字符不应被编码");
+		assertFalse(curl.contains("北京"), "原始中文字符不应出现在 curl 中");
+		System.out.println(curl);
+	}
+
+	@Test
+	public void testCreateLastCurl_UrlPreservesExistingEncoding() throws Exception {
+		// 已有 %XX 序列不应被双重编码
+		setField("_LastUrl", "http://localhost/api?q=%E4%BD%A0%E5%A5%BD");
+		setField("_LastMethod", "GET");
+		setField("_LastBody", null);
+
+		String curl = net.createLastCurl();
+		assertNotNull(curl);
+		assertTrue(curl.contains("%E4%BD%A0%E5%A5%BD"), "已有的 percent-encoding 应保留");
+		assertFalse(curl.contains("%25E4"), "不应出现双重编码");
+		System.out.println(curl);
+	}
+
+	@Test
+	public void testCreateLastCurl_UrlMixedEncoding() throws Exception {
+		// 混合场景：部分已编码 + 部分中文
+		setField("_LastUrl", "http://host/path?name=%E5%BC%A0&city=上海");
+		setField("_LastMethod", "GET");
+		setField("_LastBody", null);
+
+		String curl = net.createLastCurl();
+		assertNotNull(curl);
+		assertTrue(curl.contains("name=%E5%BC%A0"), "已编码部分保留");
+		assertTrue(curl.contains("city=%E4%B8%8A%E6%B5%B7"), "中文应被编码 (上海→%E4%B8%8A%E6%B5%B7)");
+		System.out.println(curl);
+	}
 }
