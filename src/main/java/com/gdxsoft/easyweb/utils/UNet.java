@@ -2353,7 +2353,7 @@ public class UNet {
 		sb.append(" -X ").append(this._LastMethod);
 
 		// URL
-		sb.append(" \\\n  '").append(escapeShell(this._LastUrl)).append("'");
+		sb.append(" \\\n  '").append(escapeShell(encodeUrlForCurl(this._LastUrl))).append("'");
 
 		// User-Agent
 		String ua = this.getUserAgent();
@@ -2389,6 +2389,39 @@ public class UNet {
 		}
 
 		return sb.toString();
+	}
+
+	/**
+	 * 对 URL 中的非 ASCII 字符进行 percent-encoding（UTF-8），保留已有的 %XX 序列和 URL 结构字符。
+	 * 用于 curl 命令输出，确保符合 RFC 3986。
+	 */
+	private static String encodeUrlForCurl(String url) {
+		if (url == null) {
+			return "";
+		}
+		StringBuilder sb = new StringBuilder(url.length());
+		for (int i = 0; i < url.length(); i++) {
+			char c = url.charAt(i);
+			if (c == '%' && i + 2 < url.length()
+					&& isHex(url.charAt(i + 1)) && isHex(url.charAt(i + 2))) {
+				// 已经是 percent-encoded 序列，保留原样
+				sb.append(c);
+			} else if (c > 127) {
+				// 非 ASCII 字符，按 UTF-8 编码为 %XX
+				byte[] bytes = String.valueOf(c).getBytes(java.nio.charset.StandardCharsets.UTF_8);
+				for (byte b : bytes) {
+					sb.append('%');
+					sb.append(String.format("%02X", b & 0xFF));
+				}
+			} else {
+				sb.append(c);
+			}
+		}
+		return sb.toString();
+	}
+
+	private static boolean isHex(char c) {
+		return (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F');
 	}
 
 	/**

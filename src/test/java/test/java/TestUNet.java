@@ -1263,4 +1263,32 @@ public class TestUNet extends TestBase {
 		net.doPost(baseUrl + "/post", "test-body");
 		assertEquals("test-body", net.getLastBody());
 	}
+
+	@Test
+	public void testCreateLastCurl_UrlEncoding() {
+		printCaption("createLastCurl URL encoding");
+		UNet net = new UNet();
+		net.doGet(baseUrl + "/get?location=北京&date=2026-07-09");
+
+		String curl = net.createLastCurl();
+		assertNotNull(curl);
+		assertTrue(curl.contains("location=%E5%8C%97%E4%BA%AC"), "中文字符应被 URL 编码");
+		assertTrue(curl.contains("date=2026-07-09"), "ASCII 字符不应被编码");
+		assertFalse(curl.contains("北京"), "原始中文字符不应出现在 curl 中");
+		System.out.println(curl);
+	}
+
+	@Test
+	public void testCreateLastCurl_UrlPreservesExistingEncoding() {
+		printCaption("createLastCurl preserves existing encoding");
+		UNet net = new UNet();
+		// 手动设置一个已编码的 URL
+		net.doGet(baseUrl + "/get?q=%E4%BD%A0%E5%A5%BD");
+
+		String curl = net.createLastCurl();
+		assertNotNull(curl);
+		assertTrue(curl.contains("%E4%BD%A0%E5%A5%BD"), "已有的 percent-encoding 应保留");
+		assertFalse(curl.contains("%25E4"), "不应出现双重编码");
+		System.out.println(curl);
+	}
 }
