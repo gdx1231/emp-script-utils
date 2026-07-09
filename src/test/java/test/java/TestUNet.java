@@ -967,4 +967,300 @@ public class TestUNet extends TestBase {
 		assertEquals(Long.valueOf(500), events.get(0).getRetry(),
 				"retry field should be parsed as Long 500");
 	}
+
+	// ==================== createLastCurl tests ====================
+
+	@Test
+	public void testCreateLastCurl_NullWhenNoRequest() {
+		printCaption("createLastCurl null when no request");
+		UNet net = new UNet();
+		assertNull(net.createLastCurl());
+	}
+
+	@Test
+	public void testCreateLastCurl_GetRequest() {
+		printCaption("createLastCurl GET request");
+		UNet net = new UNet();
+		String result = net.doGet(baseUrl + "/get");
+		assertNotNull(result);
+
+		String curl = net.createLastCurl();
+		assertNotNull(curl);
+		assertTrue(curl.startsWith("curl -X GET"));
+		assertTrue(curl.contains("'" + baseUrl + "/get'"));
+		assertFalse(curl.contains("-d "));
+		System.out.println(curl);
+	}
+
+	@Test
+	public void testCreateLastCurl_PostWithStringBody() {
+		printCaption("createLastCurl POST with String body");
+		UNet net = new UNet();
+		net.doPost(baseUrl + "/post", "{\"key\":\"value\"}");
+
+		String curl = net.createLastCurl();
+		assertNotNull(curl);
+		assertTrue(curl.contains("-X POST"));
+		assertTrue(curl.contains("-d '{\"key\":\"value\"}'"));
+		System.out.println(curl);
+	}
+
+	@Test
+	public void testCreateLastCurl_PostWithFormParams() {
+		printCaption("createLastCurl POST with form params");
+		UNet net = new UNet();
+		Map<String, String> params = new HashMap<>();
+		params.put("name", "test");
+		params.put("value", "123");
+		net.doPost(baseUrl + "/post", params);
+
+		String curl = net.createLastCurl();
+		assertNotNull(curl);
+		assertTrue(curl.contains("-X POST"));
+		assertTrue(curl.contains("name=test"));
+		assertTrue(curl.contains("value=123"));
+		System.out.println(curl);
+	}
+
+	@Test
+	public void testCreateLastCurl_PostWithBytes() {
+		printCaption("createLastCurl POST with byte[] body");
+		UNet net = new UNet();
+		net.doPost(baseUrl + "/post", new byte[]{1, 2, 3});
+
+		String curl = net.createLastCurl();
+		assertNotNull(curl);
+		assertTrue(curl.contains("-X POST"));
+		assertTrue(curl.contains("<binary 3 bytes>"));
+		System.out.println(curl);
+	}
+
+	@Test
+	public void testCreateLastCurl_PutRequest() {
+		printCaption("createLastCurl PUT request");
+		UNet net = new UNet();
+		net.doPut(baseUrl + "/put", "{\"update\":\"data\"}");
+
+		String curl = net.createLastCurl();
+		assertNotNull(curl);
+		assertTrue(curl.contains("-X PUT"));
+		assertTrue(curl.contains("-d '{\"update\":\"data\"}'"));
+		System.out.println(curl);
+	}
+
+	@Test
+	public void testCreateLastCurl_DeleteRequest() {
+		printCaption("createLastCurl DELETE request");
+		UNet net = new UNet();
+		net.doDelete(baseUrl + "/delete");
+
+		String curl = net.createLastCurl();
+		assertNotNull(curl);
+		assertTrue(curl.contains("-X DELETE"));
+		assertFalse(curl.contains("-d "));
+		System.out.println(curl);
+	}
+
+	@Test
+	public void testCreateLastCurl_DeleteWithBody() {
+		printCaption("createLastCurl DELETE with body");
+		UNet net = new UNet();
+		net.doDelete(baseUrl + "/delete", "{\"id\":\"123\"}");
+
+		String curl = net.createLastCurl();
+		assertNotNull(curl);
+		assertTrue(curl.contains("-X DELETE"));
+		assertTrue(curl.contains("-d '{\"id\":\"123\"}'"));
+		System.out.println(curl);
+	}
+
+	@Test
+	public void testCreateLastCurl_PatchRequest() {
+		printCaption("createLastCurl PATCH request");
+		UNet net = new UNet();
+		net.doPatch(baseUrl + "/patch", "{\"patch\":\"value\"}");
+
+		String curl = net.createLastCurl();
+		assertNotNull(curl);
+		assertTrue(curl.contains("-X PATCH"));
+		assertTrue(curl.contains("-d '{\"patch\":\"value\"}'"));
+		System.out.println(curl);
+	}
+
+	@Test
+	public void testCreateLastCurl_DownloadData() {
+		printCaption("createLastCurl downloadData");
+		UNet net = new UNet();
+		byte[] data = net.downloadData(baseUrl + "/download");
+		assertNotNull(data);
+
+		String curl = net.createLastCurl();
+		assertNotNull(curl);
+		assertTrue(curl.contains("-X GET"));
+		assertTrue(curl.contains("/download"));
+		assertFalse(curl.contains("-d "));
+		System.out.println(curl);
+	}
+
+	@Test
+	public void testCreateLastCurl_WithHeaders() {
+		printCaption("createLastCurl with headers");
+		UNet net = new UNet();
+		net.addHeader("X-Custom", "test-value");
+		net.doGet(baseUrl + "/get");
+
+		String curl = net.createLastCurl();
+		assertNotNull(curl);
+		assertTrue(curl.contains("-H 'X-Custom: test-value'"));
+		System.out.println(curl);
+	}
+
+	@Test
+	public void testCreateLastCurl_WithCookies() {
+		printCaption("createLastCurl with cookies");
+		UNet net = new UNet();
+		net.setCookie("session=abc123; lang=zh");
+		net.doGet(baseUrl + "/get");
+
+		String curl = net.createLastCurl();
+		assertNotNull(curl);
+		assertTrue(curl.contains("-H 'Cookie: session=abc123; lang=zh'"));
+		System.out.println(curl);
+	}
+
+	@Test
+	public void testCreateLastCurl_WithUserAgent() {
+		printCaption("createLastCurl with User-Agent");
+		UNet net = new UNet();
+		net.setUserAgent("MyApp/1.0");
+		net.doGet(baseUrl + "/get");
+
+		String curl = net.createLastCurl();
+		assertNotNull(curl);
+		assertTrue(curl.contains("-H 'User-Agent: MyApp/1.0'"));
+		System.out.println(curl);
+	}
+
+	@Test
+	public void testCreateLastCurl_WithProxy() {
+		printCaption("createLastCurl with proxy");
+		UNet net = new UNet();
+		net.setProxy("127.0.0.1", 8080, "http");
+		net.doGet(baseUrl + "/get");
+
+		String curl = net.createLastCurl();
+		assertNotNull(curl);
+		assertTrue(curl.contains("--proxy 'http://127.0.0.1:8080'"));
+		System.out.println(curl);
+	}
+
+	@Test
+	public void testCreateLastCurl_ShellEscaping() {
+		printCaption("createLastCurl shell escaping");
+		UNet net = new UNet();
+		net.doPost(baseUrl + "/post", "data=it's a \"test\"");
+
+		String curl = net.createLastCurl();
+		assertNotNull(curl);
+		assertTrue(curl.contains("it'\\''s"), "Single quote should be escaped");
+		System.out.println(curl);
+	}
+
+	@Test
+	public void testCreateLastCurl_FullExample() {
+		printCaption("createLastCurl full example");
+		UNet net = new UNet();
+		net.setUserAgent("TestAgent/2.0");
+		net.addHeader("Content-Type", "application/json");
+		net.setCookie("token=xyz789");
+		net.setProxy("proxy.local", 3128, "http");
+
+		net.doPost(baseUrl + "/api/users", "{\"name\":\"张三\"}");
+
+		String curl = net.createLastCurl();
+		assertNotNull(curl);
+		assertTrue(curl.contains("-X POST"));
+		assertTrue(curl.contains("-H 'User-Agent: TestAgent/2.0'"));
+		assertTrue(curl.contains("-H 'Content-Type: application/json'"));
+		assertTrue(curl.contains("-H 'Cookie: token=xyz789'"));
+		assertTrue(curl.contains("--proxy 'http://proxy.local:3128'"));
+		assertTrue(curl.contains("-d '{\"name\":\"张三\"}'"));
+		System.out.println(curl);
+	}
+
+	@Test
+	public void testCreateLastCurl_LineBreaks() {
+		printCaption("createLastCurl line breaks");
+		UNet net = new UNet();
+		net.addHeader("X-Custom", "value");
+		net.doPost(baseUrl + "/post", "data=test");
+
+		String curl = net.createLastCurl();
+		assertNotNull(curl);
+		assertTrue(curl.contains(" \\\n  "), "Should use backslash-newline for line continuation");
+		String[] lines = curl.split("\n");
+		assertTrue(lines.length > 1, "Should have multiple lines");
+		System.out.println(curl);
+	}
+
+	@Test
+	public void testCreateLastCurl_Upload() {
+		printCaption("createLastCurl upload");
+		File tmpFile = null;
+		try {
+			tmpFile = File.createTempFile("test-upload", ".txt");
+			Files.writeString(tmpFile.toPath(), "test content");
+
+			UNet net = new UNet();
+			HashMap<String, String> vals = new HashMap<>();
+			vals.put("field1", "value1");
+			net.doUpload(baseUrl + "/upload", "file", tmpFile.getAbsolutePath(), vals);
+
+			String curl = net.createLastCurl();
+			assertNotNull(curl);
+			assertTrue(curl.contains("-X POST"));
+			assertTrue(curl.contains("<multipart upload>"));
+			System.out.println(curl);
+		} catch (Exception e) {
+			fail("Upload test failed: " + e.getMessage());
+		} finally {
+			if (tmpFile != null)
+				tmpFile.delete();
+		}
+	}
+
+	@Test
+	public void testGetLastMethod() {
+		printCaption("getLastMethod");
+		UNet net = new UNet();
+		assertNull(net.getLastMethod());
+
+		net.doGet(baseUrl + "/get");
+		assertEquals("GET", net.getLastMethod());
+
+		net.doPost(baseUrl + "/post", "body");
+		assertEquals("POST", net.getLastMethod());
+
+		net.doPut(baseUrl + "/put", "body");
+		assertEquals("PUT", net.getLastMethod());
+
+		net.doDelete(baseUrl + "/delete");
+		assertEquals("DELETE", net.getLastMethod());
+
+		net.doPatch(baseUrl + "/patch", "body");
+		assertEquals("PATCH", net.getLastMethod());
+	}
+
+	@Test
+	public void testGetLastBody() {
+		printCaption("getLastBody");
+		UNet net = new UNet();
+		assertNull(net.getLastBody());
+
+		net.doGet(baseUrl + "/get");
+		assertNull(net.getLastBody());
+
+		net.doPost(baseUrl + "/post", "test-body");
+		assertEquals("test-body", net.getLastBody());
+	}
 }
