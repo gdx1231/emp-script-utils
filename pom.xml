@@ -269,6 +269,12 @@
 	<!--
 		https://issues.sonatype.org/browse/OSSRH-65277
 	-->
+	<distributionManagement>
+		<repository>
+			<id>github</id>
+			<url>https://maven.pkg.github.com/gdx1231/emp-script-utils</url>
+		</repository>
+	</distributionManagement>
 	<profiles>
 		<profile>
 			<id>release</id> <!-- 部署要用到 -->
