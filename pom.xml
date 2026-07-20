@@ -5,7 +5,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>com.gdxsoft.easyweb</groupId>
 	<artifactId>emp-script-utils</artifactId>
-	<version>1.1.10</version>
+	<version>1.1.11</version>
 	<name>Easy Web Appliaction Utils</name>
 	<description>Easy Web Appliaction Utils: UArgon2, UMail, UDigest, URsa,
 		UAes, UDes, UFile, UConvert, UFormat, UNet, SendMail, SmtpCfg </description>
@@ -314,7 +314,7 @@
 						<!-- 进行延签 -->
 						<groupId>org.apache.maven.plugins</groupId>
 						<artifactId>maven-gpg-plugin</artifactId>
-						<version>1.6</version>
+						<version>3.2.7</version>
 						<executions>
 							<execution>
 								<phase>verify</phase>
@@ -324,20 +324,19 @@
 							</execution>
 						</executions>
 					</plugin>
+					<!-- Central Portal Publishing -->
+					<plugin>
+						<groupId>org.sonatype.central</groupId>
+						<artifactId>central-publishing-maven-plugin</artifactId>
+						<version>0.7.0</version>
+						<extensions>true</extensions>
+						<configuration>
+							<publishingServerId>central</publishingServerId>
+							<autoPublish>true</autoPublish>
+						</configuration>
+					</plugin>
 				</plugins>
 			</build>
-			<distributionManagement>
-				<snapshotRepository>
-					<id>oss</id>
-					<url>
-						https://oss.sonatype.org/content/repositories/snapshots/</url>
-				</snapshotRepository>
-				<repository>
-					<id>oss</id>
-					<url>
-						https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
-				</repository>
-			</distributionManagement>
 		</profile>
 	</profiles>
 </project>
