@@ -5,10 +5,9 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>com.gdxsoft.easyweb</groupId>
 	<artifactId>emp-script-utils</artifactId>
-	<version>1.1.10</version>
+	<version>1.1.12</version>
 	<name>Easy Web Appliaction Utils</name>
-	<description>Easy Web Appliaction Utils: UArgon2, UMail, UDigest, URsa,
-		UAes, UDes, UFile, UConvert, UFormat, UNet, SendMail, SmtpCfg </description>
+	<description>Utility library of the EWA (Easy Web Application) framework: UArgon2, UMail, UDigest, URsa, UAes, UDes, UFile, UConvert, UFormat, UNet, SendMail, SmtpCfg</description>
 	<developers>
 		<developer>
 			<id>guolei</id>
