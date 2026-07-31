@@ -193,6 +193,26 @@ UFormat.formatPercent("0.075");      // 输出："7.50%"
 
 ---
 
+### formatBytes - 字节数格式
+
+**方法签名**:
+```java
+public static String formatBytes(long length)
+```
+
+**说明**: 将字节数转换为 B/K/M/G/T 格式（1024 进制），B 不带小数，其他单位最多保留 2 位小数并清除末尾 0
+
+**示例**:
+```java
+UFormat.formatBytes(512);                // 输出："512B"
+UFormat.formatBytes(1536);               // 输出："1.5K"
+UFormat.formatBytes(2411724);            // 输出："2.3M"
+UFormat.formatBytes(3221225472L);        // 输出："3G"
+UFormat.formatBytes(2199023255552L);     // 输出："2T"
+```
+
+---
+
 ### formatNumberClearZero - 清除小数末尾的 0（有逗号）
 
 **方法签名**:

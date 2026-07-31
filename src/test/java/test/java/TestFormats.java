@@ -19,6 +19,7 @@ public class TestFormats extends TestBase {
 		testDate();
 		testDecimalClearZero();
 		testMoney();
+		testBytes();
 	}
 
 	private void testAge() {
@@ -83,6 +84,17 @@ public class TestFormats extends TestBase {
 		System.out.println(UFormat.formatMoney("132,312.4133"));
 		// 四舍五入
 		System.out.println(UFormat.formatMoney("132312.4153"));
+	}
+
+	private void testBytes() throws Exception {
+		super.printCaption("Bytes");
+
+		System.out.println(UFormat.formatBytes(512));
+		System.out.println(UFormat.formatBytes(1536));
+		System.out.println(UFormat.formatBytes(2411724));
+		System.out.println(UFormat.formatBytes(3221225472L));
+		System.out.println(UFormat.formatBytes(2199023255552L));
+		System.out.println(UFormat.formatBytes(2199023255552000L));
 	}
 
 	private void testDecimalClearZero() throws Exception {

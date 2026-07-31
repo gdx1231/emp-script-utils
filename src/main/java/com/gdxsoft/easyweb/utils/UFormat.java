@@ -5,8 +5,12 @@ import java.text.NumberFormat;
 import java.util.Calendar;
 import java.util.Date;
 
-public class UFormat {
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+
+public class UFormat {
+	private static Logger LOGGER = LoggerFactory.getLogger(UFormat.class);
 	private static final String[] WEEEK_NAME_ZHCN = "日,一,二,三,四,五,六".split(",");
 	private static final String[] WEEEK_NAME_ENUS = "Sun,Mon,Tue,Wed,Thu,Fri,Sat".split(",");
 
@@ -131,13 +135,22 @@ public class UFormat {
 			try {
 				double v = UConvert.ToDouble(oriValue);
 				return formatChineseMoney(v);
-			} catch (Exception err) {
+			} catch (Exception e) {
+				LOGGER.warn("convert to bytes {}, {}", oriValue, e.getLocalizedMessage());
 				return oriValue.toString();
 			}
 		} else if ("bin2base64".equalsIgnoreCase(f)) {
 			return bin2Base64(oriValue);
 		} else if ("bin2hex".equalsIgnoreCase(f)) {
 			return bin2Hex(oriValue);
+		} else if("bytes".equalsIgnoreCase(f) ){
+			try {
+				long length = Long.parseLong(oriValue.toString());
+				return formatBytes(length);
+			}catch(Exception e) {
+				LOGGER.warn("convert to bytes {}, {}", oriValue, e.getLocalizedMessage());
+				return oriValue.toString();
+			}
 		}
 		return objectToString(oriValue);
 	}
@@ -521,6 +534,7 @@ public class UFormat {
 			}
 
 		}
+		
 		return oriValue.toString();
 	}
 
@@ -580,6 +594,27 @@ public class UFormat {
 		java.text.DecimalFormat df = new java.text.DecimalFormat("#.00");
 		String v1 = df.format(d1) + "%";
 		return v1;
+	}
+
+	/**
+	 * 格式化字节数为 B/K/M/G/T，B 不带小数，其他单位最多保留2位小数并清除末尾0
+	 *
+	 * @param length 字节数
+	 * @return 如 512B, 1.5K, 2.25M
+	 */
+	public static String formatBytes(long length) {
+		String[] units = { "B", "K", "M", "G", "T" };
+		double size = length;
+		int unitIndex = 0;
+		while (size >= 1024 && unitIndex < units.length - 1) {
+			size = size / 1024;
+			unitIndex++;
+		}
+		if (unitIndex == 0) {
+			return length + "B";
+		}
+		java.text.DecimalFormat df = new java.text.DecimalFormat("#.##");
+		return df.format(size) + units[unitIndex];
 	}
 
 	/**
