@@ -585,6 +585,8 @@ public class UPath {
 			Element ele = (Element) nl.item(i);
 			String name = ele.hasAttribute("name") ? ele.getAttribute("name") : ele.getAttribute("Name");
 			String v = ele.hasAttribute("value") ? ele.getAttribute("value") : ele.getAttribute("Value");
+			// 解析变量（如 ${env.EWA_HOME}、${user.home} 等）
+			v = ConfValueResolvers.resolve(v);
 			if (!(v.endsWith("/") || v.endsWith("\\"))) {
 				v += "/";
 			}
@@ -644,7 +646,10 @@ public class UPath {
 			n = n.toUpperCase();
 
 			String v = ele.hasAttribute("Value") ? ele.getAttribute("Value") : ele.getAttribute("value");
-
+			
+			// 解析变量（如 ${env.EWA_HOME}、${user.home} 等）
+			v = ConfValueResolvers.resolve(v);
+			
 			if (INIT_PARAS.containsKey(n)) {
 				INIT_PARAS.removeKey(n);
 			} else {

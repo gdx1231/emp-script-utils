@@ -12,6 +12,7 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
 
+import com.gdxsoft.easyweb.utils.ConfValueResolvers;
 import com.gdxsoft.easyweb.utils.UMail;
 import com.gdxsoft.easyweb.utils.UXml;
 import com.gdxsoft.easyweb.utils.Utils;
@@ -95,6 +96,10 @@ public class SmtpCfgs {
 		String user = smtpParas.containsKey("user") ? smtpParas.get("user") : null;
 		// SMTP password
 		String password = smtpParas.containsKey("pwd") ? smtpParas.get("pwd") : null;
+		// 通过解析器处理（环境变量、文件读取等）
+		if (password != null) {
+			password = ConfValueResolvers.resolve(password);
+		}
 		// SMTP port
 		int port = smtpParas.containsKey("port") ? Integer.parseInt(smtpParas.get("port")) : 25;
 		// default server

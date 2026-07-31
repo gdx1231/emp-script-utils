@@ -136,7 +136,7 @@ public class UFormat {
 				double v = UConvert.ToDouble(oriValue);
 				return formatChineseMoney(v);
 			} catch (Exception e) {
-				LOGGER.warn("convert to bytes {}, {}", oriValue, e.getLocalizedMessage());
+				LOGGER.warn("convert to ChineseMoney {}, {}", oriValue, e.getLocalizedMessage());
 				return oriValue.toString();
 			}
 		} else if ("bin2base64".equalsIgnoreCase(f)) {
