@@ -486,7 +486,7 @@ public class UNet {
 
 	/**
 	 * get 下载二进制
-	 * 
+	 *
 	 * @param url 地址
 	 * @return 文件二进制
 	 */
@@ -513,6 +513,63 @@ public class UNet {
 		result = this.handleResponseBinary(httpclient, request);
 
 		return result;
+	}
+
+	/**
+	 * get 下载到本地文件（流式写入，内存占用恒定，适合大文件/视频）。
+	 * 使用 Apache HttpClient，JDK 8 兼容。
+	 *
+	 * @param url        地址
+	 * @param targetPath 本地目标文件路径（父目录不存在时自动创建）
+	 * @return 文件字节数
+	 * @throws IOException 网络错误 / 非 200 / 写入失败
+	 */
+	public long downloadToFile(String url, String targetPath) throws IOException {
+		if (this._IsShowLog) {
+			LOGGER.info("DW " + url);
+		}
+		this.recordLastRequest("GET", null);
+
+		CloseableHttpClient httpclient = this.getHttpClient(url);
+		HttpGet request = new HttpGet(url);
+		if (ignoreInvalidCookieWarn) {
+			request.setConfig(IGNORE_COOKIES);
+		}
+		this.addRequestHeaders(request);
+		// 大文件/视频下载：读空闲超时放宽到 60s（SO_TIMEOUT 是数据包间隔，不是总时长）
+		RequestConfig requestConfig = RequestConfig.custom().setSocketTimeout(60000).setConnectTimeout(50000).build();
+		request.setConfig(requestConfig);
+
+		try {
+			HttpResponse response = httpclient.execute(request);
+			this._LastStatusCode = response.getStatusLine().getStatusCode();
+			if (this._LastStatusCode != 200) {
+				LOGGER.error("downloadToFile response code: " + this._LastStatusCode + ", " + url);
+				throw new IOException("下载失败 HTTP " + this._LastStatusCode + ": " + url);
+			}
+
+			java.io.File target = new java.io.File(targetPath);
+			java.io.File parent = target.getParentFile();
+			if (parent != null && !parent.exists()) {
+				parent.mkdirs();
+			}
+
+			HttpEntity entity = response.getEntity();
+			if (entity != null) {
+				try (java.io.FileOutputStream fos = new java.io.FileOutputStream(target)) {
+					// 流式写入，内存占用恒定
+					entity.writeTo(fos);
+				}
+				EntityUtils.consume(entity);
+			} else {
+				LOGGER.warn("返回没有下载内容: " + url);
+				throw new IOException("下载失败：响应无内容: " + url);
+			}
+			this._LastResult = String.valueOf(target.length());
+			return target.length();
+		} finally {
+			this.closeHttpClient(httpclient);
+		}
 	}
 
 	/**

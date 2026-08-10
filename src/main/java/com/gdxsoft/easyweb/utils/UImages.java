@@ -587,6 +587,7 @@ public class UImages {
 
 		String command_line = getImageMagick();
 		StringBuilder cmd = new StringBuilder();
+		cmd.append("\"").append(command_line).append("\"");
 		// -strip 删除配置文件和注释
 		if (command_line.endsWith("convert") || command_line.endsWith("convert.exe")) {
 			// legacy

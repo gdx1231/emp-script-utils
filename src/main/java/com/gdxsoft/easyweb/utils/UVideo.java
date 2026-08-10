@@ -289,6 +289,57 @@ public class UVideo {
 	}
 
 	/**
+	 * Create a video cover by extracting the last frame.
+	 * <p>
+	 * The ffmpeg command used:
+	 *
+	 * <pre>
+	 * ffmpeg -y -sseof -0.5 -i &lt;input&gt; -vframes 1 [-q:v &lt;quality&gt;] [-vf scale=W:H] &lt;output&gt;
+	 * </pre>
+	 *
+	 * Uses {@code -sseof} with a 0.5s offset before the end to avoid
+	 * black/empty tail frames common in generated videos. The cover path is
+	 * auto-generated next to the video file.
+	 *
+	 * @return the cover file path, or null on failure
+	 */
+	public String createVideoCoverByLastFrame() {
+		return createVideoCoverByLastFrame(null, 0.5);
+	}
+
+	/**
+	 * Create a video cover by extracting the last frame.
+	 *
+	 * @param coverPath the output cover image path, or null to auto-generate
+	 * @return the cover file path, or null on failure
+	 */
+	public String createVideoCoverByLastFrame(String coverPath) {
+		return createVideoCoverByLastFrame(coverPath, 0.5);
+	}
+
+	/**
+	 * Create a video cover by extracting the last frame at the specified seek offset.
+	 * <p>
+	 * The ffmpeg command used:
+	 *
+	 * <pre>
+	 * ffmpeg -y -sseof -&lt;offset&gt; -i &lt;input&gt; -vframes 1 [-q:v &lt;quality&gt;] [-vf scale=W:H] &lt;output&gt;
+	 * </pre>
+	 *
+	 * @param coverPath         the output cover image path, or null to auto-generate
+	 * @param seekOffsetSeconds the seek offset in seconds before the end (e.g. 0.5 for
+	 *                          the frame at end-0.5s). Must be &gt; 0.
+	 * @return the cover file path, or null on failure
+	 */
+	public String createVideoCoverByLastFrame(String coverPath, double seekOffsetSeconds) {
+		if (seekOffsetSeconds <= 0) {
+			seekOffsetSeconds = 0.5;
+		}
+		return extractFrame(coverPath, new String[] { "-sseof", "-" + String.valueOf(seekOffsetSeconds) },
+				"Extracting last frame");
+	}
+
+	/**
 	 * Create a video cover at a percentage of the video duration.
 	 * <p>
 	 * For example, {@code percent=0.1} will seek to 10% of the video duration,
@@ -784,6 +835,84 @@ public class UVideo {
 				LOGGER.error(e.getMessage());
 			}
 		}
+	}
+
+	/**
+	 * Extract a video clip from {@link #videoPath}.
+	 * No stream copy — re-encodes for frame-accurate cutting.
+	 *
+	 * @param outPath  output clip file path
+	 * @param startSec start position in seconds
+	 * @param duration clip duration in seconds
+	 * @return the output file path, or null on failure
+	 */
+	public String extractClip(String outPath, double startSec, double duration) {
+		return extractClip(this.videoPath, outPath, startSec, duration, this.timeout);
+	}
+
+	/**
+	 * Extract a video clip from a given file.
+	 * Re-encodes (no stream copy) for frame-accurate cutting — essential for short
+	 * clips where keyframe alignment would otherwise produce the wrong segment.
+	 * <p>
+	 * ffmpeg command:
+	 * <pre>
+	 * ffmpeg -y -ss &lt;start&gt; -i &lt;input&gt; -t &lt;duration&gt; &lt;output&gt;
+	 * </pre>
+	 *
+	 * @param inputPath  source video file path
+	 * @param outPath    output clip file path
+	 * @param startSec   start position in seconds
+	 * @param duration   clip duration in seconds
+	 * @param timeoutMs  execution timeout in milliseconds
+	 * @return the output file path, or null on failure
+	 */
+	public static String extractClip(String inputPath, String outPath,
+			double startSec, double duration, long timeoutMs) {
+		File inFile = new File(inputPath);
+		if (!inFile.exists() || !inFile.isFile()) {
+			LOGGER.error("Input video not found: {}", inputPath);
+			return null;
+		}
+
+		File outFile = new File(outPath);
+		File parentDir = outFile.getParentFile();
+		if (parentDir != null && !parentDir.exists()) {
+			parentDir.mkdirs();
+		}
+
+		String ffmpeg;
+		try {
+			ffmpeg = getFfmpeg();
+		} catch (Exception e) {
+			LOGGER.error(e.getMessage());
+			return null;
+		}
+
+		// -ss before -i (input seeking) for speed; no -c copy so frame-accurate
+		CommandLine cmd = new CommandLine(ffmpeg);
+		cmd.addArgument("-y", false);
+		cmd.addArgument("-ss", false);
+		cmd.addArgument(String.format("%.2f", startSec), false);
+		cmd.addArgument("-i", false);
+		cmd.addArgument(inFile.getAbsolutePath(), false);
+		cmd.addArgument("-t", false);
+		cmd.addArgument(String.format("%.2f", duration), false);
+		cmd.addArgument(outFile.getAbsolutePath(), false);
+
+		LOGGER.info("Extracting clip: {}", cmd.toString());
+
+		ExecuteResult result = execute(cmd, timeoutMs > 0 ? timeoutMs : DEFAULT_TIMEOUT);
+		if (result.isSuccess()) {
+			if (outFile.exists() && outFile.length() > 0) {
+				LOGGER.info("Clip extracted: {}", outFile.getAbsolutePath());
+				return outFile.getAbsolutePath();
+			}
+			LOGGER.error("Clip file not created or empty: {}", outFile.getAbsolutePath());
+			return null;
+		}
+		LOGGER.error("ffmpeg clip extraction failed (exit {}): {}", result.exitCode, result.output);
+		return null;
 	}
 
 	/**
