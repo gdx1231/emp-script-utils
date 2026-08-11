@@ -5,11 +5,15 @@ import static org.junit.jupiter.api.Assertions.*;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.util.Arrays;
+import java.util.Collections;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 
+import com.gdxsoft.easyweb.utils.UJSon;
 import com.gdxsoft.easyweb.utils.UVideo;
 
 public class TestUVideo {
@@ -113,6 +117,60 @@ public class TestUVideo {
         assertEquals(2.0, headDur, 0.2, "round-trip head");
         assertTrue(tailDur + headDur <= inputDur + 0.5,
                 "tail+head (" + (tailDur + headDur) + "s) <= input (" + inputDur + "s)");
+    }
+
+    @Test
+    void testMergeVideos_twoClips() throws Exception {
+        if (!requireFfmpeg()) return;
+        File a = new File(tmpDir, "m_a.mp4");
+        File b = new File(tmpDir, "m_b.mp4");
+        File out = new File(tmpDir, "merged.mp4");
+        UVideo.extractClip(testInput.getAbsolutePath(), a.getAbsolutePath(), 0.0, 2.0, 30000L);
+        UVideo.extractClip(testInput.getAbsolutePath(), b.getAbsolutePath(), 2.0, 2.0, 30000L);
+        JSONObject result = UVideo.mergeVideos(
+                Arrays.asList(a.getAbsolutePath(), b.getAbsolutePath()),
+                out.getAbsolutePath(), 60000L);
+        assertTrue(UJSon.checkTrue(result), "merged RST=true: " + result);
+        assertEquals(out.getAbsolutePath(), result.getString("path"));
+        assertTrue(out.exists() && out.length() > 0, "merged non-empty");
+        double dur = UVideo.getVideoDuration(out.getAbsolutePath());
+        assertEquals(4.0, dur, 0.5, "merged ~4s (got " + dur + "s)");
+    }
+
+    @Test
+    void testMergeVideos_instance() throws Exception {
+        if (!requireFfmpeg()) return;
+        File a = new File(tmpDir, "mi_a.mp4");
+        File b = new File(tmpDir, "mi_b.mp4");
+        File out = new File(tmpDir, "merged_inst.mp4");
+        UVideo.extractClip(testInput.getAbsolutePath(), a.getAbsolutePath(), 0.0, 1.5, 30000L);
+        UVideo.extractClip(testInput.getAbsolutePath(), b.getAbsolutePath(), 1.5, 1.5, 30000L);
+        JSONObject result = new UVideo().setTimeout(60000L).mergeVideos(
+                Arrays.asList(a.getAbsolutePath(), b.getAbsolutePath()),
+                out.getAbsolutePath());
+        assertTrue(UJSon.checkTrue(result), "instance merge RST=true: " + result);
+        assertEquals(out.getAbsolutePath(), result.getString("path"));
+        double dur = UVideo.getVideoDuration(out.getAbsolutePath());
+        assertEquals(3.0, dur, 0.5, "instance merged ~3s (got " + dur + "s)");
+    }
+
+    @Test
+    void testMergeVideos_tooFewInputs() {
+        File out = new File(tmpDir != null ? tmpDir : new File(System.getProperty("java.io.tmpdir")), "m_few.mp4");
+        assertTrue(UJSon.checkFalse(UVideo.mergeVideos(null, out.getAbsolutePath(), 30000L)), "null list");
+        assertTrue(UJSon.checkFalse(UVideo.mergeVideos(Collections.emptyList(), out.getAbsolutePath(), 30000L)), "empty list");
+        assertTrue(UJSon.checkFalse(UVideo.mergeVideos(Collections.singletonList("/x.mp4"), out.getAbsolutePath(), 30000L)), "one input");
+    }
+
+    @Test
+    void testMergeVideos_missingInput() {
+        if (tmpDir == null) return;
+        File out = new File(tmpDir, "m_miss.mp4");
+        JSONObject result = UVideo.mergeVideos(
+                Arrays.asList("/nonexistent/a.mp4", "/nonexistent/b.mp4"),
+                out.getAbsolutePath(), 30000L);
+        assertTrue(UJSon.checkFalse(result), "missing inputs → RST=false");
+        assertTrue(result.optString("ERR", "").contains("not found"), "ERR mentions not found");
     }
 
     private static void drain(Process p) throws IOException {

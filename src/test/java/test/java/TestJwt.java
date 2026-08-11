@@ -425,4 +425,37 @@ public class TestJwt extends TestBase {
 
 		printCaption("testTokenTamperDetection passed");
 	}
+
+	@Test
+	public void testRsSelfVerifyMismatch() throws Exception {
+		URsa rsa1 = new URsa();
+		rsa1.generateRsaKeys(2048);
+		URsa rsa2 = new URsa();
+		rsa2.generateRsaKeys(2048);
+
+		assertThrows(SecurityException.class, () -> {
+			UJwt.rs256Builder()
+					.privateKey(rsa1.getPrivateKey())
+					.publicKey(rsa2.getPublicKey())
+					.subject("mismatch")
+					.create();
+		});
+		printCaption("testRsSelfVerifyMismatch passed");
+	}
+
+	@Test
+	public void testRsCreateWithoutPublicKey() throws Exception {
+		URsa rsa = new URsa();
+		rsa.generateRsaKeys(2048);
+		String token = UJwt.rs256Builder()
+				.privateKey(rsa.getPrivateKey())
+				.subject("no-pub")
+				.create();
+		assertNotNull(token);
+		JwtToken jwt = UJwt.verifyRs256(token, rsa.getPublicKey());
+		assertEquals("no-pub", jwt.getSubject());
+		printCaption("testRsCreateWithoutPublicKey passed");
+	}
+
+
 }

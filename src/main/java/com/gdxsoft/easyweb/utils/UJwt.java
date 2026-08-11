@@ -8,7 +8,6 @@ import java.security.Signature;
 import java.security.SignatureException;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
-import java.security.spec.InvalidKeySpecException;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.Base64;
 import java.util.Date;
@@ -43,8 +42,8 @@ import org.json.JSONObject;
  * rsa.generateRsaKeys(2048);
  *
  * String token = UJwt.rs256Builder()
- *     .publicKey(rsa.getPublicKey())
  *     .privateKey(rsa.getPrivateKey())
+ *     .publicKey(rsa.getPublicKey()) // optional self-verify
  *     .subject("user123")
  *     .create();
  *
@@ -583,7 +582,7 @@ public class UJwt {
 		}
 
 		/**
-		 * 设置 RSA 公钥（RS256/RS384/RS512 必须）
+		 * 设置 RSA 公钥（可选）。若设置，{@link #create()} 签名后会用该公钥自校验签名。
 		 *
 		 * @param key RSA 公钥
 		 * @return Builder
@@ -607,11 +606,12 @@ public class UJwt {
 		}
 
 		/**
-		 * 使用 RSA 密钥签名并生成 JWT Token<br>
-		 * 需先调用 {@link #privateKey(RSAPrivateKey)} 和 {@link #publicKey(RSAPublicKey)} 设置密钥
+		 * 使用 RSA 私钥签名并生成 JWT Token<br>
+		 * 需先调用 {@link #privateKey(RSAPrivateKey)}；若已设置 {@link #publicKey(RSAPublicKey)}，
+		 * 会在签名后用公钥自校验，确保密钥对匹配。
 		 *
 		 * @return JWT Token 字符串
-		 * @throws Exception 签名失败或未设置密钥
+		 * @throws Exception 签名失败、未设置私钥，或公钥自校验失败
 		 */
 		public String create() throws Exception {
 			if (this.privateKey == null) {
@@ -619,6 +619,11 @@ public class UJwt {
 			}
 			String unsigned = buildUnsigned();
 			byte[] signature = signRsa(unsigned, this.privateKey, algorithm);
+			if (this.publicKey != null
+					&& !verifyRsaSignature(unsigned, signature, this.publicKey, algorithm)) {
+				throw new SecurityException(
+						"JWT self-verify failed: publicKey does not match privateKey");
+			}
 			return unsigned + "." + base64UrlEncode(signature);
 		}
 

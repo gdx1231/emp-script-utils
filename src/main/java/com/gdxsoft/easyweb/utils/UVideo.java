@@ -8,6 +8,7 @@ import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.LinkedHashMap;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.commons.exec.CommandLine;
@@ -52,6 +53,9 @@ public class UVideo {
 	/** Prop time of ewa_conf.xml when the cache was last validated */
 	private static long EXECUTABLE_CACHE_PROP_TIME = 0;
 
+	/** Cached selected H.264 encoder name (resolved by {@link #detectH264Encoder()}) */
+	private static volatile String CACHED_H264_ENCODER = null;
+
 	/** Default seek position in seconds for the cover frame */
 	public static double DEFAULT_SEEK_SECONDS = 1.0;
 
@@ -63,6 +67,42 @@ public class UVideo {
 
 	/** Default execution timeout in milliseconds (60s) */
 	public static long DEFAULT_TIMEOUT = 60000L;
+
+	/**
+	 * Default target bitrate for HW-accelerated encoders that take a bitrate
+	 * (h264_nvenc, h264_videotoolbox, h264_qsv, h264_amf). libx264 and
+	 * h264_vaapi are not affected — they use crf / qp respectively.
+	 * <p>
+	 * If {@code null} (the default), {@link #pickVideoBitrate(int, int)} is
+	 * used to auto-select a bitrate from the resolution ladder. Set to a
+	 * literal bitrate (e.g. {@code "4M"}) to force a single value across
+	 * all resolutions — useful for output-size budgets. Mutate at runtime
+	 * to change globally:
+	 * <pre>
+	 * UVideo.DEFAULT_VIDEO_BITRATE = "4M";   // force 4 Mbps everywhere
+	 * UVideo.DEFAULT_VIDEO_BITRATE = null;   // back to ladder auto-pick
+	 * </pre>
+	 */
+	public static volatile String DEFAULT_VIDEO_BITRATE = null;
+
+	/**
+	 * Per-resolution bitrate targets for HW encoders. The map is ordered by
+	 * long-edge pixel count so {@link #pickVideoBitrate} picks the smallest
+	 * entry whose threshold is &ge; the input's long edge. Tuned for
+	 * visually-lossless output at ~libx264 crf 18 for the project's typical
+	 * Seedance I2V content (animation, moderate motion). Lower if you need
+	 * smaller files; raise for cinematic content with high motion.
+	 */
+	public static final Map<String, String> VIDEO_BITRATE_LADDER;
+	static {
+		VIDEO_BITRATE_LADDER = new LinkedHashMap<>();
+		VIDEO_BITRATE_LADDER.put("480p_640",  "1M");   // ≤ 640 long-edge (480p, 576p, 864×496)
+		VIDEO_BITRATE_LADDER.put("720p_1280", "3M");   // ≤ 1280 long-edge (720p HD)
+		VIDEO_BITRATE_LADDER.put("1080p_1920", "6M");  // ≤ 1920 long-edge (1080p FHD)
+		VIDEO_BITRATE_LADDER.put("1440p_2560", "12M"); // ≤ 2560 long-edge (QHD/2K)
+		VIDEO_BITRATE_LADDER.put("2160p_3840", "35M"); // ≤ 3840 long-edge (4K UHD)
+		VIDEO_BITRATE_LADDER.put("4320p_7680", "80M"); // 8K UHD
+	}
 
 	// ---- instance fields ----
 
@@ -916,6 +956,702 @@ public class UVideo {
 	}
 
 	/**
+	 * Merge multiple video files into one, using instance timeout.
+	 * Uses ffmpeg concat demuxer with stream copy when possible.
+	 *
+	 * @param inputPaths ordered list of source video paths
+	 * @param outPath    output merged video path
+	 * @return JSON result ({@code RST=true} with {@code path}, or {@code RST=false} with {@code ERR})
+	 */
+	public JSONObject mergeVideos(List<String> inputPaths, String outPath) {
+		return mergeVideos(inputPaths, outPath, this.timeout);
+	}
+
+	/**
+	 * Merge with per-input trim (head/tail seconds to drop) for transition
+	 * stitching. See {@link #mergeVideos(List, String, long, TrimSpec[])}.
+	 */
+	public JSONObject mergeVideos(List<String> inputPaths, String outPath, TrimSpec[] trimSpecs) {
+		return mergeVideos(inputPaths, outPath, this.timeout, trimSpecs);
+	}
+
+	/**
+	 * Merge multiple video files into one using ffmpeg filter_complex concat.
+	 * <p>
+	 * Builds and runs:
+	 *
+	 * <pre>
+	 * ffmpeg -y -i in0 -i in1 ... -filter_complex
+	 *   "[0:v][0:a][1:v][1:a]...concat=n=N:v=1:a=1[v][a]"
+	 *   -map [v] -map [a] -c:v libx264 -crf 18 -preset fast
+	 *   -c:a aac -ar 48000 -ac 2 -vsync cfr &lt;output&gt;
+	 * </pre>
+	 *
+	 * Forces re-encode with unified codec/parameters (libx264 video, AAC 48kHz
+	 * stereo) so heterogeneous inputs (different sample rates, codecs,
+	 * time bases) merge without the audio drift that ffmpeg's concat demuxer
+	 * produces when it silently resamples mid-stream. All inputs must have the
+	 * same resolution / pixel format / frame rate (filter_complex concat
+	 * requires this). All inputs must have an audio stream.
+	 *
+	 * @param inputPaths ordered list of source video paths (at least 2)
+	 * @param inputPaths ordered list of source video paths (at least 2)
+	 * @param outPath    output merged video path
+	 * @param timeoutMs  execution timeout in milliseconds
+	 * @return JSON result ({@code RST=true} with {@code path}, or {@code RST=false} with {@code ERR})
+	 */
+	public static JSONObject mergeVideos(List<String> inputPaths, String outPath, long timeoutMs) {
+		return mergeVideos(inputPaths, outPath, timeoutMs, null);
+	}
+
+	/**
+	 * Merge with per-input trim. Each {@link TrimSpec} (parallel to
+	 * {@code inputPaths}, may be {@code null} for an entry to skip trim) drops
+	 * the specified seconds from the head and/or tail of the matching input
+	 * before feeding the concat filter. Used by transition stitching so the
+	 * 0.5s head/tail baked into the transition video doesn't double-play at
+	 * the join.
+	 *
+	 * @param inputPaths ordered list of source video paths (at least 2)
+	 * @param outPath    output merged video path
+	 * @param timeoutMs  execution timeout in milliseconds
+	 * @param trimSpecs  optional parallel array; {@code null} entries (or a
+	 *                   {@code null} array) leave the matching input untrimmed
+	 * @return JSON result ({@code RST=true} with {@code path}, or {@code RST=false} with {@code ERR})
+	 */
+	public static JSONObject mergeVideos(List<String> inputPaths, String outPath, long timeoutMs,
+			TrimSpec[] trimSpecs) {
+		if (inputPaths == null || inputPaths.size() < 2) {
+			String err = "mergeVideos requires at least 2 input paths";
+			LOGGER.error(err);
+			return UJSon.rstFalse(err);
+		}
+		if (trimSpecs != null && trimSpecs.length != inputPaths.size()) {
+			String err = "trimSpecs length must match inputPaths size";
+			LOGGER.error(err);
+			return UJSon.rstFalse(err);
+		}
+		if (StringUtils.isBlank(outPath)) {
+			String err = "mergeVideos output path is blank";
+			LOGGER.error(err);
+			return UJSon.rstFalse(err);
+		}
+
+		String ffprobePath;
+		try {
+			ffprobePath = getFfprobe();
+		} catch (Exception e) {
+			String err = "ffprobe required to probe audio streams: " + e.getMessage();
+			LOGGER.error(err);
+			return UJSon.rstFalse(err);
+		}
+
+		List<File> inputs = new ArrayList<>();
+		List<File> audioTempFiles = new ArrayList<>();
+		for (String p : inputPaths) {
+			if (StringUtils.isBlank(p)) {
+				String err = "mergeVideos input path is blank";
+				LOGGER.error(err);
+				cleanupTempFiles(audioTempFiles);
+				return UJSon.rstFalse(err);
+			}
+			File f = new File(p);
+			if (!f.exists() || !f.isFile()) {
+				String err = "Input video not found: " + p;
+				LOGGER.error(err);
+				cleanupTempFiles(audioTempFiles);
+				return UJSon.rstFalse(err);
+			}
+			if (!probeHasAudio(ffprobePath, f)) {
+				LOGGER.warn("Input has no audio stream, generating silent-audio temp: {}", f.getName());
+				File silent = createSilentAudioCopy(f);
+				if (silent == null) {
+					String err = "Failed to generate silent-audio copy for: " + p;
+					LOGGER.error(err);
+					cleanupTempFiles(audioTempFiles);
+					return UJSon.rstFalse(err);
+				}
+				audioTempFiles.add(silent);
+				inputs.add(silent);
+			} else {
+				inputs.add(f);
+			}
+		}
+
+		File outFile = new File(outPath);
+		File parentDir = outFile.getParentFile();
+		if (parentDir != null && !parentDir.exists()) {
+			parentDir.mkdirs();
+		}
+
+		String ffmpeg;
+		try {
+			ffmpeg = getFfmpeg();
+		} catch (Exception e) {
+			LOGGER.error(e.getMessage());
+			cleanupTempFiles(audioTempFiles);
+			return UJSon.rstFalse(e.getMessage());
+		}
+
+		long timeout = timeoutMs > 0 ? timeoutMs : DEFAULT_TIMEOUT;
+		try {
+			// Pick bitrate: explicit override wins, otherwise ladder-pick by
+			// the first input's resolution. Dimensions probe is best-effort
+			// — failure falls back to "2M" via pickVideoBitrate(0, 0).
+			String bitrate = DEFAULT_VIDEO_BITRATE;
+			if (bitrate == null) {
+				int[] wh = probeVideoDimensions(ffprobePath, inputs.get(0));
+				bitrate = pickVideoBitrate(wh[0], wh[1]);
+				LOGGER.info("mergeVideos: auto-picked bitrate {} for {}x{} (input {})",
+						bitrate, wh[0], wh[1], inputs.get(0).getName());
+			} else {
+				LOGGER.info("mergeVideos: using forced bitrate {} (input {})",
+						bitrate, inputs.get(0).getName());
+			}
+			CommandLine cmd = buildConcatFilterCommand(ffmpeg, ffprobePath, inputs, outFile, bitrate, trimSpecs);
+			LOGGER.info("Merging videos (filter_complex): {}", cmd.toString());
+			ExecuteResult result = execute(cmd, timeout);
+			if (result.isSuccess() && outFile.exists() && outFile.length() > 0) {
+				LOGGER.info("Videos merged: {}", outFile.getAbsolutePath());
+				JSONObject rst = UJSon.rstTrue();
+				rst.put("path", outFile.getAbsolutePath());
+				rst.put("mode", "filter");
+				return rst;
+			}
+			String err = "ffmpeg merge failed (exit " + result.exitCode + "): " + result.output;
+			LOGGER.error(err);
+			return UJSon.rstFalse(err);
+		} catch (Exception e) {
+			LOGGER.error("mergeVideos failed: {}", e.getMessage());
+			return UJSon.rstFalse("mergeVideos failed: " + e.getMessage());
+		} finally {
+			cleanupTempFiles(audioTempFiles);
+		}
+	}
+
+	/**
+	 * Delete the given temp files (best-effort). Used to remove the
+	 * silent-audio copies created for audio-less inputs.
+	 */
+	private static void cleanupTempFiles(List<File> files) {
+		for (File f : files) {
+			if (f != null && f.exists()) {
+				if (!f.delete()) {
+					LOGGER.warn("Failed to delete temp file: {}", f.getAbsolutePath());
+				}
+			}
+		}
+	}
+
+	/**
+	 * Create a copy of the given video file with a synthesized silent stereo
+	 * 48 kHz AAC audio track added, so the file looks like a normal
+	 * video+audio file to subsequent filter_complex operations. Uses
+	 * {@code -map 0:v -map 1:a -shortest} to attach an anullsrc side-stream
+	 * without re-encoding the original video (fast). The temp file is
+	 * normally deleted by the caller via {@link #cleanupTempFiles}.
+	 *
+	 * @return the temp file, or null on failure
+	 */
+	private static File createSilentAudioCopy(File source) {
+		String ffmpeg;
+		try {
+			ffmpeg = getFfmpeg();
+		} catch (Exception e) {
+			LOGGER.error(e.getMessage());
+			return null;
+		}
+		try {
+			File tmp = File.createTempFile("uvideo_silent_", ".mp4");
+			CommandLine cmd = new CommandLine(ffmpeg);
+			cmd.addArgument("-y", false);
+			cmd.addArgument("-i", false);
+			cmd.addArgument(source.getAbsolutePath(), false);
+			cmd.addArgument("-f", false);
+			cmd.addArgument("lavfi", false);
+			cmd.addArgument("-i", false);
+			cmd.addArgument("anullsrc=channel_layout=stereo:sample_rate=48000", false);
+			cmd.addArgument("-map", false);
+			cmd.addArgument("0:v", false);
+			cmd.addArgument("-map", false);
+			cmd.addArgument("1:a", false);
+			cmd.addArgument("-c:v", false);
+			cmd.addArgument("copy", false);
+			cmd.addArgument("-c:a", false);
+			cmd.addArgument("aac", false);
+			cmd.addArgument("-ar", false);
+			cmd.addArgument("48000", false);
+			cmd.addArgument("-ac", false);
+			cmd.addArgument("2", false);
+			cmd.addArgument("-shortest", false);
+			cmd.addArgument("-movflags", false);
+			cmd.addArgument("+faststart", false);
+			cmd.addArgument(tmp.getAbsolutePath(), false);
+			ExecuteResult result = execute(cmd, 60000L);
+			if (result.isSuccess() && tmp.exists() && tmp.length() > 0) {
+				return tmp;
+			}
+			LOGGER.error("silent-audio copy failed (exit {}): {}", result.exitCode, result.output);
+			if (tmp.exists()) {
+				tmp.delete();
+			}
+			return null;
+		} catch (IOException e) {
+			LOGGER.error("createSilentAudioCopy failed: {}", e.getMessage());
+			return null;
+		}
+	}
+
+	/**
+	 * Build ffmpeg filter_complex concat command. The filter graph forces
+	 * unified audio sample rate and channel count via the concat filter's
+	 * implicit normalization, eliminating the audio drift that the concat
+	 * demuxer produces when inputs have different sample rates. The video
+	 * encoder is selected by {@link #detectH264Encoder()} so the same code
+	 * runs on macOS (VideoToolbox), Linux (NVENC/VAAPI/QSV), and Windows
+	 * (NVENC/QSV/AMF) with HW acceleration when available, falling back to
+	 * libx264. For VAAPI the {@code -vaapi_device} argument is injected
+	 * before the inputs and each video stream is uploaded to a VAAPI
+	 * surface before the concat filter. Callers must ensure every input
+	 * has an audio stream (audio-less inputs are pre-processed by
+	 * {@link #mergeVideos} into silent-audio temp files).
+	 */
+	private static CommandLine buildConcatFilterCommand(String ffmpeg, String ffprobe, List<File> inputs,
+			File outFile, String bitrate, TrimSpec[] trimSpecs) {
+		String encoder = detectH264Encoder();
+		boolean isVaapi = "h264_vaapi".equals(encoder);
+
+		CommandLine cmd = new CommandLine(ffmpeg);
+		cmd.addArgument("-y", false);
+		if (isVaapi) {
+			String device = resolveVaapiDevice();
+			cmd.addArgument("-vaapi_device", false);
+			cmd.addArgument(device, false);
+		}
+		// Per-input trim via ffmpeg input options. -ss before -i is fast
+		// (input seek, no decode). -t limits total duration; trims the tail.
+		for (int i = 0; i < inputs.size(); i++) {
+			TrimSpec t = trimSpecs == null ? null : trimSpecs[i];
+			if (t != null && t.startSec > 0) {
+				cmd.addArgument("-ss", false);
+				cmd.addArgument(String.format("%.3f", t.startSec), false);
+			}
+			if (t != null && t.endSec > 0) {
+				cmd.addArgument("-t", false);
+				// Probe this input's duration so end-trim math is exact.
+				double dur = probeVideoDurationForTrim(ffprobe, inputs.get(i));
+				double endLimit = Math.max(0.0, dur - t.endSec - t.startSec);
+				cmd.addArgument(String.format("%.3f", endLimit), false);
+			}
+			cmd.addArgument("-i", false);
+			cmd.addArgument(inputs.get(i).getAbsolutePath(), false);
+		}
+
+		StringBuilder graph = new StringBuilder();
+		// 用第一个 input 的分辨率作为目标（避免不同 provider 输出分辨率不一致导致 concat 失败）
+		int[] targetWh = probeVideoDimensions(ffprobe, inputs.get(0));
+		int targetW = targetWh[0] > 0 ? targetWh[0] : 1280;
+		int targetH = targetWh[1] > 0 ? targetWh[1] : 720;
+		for (int i = 0; i < inputs.size(); i++) {
+			if (isVaapi) {
+				// VAAPI: scale + format + hwupload
+				graph.append("[").append(i).append(":v]scale=").append(targetW).append(":").append(targetH)
+						.append(",format=nv12|vaapi,hwupload[v").append(i).append("];");
+				graph.append("[").append(i).append(":a]aresample=48000,aformat=sample_fmts=fltp:channel_layouts=stereo[a")
+						.append(i).append("];");
+			} else {
+				// 普通：scale 到目标分辨率
+				graph.append("[").append(i).append(":v:0]scale=").append(targetW).append(":").append(targetH)
+						.append("[v").append(i).append("];");
+			}
+		}
+		// concat: [v0][0:a:0][v1][1:a:0]...
+		for (int i = 0; i < inputs.size(); i++) {
+			if (isVaapi) {
+				graph.append("[v").append(i).append("][a").append(i).append("]");
+			} else {
+				graph.append("[v").append(i).append("][").append(i).append(":a:0]");
+			}
+		}
+		graph.append("concat=n=").append(inputs.size()).append(":v=1:a=1[v][a]");
+
+		cmd.addArgument("-filter_complex", false);
+		cmd.addArgument(graph.toString(), false);
+		cmd.addArgument("-map", false);
+		cmd.addArgument("[v]", false);
+		cmd.addArgument("-map", false);
+		cmd.addArgument("[a]", false);
+
+		// Video encoder: hardware-accelerated when available, libx264 fallback.
+		addVideoEncoderArgs(cmd, encoder, bitrate);
+		cmd.addArgument("-pix_fmt", false);
+		cmd.addArgument("yuv420p", false);
+		if (isVaapi) {
+			// VAAPI filter graph already produced yuv420p-compat surfaces; skip -vsync.
+		} else if ("h264_videotoolbox".equals(encoder)) {
+			// VideoToolbox ignores -vsync; skip to avoid "encoder setup failed" warnings.
+		} else {
+			cmd.addArgument("-vsync", false);
+			cmd.addArgument("cfr", false);
+		}
+
+		// Audio: unified across platforms (aac 48kHz stereo 192k).
+		cmd.addArgument("-c:a", false);
+		cmd.addArgument("aac", false);
+		cmd.addArgument("-ar", false);
+		cmd.addArgument("48000", false);
+		cmd.addArgument("-ac", false);
+		cmd.addArgument("2", false);
+		cmd.addArgument("-b:a", false);
+		cmd.addArgument("192k", false);
+		cmd.addArgument("-movflags", false);
+		cmd.addArgument("+faststart", false);
+		cmd.addArgument(outFile.getAbsolutePath(), false);
+		return cmd;
+	}
+
+	/**
+	 * Probe the video duration in seconds for end-trim math. Uses ffprobe
+	 * with -show_entries format=duration. Returns -1 on failure (caller
+	 * should fall back to no end trim).
+	 */
+	private static double probeVideoDurationForTrim(String ffprobe, File file) {
+		CommandLine cmd = new CommandLine(ffprobe);
+		cmd.addArgument("-v", false);
+		cmd.addArgument("error", false);
+		cmd.addArgument("-show_entries", false);
+		cmd.addArgument("format=duration", false);
+		cmd.addArgument("-of", false);
+		cmd.addArgument("csv=p=0", false);
+		cmd.addArgument(file.getAbsolutePath(), false);
+		try {
+			ExecuteResult result = execute(cmd, 10000L);
+			if (!result.isSuccess() || result.output == null) {
+				return -1;
+			}
+			String s = result.output.trim();
+			if (s.isEmpty() || "N/A".equals(s)) {
+				return -1;
+			}
+			return Double.parseDouble(s);
+		} catch (Exception e) {
+			LOGGER.warn("ffprobe duration probe failed for {}: {}", file.getName(), e.getMessage());
+			return -1;
+		}
+	}
+
+	/**
+	 * Probe whether the given file has at least one audio stream. Uses
+	 * {@code ffprobe -select_streams a} and treats non-empty output as
+	 * "has audio". Returns false on probe failure (safer to inject
+	 * anullsrc than to error out on a transient probe issue).
+	 */
+	private static boolean probeHasAudio(String ffprobe, File file) {
+		CommandLine cmd = new CommandLine(ffprobe);
+		cmd.addArgument("-v", false);
+		cmd.addArgument("error", false);
+		cmd.addArgument("-select_streams", false);
+		cmd.addArgument("a", false);
+		cmd.addArgument("-show_entries", false);
+		cmd.addArgument("stream=codec_type", false);
+		cmd.addArgument("-of", false);
+		cmd.addArgument("csv=p=0", false);
+		cmd.addArgument(file.getAbsolutePath(), false);
+		try {
+			ExecuteResult result = execute(cmd, 10000L);
+			if (!result.isSuccess()) {
+				return false;
+			}
+			return result.output != null && !result.output.trim().isEmpty();
+		} catch (Exception e) {
+			LOGGER.warn("ffprobe audio probe failed for {}: {}", file.getName(), e.getMessage());
+			return false;
+		}
+	}
+
+	/**
+	 * Detect the best available H.264 encoder for the current host. Priority
+	 * order: NVIDIA NVENC → Apple VideoToolbox → Intel QSV → AMD AMF → Linux
+	 * VAAPI → libx264 (software fallback). VAAPI is only considered when a
+	 * render node exists on the host (checked via
+	 * {@link #resolveVaapiDevice()}). Result is cached after the first call.
+	 * Returns the encoder name (e.g. {@code h264_videotoolbox},
+	 * {@code libx264}); pass to {@link #addVideoEncoderArgs} for ffmpeg args.
+	 *
+	 * @return the selected encoder name, never null
+	 */
+	public static synchronized String detectH264Encoder() {
+		if (CACHED_H264_ENCODER != null) {
+			return CACHED_H264_ENCODER;
+		}
+		String[] preferred = {
+				"h264_nvenc",
+				"h264_videotoolbox",
+				"h264_qsv",
+				"h264_amf",
+				"h264_vaapi",
+				"libx264"
+		};
+		String available = listAvailableEncoders();
+		for (String enc : preferred) {
+			if (available == null || !containsEncoder(available, enc)) {
+				continue;
+			}
+			if ("h264_vaapi".equals(enc) && resolveVaapiDevice() == null) {
+				// VAAPI encoder is built-in but no render node exists; skip.
+				continue;
+			}
+			CACHED_H264_ENCODER = enc;
+			LOGGER.info("Selected H.264 encoder: {}", enc);
+			return enc;
+		}
+		// Last-resort fallback even if encoder probe failed.
+		CACHED_H264_ENCODER = "libx264";
+		LOGGER.warn("No H.264 encoder detected, falling back to libx264");
+		return CACHED_H264_ENCODER;
+	}
+
+	/**
+	 * Resolve the VAAPI render node device path. Order: 1. environment
+	 * variable {@code FFMPEG_VAAPI_DEVICE} (operator override), 2. standard
+	 * render nodes {@code /dev/dri/renderD128}, {@code /dev/dri/renderD129}.
+	 * Returns the first existing path, or {@code null} if none exists (which
+	 * tells {@link #detectH264Encoder()} to skip VAAPI).
+	 */
+	static String resolveVaapiDevice() {
+		String env = System.getenv("FFMPEG_VAAPI_DEVICE");
+		if (env != null && !env.isBlank() && new File(env).exists()) {
+			return env;
+		}
+		String[] candidates = { "/dev/dri/renderD128", "/dev/dri/renderD129" };
+		for (String c : candidates) {
+			if (new File(c).exists()) {
+				return c;
+			}
+		}
+		return null;
+	}
+
+	/**
+	 * Run {@code ffmpeg -encoders} and return the combined stdout/stderr as a
+	 * single string. Used by {@link #detectH264Encoder()} to probe available
+	 * encoders.
+	 */
+	private static String listAvailableEncoders() {
+		String ffmpeg;
+		try {
+			ffmpeg = getFfmpeg();
+		} catch (Exception e) {
+			LOGGER.warn("Cannot resolve ffmpeg for encoder probe: {}", e.getMessage());
+			return null;
+		}
+		CommandLine cmd = new CommandLine(ffmpeg);
+		cmd.addArgument("-hide_banner", false);
+		cmd.addArgument("-encoders", false);
+		try {
+			ExecuteResult result = execute(cmd, 10000L);
+			if (result.isSuccess()) {
+				return result.output;
+			}
+			LOGGER.warn("ffmpeg -encoders exited with {}", result.exitCode);
+			return null;
+		} catch (Exception e) {
+			LOGGER.warn("ffmpeg -encoders probe failed: {}", e.getMessage());
+			return null;
+		}
+	}
+
+	/**
+	 * Check whether the given encoder name appears in the output of
+	 * {@code ffmpeg -encoders}. The output lists one encoder per line as
+	 * {@code " V....D h264_videotoolbox    VideoToolbox H.264 Encoder (codec h264)"}.
+	 */
+	private static boolean containsEncoder(String encodersOutput, String encoderName) {
+		if (encodersOutput == null) {
+			return false;
+		}
+		// Match by line start with whitespace, then encoder name with word boundary.
+		String needle = " " + encoderName + " ";
+		for (String line : encodersOutput.split("\\r?\\n")) {
+			if (line.contains(needle)) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/**
+	 * Pick a target H.264 bitrate for the given video dimensions. Uses
+	 * {@link #VIDEO_BITRATE_LADDER} keyed by the longer edge of the input.
+	 * Returns the bitrate of the smallest ladder entry whose long-edge
+	 * threshold is &ge; the input; falls back to the largest ladder entry
+	 * for inputs above 8K, and to {@code "2M"} if the ladder is empty.
+	 *
+	 * @param width  video width in pixels
+	 * @param height video height in pixels
+	 * @return bitrate string suitable for ffmpeg {@code -b:v} (e.g. {@code "3M"})
+	 */
+	public static String pickVideoBitrate(int width, int height) {
+		if (width <= 0 || height <= 0) {
+			return "2M";
+		}
+		long longEdge = Math.max(width, height);
+		String picked = null;
+		for (Map.Entry<String, String> e : VIDEO_BITRATE_LADDER.entrySet()) {
+			String key = e.getKey();
+			int underscore = key.lastIndexOf('_');
+			if (underscore < 0) {
+				continue;
+			}
+			try {
+				long threshold = Long.parseLong(key.substring(underscore + 1));
+				if (longEdge <= threshold) {
+					picked = e.getValue();
+					break;
+				}
+			} catch (NumberFormatException ignored) {
+				// Skip malformed ladder entries.
+			}
+		}
+		if (picked != null) {
+			return picked;
+		}
+		// Above the largest ladder entry (8K+): use the last (largest) entry.
+		String last = null;
+		for (String v : VIDEO_BITRATE_LADDER.values()) {
+			last = v;
+		}
+		return last != null ? last : "2M";
+	}
+
+	/**
+	 * Probe the width and height of the first video stream in {@code file}
+	 * using ffprobe. Returns {@code {width, height}} or {@code {0, 0}} on
+	 * failure. Used by {@link #mergeVideos} to pick a resolution-appropriate
+	 * bitrate from the ladder when {@link #DEFAULT_VIDEO_BITRATE} is null.
+	 */
+	static int[] probeVideoDimensions(String ffprobe, File file) {
+		CommandLine cmd = new CommandLine(ffprobe);
+		cmd.addArgument("-v", false);
+		cmd.addArgument("error", false);
+		cmd.addArgument("-select_streams", false);
+		cmd.addArgument("v:0", false);
+		cmd.addArgument("-show_entries", false);
+		cmd.addArgument("stream=width,height", false);
+		cmd.addArgument("-of", false);
+		cmd.addArgument("csv=p=0", false);
+		cmd.addArgument(file.getAbsolutePath(), false);
+		try {
+			ExecuteResult result = execute(cmd, 10000L);
+			if (!result.isSuccess() || result.output == null) {
+				return new int[] { 0, 0 };
+			}
+			String[] parts = result.output.trim().split(",");
+			if (parts.length < 2) {
+				return new int[] { 0, 0 };
+			}
+			int w = Integer.parseInt(parts[0].trim());
+			int h = Integer.parseInt(parts[1].trim());
+			return new int[] { w, h };
+		} catch (Exception e) {
+			LOGGER.warn("ffprobe dimension probe failed for {}: {}", file.getName(), e.getMessage());
+			return new int[] { 0, 0 };
+		}
+	}
+
+	/**
+	 * Append platform-specific encoding arguments to the given command for
+	 * the selected H.264 encoder. Targets roughly libx264 crf 18 visual
+	 * quality. Bitrate-mode encoders (NVENC, VideoToolbox, QSV, AMF) use
+	 * the given {@code bitrate} (which the caller resolved via
+	 * {@link #pickVideoBitrate} when {@link #DEFAULT_VIDEO_BITRATE} is null).
+	 */
+	private static void addVideoEncoderArgs(CommandLine cmd, String encoder, String bitrate) {
+		cmd.addArgument("-c:v", false);
+		cmd.addArgument(encoder, false);
+		// maxrate = 1.25 * bitrate, bufsize = 2 * bitrate — standard VBR cap.
+		String maxrate = scaleBitrate(bitrate, 1.25);
+		String bufsize = scaleBitrate(bitrate, 2.0);
+		switch (encoder) {
+		case "h264_nvenc":
+			cmd.addArgument("-preset", false);
+			cmd.addArgument("p4", false); // p1-p7, p4 ≈ medium
+			cmd.addArgument("-rc", false);
+			cmd.addArgument("vbr", false);
+			cmd.addArgument("-b:v", false);
+			cmd.addArgument(bitrate, false);
+			cmd.addArgument("-maxrate", false);
+			cmd.addArgument(maxrate, false);
+			cmd.addArgument("-bufsize", false);
+			cmd.addArgument(bufsize, false);
+			break;
+		case "h264_videotoolbox":
+			cmd.addArgument("-b:v", false);
+			cmd.addArgument(bitrate, false);
+			cmd.addArgument("-realtime", false);
+			cmd.addArgument("true", false);
+			cmd.addArgument("-allow_sw", false);
+			cmd.addArgument("0", false);
+			break;
+		case "h264_qsv":
+			cmd.addArgument("-preset", false);
+			cmd.addArgument("veryfast", false);
+			cmd.addArgument("-b:v", false);
+			cmd.addArgument(bitrate, false);
+			cmd.addArgument("-maxrate", false);
+			cmd.addArgument(maxrate, false);
+			cmd.addArgument("-bufsize", false);
+			cmd.addArgument(bufsize, false);
+			break;
+		case "h264_amf":
+			cmd.addArgument("-quality", false);
+			cmd.addArgument("balanced", false);
+			cmd.addArgument("-rc", false);
+			cmd.addArgument("vbr_peak", false);
+			cmd.addArgument("-b:v", false);
+			cmd.addArgument(bitrate, false);
+			cmd.addArgument("-maxrate", false);
+			cmd.addArgument(maxrate, false);
+			cmd.addArgument("-bufsize", false);
+			cmd.addArgument(bufsize, false);
+			break;
+		case "h264_vaapi":
+			// VAAPI uses constant-qp mode (no VBR cap needed).
+			cmd.addArgument("-qp", false);
+			cmd.addArgument("18", false);
+			break;
+		case "libx264":
+		default:
+			cmd.addArgument("-preset", false);
+			cmd.addArgument("fast", false);
+			cmd.addArgument("-crf", false);
+			cmd.addArgument("18", false);
+			break;
+		}
+	}
+
+	/**
+	 * Scale a bitrate string (e.g. {@code "8M"}, {@code "500k"}) by the given
+	 * factor. Preserves the suffix. Used to compute maxrate/bufsize from the
+	 * target bitrate.
+	 */
+	static String scaleBitrate(String bitrate, double factor) {
+		if (bitrate == null || bitrate.isEmpty()) {
+			return "10M";
+		}
+		char suffix = bitrate.charAt(bitrate.length() - 1);
+		boolean hasSuffix = (suffix == 'k' || suffix == 'K' || suffix == 'm' || suffix == 'M');
+		String numPart = hasSuffix ? bitrate.substring(0, bitrate.length() - 1) : bitrate;
+		try {
+			double v = Double.parseDouble(numPart) * factor;
+			long rounded = Math.round(v);
+			return hasSuffix ? (rounded + String.valueOf(suffix)) : String.valueOf(rounded);
+		} catch (NumberFormatException e) {
+			return "10M";
+		}
+	}
+
+	/**
 	 * Result of a command execution.
 	 */
 	private static class ExecuteResult {
@@ -931,6 +1667,33 @@ public class UVideo {
 
 		boolean isSuccess() {
 			return exitCode == 0;
+		}
+	}
+
+	/**
+	 * Per-input trim specification for {@link #mergeVideos(List, String, long, TrimSpec[])}.
+	 * Tells the filter graph to drop {@code startSec} from the head and
+	 * {@code endSec} from the tail of the corresponding input before
+	 * feeding it to the concat filter. Used to absorb the 0.5s overlap
+	 * baked into transition videos (Seedance I2V picks the from-last frame
+	 * at sseof -0.5 and the to-first frame at 0.5s, so the preceding shot
+	 * and following shot must each be trimmed by the same amount to avoid
+	 * a visible jump at the join).
+	 */
+	public static class TrimSpec {
+		/** Seconds to drop from the head of the input. 0 = no head trim. */
+		public final double startSec;
+		/** Seconds to drop from the tail of the input. 0 = no tail trim. */
+		public final double endSec;
+
+		public TrimSpec(double startSec, double endSec) {
+			this.startSec = startSec;
+			this.endSec = endSec;
+		}
+
+		/** No trim. */
+		public static TrimSpec none() {
+			return new TrimSpec(0, 0);
 		}
 	}
 }
