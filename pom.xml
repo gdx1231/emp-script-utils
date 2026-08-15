@@ -4,7 +4,7 @@
 	<url>https://github.com/gdx1231/emp-script-utils</url>
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>com.gdxsoft.easyweb</groupId>
-	<artifactId>emp-script-utils</artifactId>
+	<artifactId>emp-script-utils${artifact.suffix}</artifactId>
 	<version>1.1.12</version>
 	<name>Easy Web Appliaction Utils</name>
 	<description>Utility library of the EWA (Easy Web Application) framework: UArgon2, UMail, UDigest, URsa, UAes, UDes, UFile, UConvert, UFormat, UNet, SendMail, SmtpCfg</description>
@@ -40,6 +40,12 @@
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+		<maven.compiler.source>1.8</maven.compiler.source>
+		<maven.compiler.target>1.8</maven.compiler.target>
+		<artifact.suffix></artifact.suffix>
+		<mail.groupId>com.sun.mail</mail.groupId>
+		<mail.artifactId>jakarta.mail</mail.artifactId>
+		<mail.version>1.6.8</mail.version>
 	</properties>
 	<build>
 		<!--
@@ -60,8 +66,8 @@
 				<artifactId>maven-compiler-plugin</artifactId>
 				<version>3.8.0</version>
 				<configuration>
-					<source>1.8</source>
-					<target>1.8</target>
+					<source>${maven.compiler.source}</source>
+					<target>${maven.compiler.target}</target>
 				</configuration>
 			</plugin>
 			<plugin>
@@ -196,9 +202,9 @@
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/com.sun.mail/jakarta.mail -->
 		<dependency>
-			<groupId>com.sun.mail</groupId>
-			<artifactId>jakarta.mail</artifactId>
-			<version>1.6.8</version>
+			<groupId>${mail.groupId}</groupId>
+			<artifactId>${mail.artifactId}</artifactId>
+			<version>${mail.version}</version>
 		</dependency>
 		<!--
 		https://mvnrepository.com/artifact/org.apache.httpcomponents/httpclient -->
@@ -269,6 +275,61 @@
 		https://issues.sonatype.org/browse/OSSRH-65277
 	-->
 	<profiles>
+		<profile>
+			<id>jakarta</id>
+			<properties>
+				<maven.compiler.source>17</maven.compiler.source>
+				<maven.compiler.target>17</maven.compiler.target>
+				<artifact.suffix>-jakarta</artifact.suffix>
+				<maven.test.skip>true</maven.test.skip>
+			</properties>
+			<dependencies>
+				<!-- Jakarta EE 10 servlet API (provided by Tomcat 10.1) -->
+				<dependency>
+					<groupId>jakarta.servlet</groupId>
+					<artifactId>jakarta.servlet-api</artifactId>
+					<version>6.0.0</version>
+					<scope>provided</scope>
+				</dependency>
+				<!-- Angus Mail (jakarta.mail.*) — runtime 用，编译仍用 javax.mail 1.6.8 -->
+				<dependency>
+					<groupId>org.eclipse.angus</groupId>
+					<artifactId>jakarta.mail</artifactId>
+					<version>2.0.3</version>
+				</dependency>
+				<!-- Jakarta Activation (required by Angus Mail 2.x) -->
+				<dependency>
+					<groupId>jakarta.activation</groupId>
+					<artifactId>jakarta.activation-api</artifactId>
+					<version>2.1.3</version>
+				</dependency>
+			</dependencies>
+			<build>
+				<plugins>
+					<!-- 字节码级改写 javax.* → jakarta.* -->
+					<plugin>
+						<groupId>org.eclipse.transformer</groupId>
+						<artifactId>transformer-maven-plugin</artifactId>
+						<version>1.0.0</version>
+						<executions>
+							<execution>
+								<id>transform-jakarta</id>
+								<phase>process-classes</phase>
+								<goals>
+									<goal>transform</goal>
+								</goals>
+							</execution>
+						</executions>
+						<configuration>
+							<rules>
+								<jakartaDefaults>true</jakartaDefaults>
+								<overwrite>true</overwrite>
+							</rules>
+						</configuration>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
 		<profile>
 			<id>release</id> <!-- 部署要用到 -->
 			<build>
