@@ -58,6 +58,13 @@ public class UImages {
 	public final static String RESIZED_TAG = "$resized";
 
 	/**
+	 * 转义文件路径中的 shell 特殊字符（$ → \$），防止 sh -c 展开变量
+	 */
+	private static String escapeShellPath(String path) {
+		return path.replace("$", "\\$");
+	}
+
+	/**
 	 * 分解尺寸表达式
 	 * 
 	 * @param sizesExp 800x600,1024x768,1000x800 ...
@@ -590,7 +597,7 @@ public class UImages {
 		if (quality > 0) {
 			cmd.append(" -quality " + quality + "% ");
 		}
-		cmd.append("\"").append(imgPath).append("\" \"").append(newImgPath).append("\"");
+		cmd.append("\"").append(escapeShellPath(imgPath)).append("\" \"").append(escapeShellPath(newImgPath)).append("\"");
 
 		HashMap<String, String> rst = runImageMagick(cmd.toString());
 		if (rst.get("RST").equals("true")) {
@@ -661,9 +668,9 @@ public class UImages {
 			sb.append("x");
 			sb.append(h);
 			sb.append(">\" \"");
-			sb.append(img.getAbsolutePath());
+			sb.append(escapeShellPath(img.getAbsolutePath()));
 			sb.append("\" \"");
-			sb.append(f1);
+			sb.append(escapeShellPath(f1.getPath()));
 			sb.append("\"");
 			String command_line1 = sb.toString();
 
