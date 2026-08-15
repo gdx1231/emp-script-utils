@@ -1,23 +1,43 @@
 package com.gdxsoft.easyweb.utils;
 
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.locks.ReentrantLock;
+import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * File change detection with cooldown (don't check too frequently).
+ * Uses absolute path as key to avoid hash collisions.
+ * Automatically evicts entries not accessed for over 1 hour to prevent memory leaks.
+ */
 public class UFileCheck {
 	private static Logger LOGGER = LoggerFactory.getLogger(UFileCheck.class);
 
-	private static ReentrantLock LOCK = new ReentrantLock();
-	private static Map<Integer, Integer> FILE_LIST = new ConcurrentHashMap<Integer, Integer>();
-	private static Map<Integer, Long> PAST_TIME = new ConcurrentHashMap<Integer, Long>();
+	/** Holds the last known state of a tracked file */
+	private static class FileState {
+		final long lastCheckTime;
+		final int statusCode;
+
+		FileState(long lastCheckTime, int statusCode) {
+			this.lastCheckTime = lastCheckTime;
+			this.statusCode = statusCode;
+		}
+	}
+
+	private static Map<String, FileState> FILE_STATES = new ConcurrentHashMap<>();
+
+	private static final long EVICTION_AGE_MS = TimeUnit.HOURS.toMillis(1);
 
 	/**
 	 * Check whether the file is changed, do NOT check within 5 seconds
-	 * 
+	 *
 	 * @param filePath The file path and name
 	 * @return true =changed, false= no change
 	 */
@@ -27,192 +47,165 @@ public class UFileCheck {
 
 	/**
 	 * Check whether the file is changed, do NOT check within spanSeconds seconds
-	 * 
+	 *
 	 * @param filePath    The file path and name
 	 * @param spanSeconds The do not check seconds
 	 * @return true =changed, false= no change
 	 */
 	public static boolean fileChanged(String filePath, int spanSeconds) {
 		File f1 = new File(filePath);
-		if (!f1.exists()) {// 文件不存在
+		if (!f1.exists()) {
 			return true;
 		}
-		int fileCode = f1.getAbsolutePath().hashCode();
-		Integer fileStatusCode = getFileCode(filePath);
+		String key = f1.getAbsolutePath();
+		int statusCode = getFileCode(filePath);
 
-		return isChanged(fileCode, fileStatusCode, spanSeconds);
-
+		return isChanged(key, statusCode, spanSeconds);
 	}
 
 	/**
-	 * Get the file status code
-	 * 
+	 * Get the file status code (composite hash of path | lastModified | length).
+	 * Uses Files.readAttributes for single syscall (vs separate exists/lastModified/length).
+	 *
 	 * @param filePath The file path and name
-	 * @return the file status code
+	 * @return the file status code, -1 if file doesn't exist
 	 */
 	public static int getFileCode(String filePath) {
-		File f1 = new File(filePath);
-		if (!f1.exists()) {// 文件不存在
+		Path p = Path.of(filePath);
+		try {
+			BasicFileAttributes attr = Files.readAttributes(p, BasicFileAttributes.class);
+			String s1 = p.toRealPath() + "|" + attr.lastModifiedTime().toMillis() + "|" + attr.size();
+			return s1.hashCode();
+		} catch (IOException e) {
 			return -1;
 		}
-		String s1 = f1.getAbsolutePath() + "|" + f1.lastModified() + "|" + f1.length();
-		Integer code = Integer.valueOf(s1.hashCode());
-		return code;
 	}
 
 	/**
-	 * Check whether it has changed, the initial setting will return false
-	 * 
-	 * @param fileCode    The file pull path hash code
-	 * @param statusCode  status code
+	 * Check whether it has changed. Initial setting returns false (baseline established).
+	 *
+	 * @param key         File absolute path as key
+	 * @param statusCode  Current file status code
 	 * @param spanSeconds The do not check seconds
-	 * @return true =changed, false= no change
+	 * @return true = changed, false = no change
 	 */
+	public static boolean isChanged(String key, int statusCode, int spanSeconds) {
+		evictStaleIfNeeded();
+
+		FileState state = FILE_STATES.get(key);
+
+		if (state != null) {
+			// Within cooldown: return cached result
+			if (!isOverTime(state, spanSeconds)) {
+				return false;
+			}
+			// Cooldown expired, check if status changed
+			if (state.statusCode == statusCode) {
+				updateTime(key, System.currentTimeMillis(), statusCode);
+				return false;
+			}
+			// Status changed → update and report change
+			updateState(key, System.currentTimeMillis(), statusCode);
+			return true;
+		}
+
+		// First time tracking this file: establish baseline, don't report change
+		updateState(key, System.currentTimeMillis(), statusCode);
+		return false;
+	}
+
+	/**
+	 * Check if the file exists in tracking map
+	 */
+	public static boolean isHave(String key) {
+		return FILE_STATES.containsKey(key);
+	}
+
+	/**
+	 * Check if the cooldown period has elapsed
+	 */
+	public static boolean isOverTime(String key, int spanSeconds) {
+		FileState state = FILE_STATES.get(key);
+		return state == null || isOverTime(state, spanSeconds);
+	}
+
+	private static boolean isOverTime(FileState state, int spanSeconds) {
+		return System.currentTimeMillis() - state.lastCheckTime >= spanSeconds * 1000L;
+	}
+
+	private static void updateState(String key, long time, int statusCode) {
+		FILE_STATES.put(key, new FileState(time, statusCode));
+	}
+
+	private static void updateTime(String key, long time, int statusCode) {
+		FILE_STATES.put(key, new FileState(time, statusCode));
+	}
+
+	/**
+	 * Remove a file from tracking
+	 *
+	 * @param key File absolute path
+	 * @return true if removed or not tracked
+	 */
+	public static boolean remove(String key) {
+		FILE_STATES.remove(key);
+		return true;
+	}
+
+	private static void evictStaleIfNeeded() {
+		if (FILE_STATES.size() < 1000) {
+			return;
+		}
+		// ConcurrentHashMap.removeIf is atomic — no external lock needed
+		long cutoff = System.currentTimeMillis() - EVICTION_AGE_MS;
+		FILE_STATES.entrySet().removeIf(e -> e.getValue().lastCheckTime < cutoff);
+	}
+
+	/**
+	 * @deprecated Use {@link #isChanged(String, int, int)} with file path string
+	 */
+	@Deprecated
 	public static boolean isChanged(int fileCode, int statusCode, int spanSeconds) {
-		boolean isInitSetting = false; // 是否是初始化设置
-		if (isHave(fileCode)) {
-			if (!isOverTime(fileCode, spanSeconds)) {
-				return false;
-			}
-		} else {
-			isInitSetting = true;
-		}
-
-		// 当前时间
-		long t1 = System.currentTimeMillis();
-
-		if (FILE_LIST.containsKey(fileCode)) {
-			Integer statusCode1 = FILE_LIST.get(fileCode);
-			if (statusCode1 != null && statusCode1 == statusCode) {
-				// 记录当前时间
-				putTime(fileCode, t1);
-				return false;
-			}
-		} else {
-			isInitSetting = true;
-		}
-
-		putTimeAndFileCode(fileCode, t1, statusCode);
-
-		if (isInitSetting) {
-			return false;
-		} else {
-			return true;
-		}
+		return isChanged(String.valueOf(fileCode), statusCode, spanSeconds);
 	}
 
 	/**
-	 * Check if the file exists according to the file code
-	 * 
-	 * @param fileCode The file getAbsolutePath().hashCode()
-	 * @return true = yes, false = no
+	 * @deprecated Use {@link #isHave(String)} with file path string
 	 */
+	@Deprecated
 	public static boolean isHave(int fileCode) {
-		return PAST_TIME.containsKey(fileCode);
+		return isHave(String.valueOf(fileCode));
 	}
 
 	/**
-	 * Check if the file is out of date according to the file code
-	 * 
-	 * @param fileCode    The file getAbsolutePath().hashCode()
-	 * @param spanSeconds The do not check seconds
-	 * @return true = yes, false = no
+	 * @deprecated Use {@link #isOverTime(String, int)} with file path string
 	 */
+	@Deprecated
 	public static boolean isOverTime(int fileCode, int spanSeconds) {
-		if (isHave(fileCode)) {
-			Long t1 = PAST_TIME.get(fileCode);
-			long time = System.currentTimeMillis();
-			long diff = time - t1.longValue();
-			if (diff < spanSeconds * 1000) {
-				return false;
-			} else {
-				return true;
-			}
-		} else {
-			return false;
-		}
-
+		return isOverTime(String.valueOf(fileCode), spanSeconds);
 	}
 
 	/**
-	 * Put the file code and time
-	 * 
-	 * @param fileCode       The file getAbsolutePath().hashCode()
-	 * @param time           The last check time
-	 * @param fileStatusCode The file status code
+	 * @deprecated Use {@link #putTimeAndStatus(String, Long, Integer)} with file path string
 	 */
+	@Deprecated
 	public static void putTimeAndFileCode(Integer fileCode, Long time, Integer fileStatusCode) {
-		try {
-			if (LOCK.tryLock()) {
-				PAST_TIME.put(fileCode, time);
-				FILE_LIST.put(fileCode, fileStatusCode);
-				LOGGER.debug(fileCode + ", TIME=" + time + ", CODE=" + fileStatusCode);
-			} else {
-				// LOGGER.error("get Lock Failed");
-			}
-		} catch (Exception e) {
-			LOGGER.error(e.getMessage());
-		} finally {
-			// 查询当前线程是否保持此锁。
-			if (LOCK.isHeldByCurrentThread()) {
-				LOCK.unlock();
-			}
-		}
+		updateState(String.valueOf(fileCode), time, fileStatusCode);
 	}
 
 	/**
-	 * Remove the file
-	 * 
-	 * @param fileCode The file getAbsolutePath().hashCode()
-	 * @return the remove result
+	 * @deprecated Use {@link #putTime(String, Long)} with file path string
 	 */
-	public static boolean remove(Integer fileCode) {
-		if (!isHave(fileCode)) {
-			return true;
-		}
-		try {
-			if (LOCK.tryLock()) {
-				PAST_TIME.remove(fileCode);
-				FILE_LIST.remove(fileCode);
-
-				return true;
-			} else {
-				// LOGGER.error("get Lock Failed");
-				return false;
-			}
-		} catch (Exception e) {
-			LOGGER.error(e.getMessage());
-			return false;
-		} finally {
-			// 查询当前线程是否保持此锁。
-			if (LOCK.isHeldByCurrentThread()) {
-				LOCK.unlock();
-			}
-		}
-	}
-
-	/**
-	 * Put the last check time
-	 * 
-	 * @param fileCode f1.getAbsolutePath().hashCode()
-	 * @param t1       the last check time
-	 */
+	@Deprecated
 	public static void putTime(Integer fileCode, Long t1) {
-		try {
-			if (LOCK.tryLock()) {
-				PAST_TIME.put(fileCode, t1);
-				LOGGER.debug(fileCode + ", TIME=" + t1);
-			} else {
-				// LOGGER.error("get Lock Failed");
-			}
-		} catch (Exception e) {
-			LOGGER.error(e.getMessage());
-		} finally {
-			// 查询当前线程是否保持此锁。
-			if (LOCK.isHeldByCurrentThread()) {
-				LOCK.unlock();
-			}
-		}
+		updateTime(String.valueOf(fileCode), t1, 0);
+	}
 
+	/**
+	 * @deprecated Use {@link #remove(String)} with file path string
+	 */
+	@Deprecated
+	public static boolean remove(Integer fileCode) {
+		return remove(String.valueOf(fileCode));
 	}
 }

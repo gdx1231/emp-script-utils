@@ -3,7 +3,7 @@ package test.java;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 
-import org.apache.commons.codec.binary.Base64;
+import java.util.Base64;
 import org.junit.jupiter.api.Test;
 import com.gdxsoft.easyweb.utils.UAes;
 import com.gdxsoft.easyweb.utils.UDes;
@@ -57,7 +57,7 @@ public class TestEncyrpt extends TestBase {
 			// 使用HmacSHA256对二进制数据消息Bytes计算摘要
 			byte[] digestBytes = hmacSha256.doFinal(messageBytes);
 			// 把摘要后的结果digestBytes使用Base64进行编码
-			digestBase64 = Base64.encodeBase64String(digestBytes);
+			digestBase64 = Base64.getEncoder().encodeToString(digestBytes);
 		 
 		return digestBase64;
 	}

@@ -14,8 +14,6 @@ import org.w3c.dom.NodeList;
 import com.gdxsoft.easyweb.utils.Mail.SmtpCfgs;
 import com.gdxsoft.easyweb.utils.msnet.MTableStr;
 
-import org.apache.commons.io.IOUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -65,7 +63,7 @@ public class UPath {
 	/**
 	 * 项目Class所在目录
 	 */
-	public static String PATH_REAL = "";
+	public static volatile String PATH_REAL = "";
 
 	/**
 	 * 临时目录根目录
@@ -101,7 +99,8 @@ public class UPath {
 	private static String PATH_CONFIG = "";
 	private static String PATH_MANAGMENT = "";
 
-	private static long PROP_TIME = -1231;
+	private static long PROP_TIME;
+	private static boolean PROP_TIME_INITIALIZED;
 
 	private static String PATH_GROUP = ""; // 用于组件的生成和导入目录
 
@@ -351,7 +350,7 @@ public class UPath {
 		}
 		if (path != null) {
 			File f1 = new File(path);
-			path = f1.getPath().replaceAll("%20", " ");
+			path = f1.getPath().replace("%20", " ");
 			PATH_REAL = path + "/";
 			String msg = "PATH_REAL=" + PATH_REAL;
 			if (mainCall) {
@@ -400,7 +399,7 @@ public class UPath {
 	}
 
 	private static void loadConfXml(URL url) throws IOException {
-		String xml = IOUtils.toString(url, StandardCharsets.UTF_8);
+		String xml = new String(url.openStream().readAllBytes(), StandardCharsets.UTF_8);
 		CFG_XML_DOC = UXml.asDocument(xml);
 		String msg = "Loaded ewa_conf, " + url;
 
@@ -430,8 +429,9 @@ public class UPath {
 		}
 
 		long lastModified = f.lastModified();
-		if (PROP_TIME == -1231) { // Initialized default value
+		if (!PROP_TIME_INITIALIZED) {
 			PROP_TIME = lastModified;
+			PROP_TIME_INITIALIZED = true;
 			return false;
 		}
 		if (lastModified == PROP_TIME) {
@@ -448,7 +448,7 @@ public class UPath {
 	/**
 	 * 初始化配置路径
 	 */
-	public static void initPath() {
+	public synchronized static void initPath() {
 
 		long diff = System.currentTimeMillis() - LAST_CHK;
 		if (diff < CHK_DURATION) {// 60秒内不重新检查
@@ -651,14 +651,13 @@ public class UPath {
 			v = ConfValueResolvers.resolve(v);
 			
 			if (INIT_PARAS.containsKey(n)) {
-				INIT_PARAS.removeKey(n);
+				continue; // 已存在则跳过，保留第一个值
+			}
+			INIT_PARAS.put(n, v);
+			if (mainCall) {
+				System.out.println("INIT_PARAS[" + n + "]" + v);
 			} else {
-				INIT_PARAS.put(n, v);
-				if (mainCall) {
-					System.out.println("INIT_PARAS[" + n + "]" + v);
-				} else {
-					LOG.info("INIT_PARAS[" + n + "]" + v);
-				}
+				LOG.info("INIT_PARAS[" + n + "]" + v);
 			}
 		}
 	}
@@ -767,7 +766,7 @@ public class UPath {
 		for (int i = 0; i < nl.getLength(); i++) {
 			Element ele = (Element) nl.item(i);
 			String n = ele.getAttribute("name");
-			if (StringUtils.isBlank(n)) {
+			if (n == null || n.isBlank()) {
 				continue;
 			}
 			n = n.toUpperCase().trim();

@@ -23,7 +23,6 @@ import java.awt.image.ImageFilter;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -36,13 +35,6 @@ import javax.imageio.ImageWriteParam;
 import javax.imageio.ImageWriter;
 import javax.imageio.stream.ImageOutputStream;
 import javax.swing.ImageIcon;
-
-import org.apache.commons.exec.CommandLine;
-import org.apache.commons.exec.DefaultExecutor;
-import org.apache.commons.exec.ExecuteException;
-import org.apache.commons.exec.ExecuteWatchdog;
-import org.apache.commons.exec.PumpStreamHandler;
-import org.apache.commons.lang3.StringUtils;
 
 import net.coobird.thumbnailator.Thumbnails;
 import org.slf4j.Logger;
@@ -93,7 +85,7 @@ public class UImages {
 	 * @return null or dimension
 	 */
 	public static Dimension parseSize(String resize) {
-		if (StringUtils.isBlank(resize)) {
+		if (resize == null || resize.isBlank()) {
 			return null;
 		}
 
@@ -138,7 +130,7 @@ public class UImages {
 		int[] newSize = getNewSize(logo, logoMaxWidth, logoMaxHeight);
 
 		int logo_width = newSize[0];
-		int logo_height = newSize[0];
+		int logo_height = newSize[1];
 
 		int logo_x = (originalImage.getWidth() - logo_width) / 2;
 		int logo_y = (originalImage.getHeight() - logo_height) / 2;
@@ -426,7 +418,7 @@ public class UImages {
 	 */
 	public static boolean checkImageMagick() {
 		ConfImageMagick conf = ConfImageMagick.getInstance();
-		if (conf == null) {
+		if (conf == null || conf.getPath() == null) {
 			return false;
 		}
 		File pathMagicHome = new File(conf.getPath());
@@ -840,14 +832,13 @@ public class UImages {
 	 * @return The new size image
 	 */
 	public static BufferedImage createResizedCopy(Image originalImage, int width, int height) {
-		BufferedImage scaledBI = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
-		Graphics2D g = scaledBI.createGraphics();
-
 		// 保持Png图片的透明背景属性
-		BufferedImage bufIma = g.getDeviceConfiguration().createCompatibleImage(width, height,
-				Transparency.TRANSLUCENT);
-		Graphics2D g1 = bufIma.createGraphics();
+		GraphicsEnvironment ge = GraphicsEnvironment.getLocalGraphicsEnvironment();
+		GraphicsDevice gs = ge.getDefaultScreenDevice();
+		GraphicsConfiguration gc = gs.getDefaultConfiguration();
+		BufferedImage bufIma = gc.createCompatibleImage(width, height, Transparency.TRANSLUCENT);
 
+		Graphics2D g1 = bufIma.createGraphics();
 		g1.setComposite(AlphaComposite.Src);
 		// 高保真缩放
 		Image scaled = originalImage.getScaledInstance(width, height, java.awt.Image.SCALE_SMOOTH);
@@ -924,13 +915,12 @@ public class UImages {
 			} catch (IOException e) {
 				LOGGER.error(e.getMessage());
 			}
-			bi = null;
 		}
 	}
 
 	/**
 	 * Execute the ImageMagick command in shell
-	 * 
+	 *
 	 * @param line The command
 	 * @return the result
 	 */
@@ -938,43 +928,32 @@ public class UImages {
 		HashMap<String, String> rst = new HashMap<String, String>();
 		rst.put("CMD", line);
 
-		DefaultExecutor executor = new DefaultExecutor();
-		int[] exitValues = { 0, 1 };
-
-		executor.setExitValues(exitValues);
-
-		ExecuteWatchdog watchdog = new ExecuteWatchdog(60000);
-		executor.setWatchdog(watchdog);
-
-		/*
-		 * File dir = new File(UPath.getCVT_IMAGEMAGICK_HOME());
-		 * executor.setWorkingDirectory(dir);
-		 */
-		String line1 = line;
-		try {
-			line1 = new String(line.getBytes(), "gbk");
-		} catch (UnsupportedEncodingException e1) {
-			LOGGER.error(e1.getMessage());
-		}
-		CommandLine commandLine = CommandLine.parse(line1);
-
-		ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-		PumpStreamHandler streamHandler = new PumpStreamHandler(outputStream);
-		executor.setStreamHandler(streamHandler);
-
 		LOGGER.info(line);
 		try {
-			executor.execute(commandLine);
-			String s = outputStream.toString();
-			outputStream.close();
-			rst.put("RST", "true");
-			rst.put("MSG", s);
-		} catch (ExecuteException e) {
-			LOGGER.error(line);
-			LOGGER.error(e.getMessage());
-			rst.put("RST", "false");
-			rst.put("ERR", e.getMessage());
-		} catch (IOException e) {
+			ProcessBuilder pb = new ProcessBuilder("sh", "-c", line);
+			if (System.getProperty("os.name").toLowerCase().startsWith("windows")) {
+				pb = new ProcessBuilder("cmd", "/c", line);
+			}
+			pb.redirectErrorStream(true);
+			Process process = pb.start();
+			byte[] output = process.getInputStream().readAllBytes();
+			boolean finished = process.waitFor(60, java.util.concurrent.TimeUnit.SECONDS);
+			if (!finished) {
+				process.destroyForcibly();
+				rst.put("RST", "false");
+				rst.put("ERR", "Command timed out after 60 seconds");
+				return rst;
+			}
+			int exitCode = process.exitValue();
+			String s = new String(output);
+			if (exitCode == 0 || exitCode == 1) {
+				rst.put("RST", "true");
+				rst.put("MSG", s);
+			} else {
+				rst.put("RST", "false");
+				rst.put("ERR", "Exit code: " + exitCode + ", " + s);
+			}
+		} catch (Exception e) {
 			LOGGER.error(line);
 			LOGGER.error(e.getMessage());
 			rst.put("RST", "false");

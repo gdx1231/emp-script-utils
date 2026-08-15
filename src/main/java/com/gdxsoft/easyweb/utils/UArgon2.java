@@ -9,6 +9,8 @@ import org.bouncycastle.crypto.params.Argon2Parameters.Builder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.gdxsoft.easyweb.conf.ConfArgon2;
+
 /**
  * <p>
  * Function Argon2
@@ -44,8 +46,6 @@ public class UArgon2 {
 	private static final int DEFAULT_SALT_LENGTH = 16;
 	private static final int DEFAULT_HASH_LENGTH = 32;
 	private static final int DEFAULT_PARALLELISM = 1;
-	private static final int DEFAULT_MEMORY_KB = 32;
-	private static final int DEFAULT_ITERATIONS = 3;
 	private static final int DEFAULT_ARGON2_TYPE = Argon2Parameters.ARGON2_id;
 	private static final int DEFAULT_VERSION = Argon2Parameters.ARGON2_VERSION_13;
 
@@ -82,11 +82,12 @@ public class UArgon2 {
 	private byte[] passwordHash; // hash后的密码，没有版本等其它信息
 
 	public UArgon2() {
+		ConfArgon2 cfg = ConfArgon2.getInstance();
 		argon2Type = DEFAULT_ARGON2_TYPE;
 		version = DEFAULT_VERSION;
 		parallelity = DEFAULT_PARALLELISM;
-		iterations = DEFAULT_ITERATIONS;
-		memory = DEFAULT_MEMORY_KB;
+		iterations = cfg.getIterations();
+		memory = cfg.getMemoryKB();
 		saltLength = DEFAULT_SALT_LENGTH;
 	}
 

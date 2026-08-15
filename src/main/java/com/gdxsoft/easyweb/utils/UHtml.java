@@ -320,10 +320,18 @@ public class UHtml {
 	 * @param html
 	 * @return
 	 */
-	public static String removeHtmlCommtents(String html) {
+	public static String removeHtmlComments(String html) {
 		// html注释
-		String remarkRegex = "<\\!--.*-->";
+		String remarkRegex = "<!--.*?-->";
 		return html.replaceAll(remarkRegex, "");
+	}
+
+	/**
+	 * @deprecated Use {@link #removeHtmlComments(String)}
+	 */
+	@Deprecated
+	public static String removeHtmlCommtents(String html) {
+		return removeHtmlComments(html);
 	}
 
 	/**

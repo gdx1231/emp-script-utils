@@ -70,9 +70,9 @@ public class URsa {
 	private String digestAlgorithm; // 摘要算法
 	private String cliperAlgorithm = "RSA/ECB/PKCS1Padding";
 
-	private boolean usingBc = true;
+	private boolean usingBc = false;
 
-	static {
+	private static void ensureBcProvider() {
 		if (Security.getProvider(BouncyCastleProvider.PROVIDER_NAME) == null) {
 			Security.addProvider(new BouncyCastleProvider());
 		}
@@ -109,12 +109,15 @@ public class URsa {
 
 	/**
 	 * Convert the The PEM key file to the key buff
-	 * 
+	 *
 	 * @param pemKeyFilePath The PEM key file path
 	 * @return the converted key data
 	 * @throws IOException
+	 * @deprecated Uses BouncyCastle PemReader; consider using JDK standard key loading
 	 */
+	@Deprecated
 	public byte[] readPemKey(String pemKeyFilePath) throws IOException {
+		ensureBcProvider();
 		byte[] keyBytes = UFile.readFileBytes(pemKeyFilePath);
 		final PemObject pemObject;
 		ByteArrayInputStream bis = new ByteArrayInputStream(keyBytes);
@@ -319,13 +322,16 @@ public class URsa {
 
 	/**
 	 * RSA signing(Using BC)
-	 * 
+	 *
 	 * @param data the source data
 	 * @return signature
-	 * 
+	 *
 	 * @throws Exception
+	 * @deprecated Use {@link #signJava(byte[])} instead
 	 */
+	@Deprecated
 	public byte[] signBc(byte[] data) throws IOException, DataLengthException, CryptoException {
+		ensureBcProvider();
 		AsymmetricKeyParameter keyParameter = PrivateKeyFactory.createKey(this.privateKey.getEncoded());
 		Digest digest = UDigest.getDigest(this.digestAlgorithm);
 		RSADigestSigner signer = new RSADigestSigner(digest);
@@ -389,14 +395,17 @@ public class URsa {
 
 	/**
 	 * Verification the RSA digital signature(USING BC)
-	 * 
+	 *
 	 * @param data the source data
 	 * @param sign the signature of the source data
 	 * @return verify result
-	 * 
+	 *
 	 * @throws IOException
+	 * @deprecated Use {@link #verifyJava(byte[], byte[])} instead
 	 */
+	@Deprecated
 	public boolean verifyBc(byte[] data, byte[] sign) throws IOException {
+		ensureBcProvider();
 		AsymmetricKeyParameter publKey = PublicKeyFactory.createKey(this.publicKey.getEncoded());
 		Digest digest = UDigest.getDigest(this.digestAlgorithm);
 		RSADigestSigner signer = new RSADigestSigner(digest);
@@ -442,10 +451,12 @@ public class URsa {
 
 	/**
 	 * Create data digest(Using BC)
-	 * 
+	 *
 	 * @param data the source data
 	 * @return the digest result
+	 * @deprecated Use {@link #digestMessageJava(byte[])} instead
 	 */
+	@Deprecated
 	public byte[] digestMessageBc(byte[] data) {
 		return UDigest.digest(data, digestAlgorithm);
 	}
@@ -516,14 +527,16 @@ public class URsa {
 
 	/**
 	 * Encryption (Using BC)
-	 * 
+	 *
 	 * @param data the plain data
 	 * @param key  publicKey/ privateKey
 	 * @return the encryption data
-	 * 
+	 *
 	 * @throws IOException
 	 * @throws InvalidCipherTextException
+	 * @deprecated Use {@link #encryptJava(byte[], Key)} instead
 	 */
+	@Deprecated
 	public byte[] encryptBc(byte[] data, Key key) throws IOException, InvalidCipherTextException {
 		AsymmetricBlockCipher e = this.createAsymmetricBlockCipher(key, true);
 		byte[] encryptData = e.processBlock(data, 0, data.length);
@@ -636,14 +649,16 @@ public class URsa {
 
 	/**
 	 * Decryption (Using BC)
-	 * 
+	 *
 	 * @param encryptData Encrypted data
 	 * @param key         PublicKey/ PrivateKey
 	 * @return the plain data
-	 * 
+	 *
 	 * @throws IOException
 	 * @throws InvalidCipherTextException
+	 * @deprecated Use {@link #decryptJava(byte[], Key)} instead
 	 */
+	@Deprecated
 	public byte[] decryptBc(byte[] encryptData, Key key) throws IOException, InvalidCipherTextException {
 
 		AsymmetricBlockCipher e = this.createAsymmetricBlockCipher(key, false);
@@ -661,6 +676,7 @@ public class URsa {
 	 * @throws IOException
 	 */
 	private AsymmetricBlockCipher createAsymmetricBlockCipher(Key key, boolean isEncrypt) throws IOException {
+		ensureBcProvider();
 		boolean isPublicKey = true;
 		String keyName = key.getClass().getName().toLowerCase();
 		if (keyName.indexOf("private") >= 0) {
