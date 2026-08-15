@@ -13,8 +13,12 @@ import java.util.regex.Pattern;
 import org.apache.commons.io.IOUtils;
 import org.json.JSONArray;
 import org.json.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class UHtml {
+
+	private static Logger LOGGER = LoggerFactory.getLogger(UHtml.class);
 
 	private static String CACHE_FILE;
 	public static Map<Integer, Integer> MAP_COMBINE_FILES;
@@ -256,32 +260,20 @@ public class UHtml {
 		if (html == null || html.length() == 0) {
 			return html;
 		}
-		String regex = "<\\w+.*(on\\w+)";
+		String regex = "<\\w+[^>]*\\b(on\\w+)";
 		Pattern patternForTag = Pattern.compile(regex, Pattern.CASE_INSENSITIVE);
 		Matcher mat = patternForTag.matcher(html);
+		StringBuilder sb = new StringBuilder();
 		try {
 			while (mat.find()) {
-				MatchResult mr = mat.toMatchResult();
-				html = html.replace(mr.group(1), "_gdx_");
+				mat.appendReplacement(sb, mat.group().replace(mat.group(1), "_gdx_"));
 			}
+			mat.appendTail(sb);
+			return sb.toString();
 		} catch (Exception err) {
-			System.out.println(err.getMessage());
+			LOGGER.warn("removeHtmlEvents: {}", err.getMessage());
+			return html;
 		}
-
-		// String regex1 = "<a\\b.*\\b(href)";
-		// Pattern patternForTag1 = Pattern.compile(regex1,
-		// Pattern.CASE_INSENSITIVE);
-		// Matcher mat1 = patternForTag1.matcher(html);
-		// try {
-		// while (mat1.find()) {
-		// MatchResult mr = mat1.toMatchResult();
-		// html = html.replace(mr.group(1), "_gdx_");
-		// }
-		// } catch (Exception err) {
-		// System.out.println(err.getMessage());
-		// }
-
-		return html;
 	}
 
 	/**
@@ -345,7 +337,8 @@ public class UHtml {
 		if (html == null || html.length() == 0) {
 			return html;
 		}
-		String regex2 = "<" + tagName + "[^>]*>[^<]*</" + tagName + "[^>]*>";
+		String q = Pattern.quote(tagName);
+		String regex2 = "<" + q + "[^>]*>[^<]*</" + q + "[^>]*>";
 		Pattern patternForTag2 = Pattern.compile(regex2, Pattern.CASE_INSENSITIVE);
 		Matcher mat2 = patternForTag2.matcher(html);
 		try {
@@ -357,7 +350,7 @@ public class UHtml {
 			System.out.println(err.getMessage());
 		}
 
-		String regex3 = "<" + tagName + ".*/>";
+		String regex3 = "<" + q + ".*/>";
 		Pattern patternForTag3 = Pattern.compile(regex3, Pattern.CASE_INSENSITIVE);
 		Matcher mat3 = patternForTag3.matcher(html);
 		try {
