@@ -968,4 +968,55 @@ public class UImages {
 		}
 		return rst;
 	}
+
+	/**
+	 * 向图片写入元数据（EXIF/XMP/tEXt，由 ImageMagick 根据格式自动选择）。
+	 * 使用 ProcessBuilder 参数数组方式执行，不经 shell，避免特殊字符转义问题。
+	 *
+	 * @param imgPath  图片绝对路径（原地覆盖）
+	 * @param metadata 键值对，如 {"UserComment": "提示词", "Artist": "adm=123", "Software": "DOUBAO_IMG/model"}
+	 */
+	public static void writeMetadata(String imgPath, java.util.Map<String, String> metadata) throws Exception {
+		if (metadata == null || metadata.isEmpty()) return;
+		String commandLine = getImageMagick();
+
+		java.util.List<String> args = new java.util.ArrayList<>();
+		args.add(commandLine);
+		// IMv7 的 magick 不需要子命令；旧版 convert 需要
+		if (commandLine.endsWith("convert") || commandLine.endsWith("convert.exe")) {
+			// convert 模式，无需额外子命令
+		} else {
+			// magick 模式，需要 convert 子命令来执行图片处理
+			args.add("convert");
+		}
+		args.add(imgPath);
+		for (java.util.Map.Entry<String, String> e : metadata.entrySet()) {
+			args.add("-set");
+			args.add(e.getKey());
+			args.add(e.getValue());
+		}
+		// 输出到临时文件再替换，避免读写同一文件的竞争
+		String tmpOut = imgPath + ".meta_tmp";
+		args.add(tmpOut);
+
+		LOGGER.info("writeMetadata: {}", String.join(" ", args));
+		ProcessBuilder pb = new ProcessBuilder(args);
+		pb.redirectErrorStream(true);
+		Process process = pb.start();
+		byte[] output = process.getInputStream().readAllBytes();
+		boolean finished = process.waitFor(30, java.util.concurrent.TimeUnit.SECONDS);
+		if (!finished) {
+			process.destroyForcibly();
+			new File(tmpOut).delete();
+			throw new Exception("writeMetadata 超时");
+		}
+		int exitCode = process.exitValue();
+		if (exitCode != 0 && exitCode != 1) {
+			new File(tmpOut).delete();
+			throw new Exception("writeMetadata 失败 exit=" + exitCode + ": " + new String(output));
+		}
+		// 替换原文件
+		java.nio.file.Files.move(java.nio.file.Path.of(tmpOut), java.nio.file.Path.of(imgPath),
+				java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+	}
 }

@@ -36,6 +36,24 @@ public class TestUNet extends TestBase {
 	}
 
 	@Test
+	public void testSslAlpnOnlyAdvertisesHttp1() throws Exception {
+		java.lang.reflect.Method createFactory = UNet.class
+				.getDeclaredMethod("createSSLConnSocketFactory");
+		createFactory.setAccessible(true);
+		Object factory = createFactory.invoke(null);
+
+		javax.net.ssl.SSLSocket socket = (javax.net.ssl.SSLSocket) javax.net.ssl.SSLSocketFactory
+				.getDefault().createSocket();
+		java.lang.reflect.Method prepareSocket = factory.getClass().getSuperclass()
+				.getDeclaredMethod("prepareSocket", javax.net.ssl.SSLSocket.class);
+		prepareSocket.setAccessible(true);
+		prepareSocket.invoke(factory, socket);
+
+		assertArrayEquals(new String[]{"http/1.1"}, socket.getSSLParameters().getApplicationProtocols());
+		socket.close();
+	}
+
+	@Test
 	public void testCreateLastCurl_GetRequest() throws Exception {
 		setField("_LastUrl", "https://example.com/api");
 		setField("_LastMethod", "GET");

@@ -29,6 +29,7 @@ import java.util.Map;
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSession;
+import javax.net.ssl.SSLSocket;
 
 import org.apache.http.Header;
 import org.apache.http.HttpEntity;
@@ -440,8 +441,8 @@ public class UNet {
 		try {
 			this.addPostData(httPatch, vals);
 		} catch (UnsupportedEncodingException e) {
-			this._LastErr = e.getLocalizedMessage();
-			LOGGER.error(e.getMessage());
+			this._LastErr = e.toString();
+			LOGGER.error("Request failed: " + this._LastUrl, e);
 			return null;
 		}
 		this.handleResponse(httpclient, httPatch);
@@ -476,8 +477,8 @@ public class UNet {
 			this._LastBuf = this.readResponseBytes(response);
 			return this._LastBuf;
 		} catch (IOException e) {
-			LOGGER.error(e.getMessage());
-			this._LastErr = e.getLocalizedMessage();
+			LOGGER.error("Request failed: " + this._LastUrl, e);
+			this._LastErr = e.toString();
 			return null;
 		} finally {
 			this.closeHttpClient(httpclient);
@@ -624,8 +625,8 @@ public class UNet {
 		try {
 			this.addPostData(httpPut, vals);
 		} catch (UnsupportedEncodingException e) {
-			this._LastErr = e.getLocalizedMessage();
-			LOGGER.error(e.getMessage());
+			this._LastErr = e.toString();
+			LOGGER.error("Request failed: " + this._LastUrl, e);
 			return null;
 		}
 		this.handleResponse(httpclient, httpPut);
@@ -715,8 +716,8 @@ public class UNet {
 		try {
 			this.addPostData(httpDelete, vals);
 		} catch (UnsupportedEncodingException e) {
-			this._LastErr = e.getLocalizedMessage();
-			LOGGER.error(e.getMessage());
+			this._LastErr = e.toString();
+			LOGGER.error("Request failed: " + this._LastUrl, e);
 			return null;
 		}
 		this.handleResponse(httpclient, httpDelete);
@@ -773,8 +774,8 @@ public class UNet {
 		try {
 			this.addPostData(httppost, vals);
 		} catch (UnsupportedEncodingException e) {
-			this._LastErr = e.getLocalizedMessage();
-			LOGGER.error(e.getMessage());
+			this._LastErr = e.toString();
+			LOGGER.error("Request failed: " + this._LastUrl, e);
 			return null;
 		}
 		this.handleResponse(httpclient, httppost);
@@ -1247,7 +1248,8 @@ public class UNet {
 			this._LastBuf = this.readResponseBytes(response);
 			return this._LastBuf;
 		} catch (IOException e) {
-			LOGGER.error(e.getMessage());
+			LOGGER.error("Request failed: " + this._LastUrl, e);
+			this._LastErr = e.toString();
 			return null;
 		} finally {
 			this.closeHttpClient(httpclient);
@@ -1272,8 +1274,8 @@ public class UNet {
 		try {
 			httpclient.close();
 		} catch (IOException e) {
-			this._LastErr = e.getLocalizedMessage();
-			LOGGER.error(e.getMessage());
+			this._LastErr = e.toString();
+			LOGGER.error("Close HTTP client failed", e);
 		}
 
 	}
@@ -1353,8 +1355,8 @@ public class UNet {
 		try {
 			return this.readResponseString(response);
 		} catch (ParseException | IOException e) {
-			LOGGER.error(e.getMessage());
-			this._LastErr = e.getMessage();
+			LOGGER.error("Read response failed: " + this._LastUrl, e);
+			this._LastErr = e.toString();
 			return null;
 		} finally {
 			closeHttpClient(httpclient);
@@ -1377,8 +1379,8 @@ public class UNet {
 
 			return result;
 		} catch (IOException e) {
-			this._LastErr = e.getMessage();
-			LOGGER.error(e.getMessage());
+			this._LastErr = e.toString();
+			LOGGER.error("Request failed: " + this._LastUrl, e);
 			return null;
 		} finally {
 			if (this._IsShowLog) {
@@ -1406,8 +1408,8 @@ public class UNet {
 			result = this.handleResponse(httpclient, response);
 			return result;
 		} catch (IOException e) {
-			this._LastErr = e.getMessage();
-			LOGGER.error(e.getMessage());
+			this._LastErr = e.toString();
+			LOGGER.error("Request failed: " + this._LastUrl, e);
 			return null;
 		} finally {
 			if (this._IsShowLog) {
@@ -1525,13 +1527,24 @@ public class UNet {
 					return true;
 				}
 			}).build();
-			sslsf = new SSLConnectionSocketFactory(sslContext, new HostnameVerifier() {
+			sslsf = new SSLConnectionSocketFactory(sslContext,
+					null,
+					null,
+					new HostnameVerifier() {
 
+						@Override
+						public boolean verify(String hostname, SSLSession session) {
+							return true;
+						}
+					}) {
 				@Override
-				public boolean verify(String hostname, SSLSession session) {
-					return true;
+				protected void prepareSocket(SSLSocket socket) throws IOException {
+					// Apache HttpClient 只发送 HTTP/1.1，不能通过 ALPN 协商出 h2
+					javax.net.ssl.SSLParameters params = socket.getSSLParameters();
+					params.setApplicationProtocols(new String[]{"http/1.1"});
+					socket.setSSLParameters(params);
 				}
-			});
+			};
 		} catch (GeneralSecurityException e) {
 			e.printStackTrace();
 		}
