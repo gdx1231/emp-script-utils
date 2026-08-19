@@ -40,6 +40,7 @@ import net.coobird.thumbnailator.Thumbnails;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.gdxsoft.easyweb.conf.ConfExiftool;
 import com.gdxsoft.easyweb.conf.ConfImageMagick;
 
 /**
@@ -970,13 +971,68 @@ public class UImages {
 	}
 
 	/**
-	 * 向图片写入元数据（EXIF/XMP/tEXt，由 ImageMagick 根据格式自动选择）。
-	 * 使用 ProcessBuilder 参数数组方式执行，不经 shell，避免特殊字符转义问题。
+	 * 向图片写入元数据。优先使用 exiftool（无损、支持 webp），exiftool 不可用时回退到
+	 * ImageMagick。
+	 * <p>
+	 * 注意 ImageMagick 回退路径的固有限制：写入会重新编码图片（有损格式画质下降），
+	 * 且 webp 的 EXIF 完全写不进去。生产环境建议安装 exiftool。
 	 *
 	 * @param imgPath  图片绝对路径（原地覆盖）
 	 * @param metadata 键值对，如 {"UserComment": "提示词", "Artist": "adm=123", "Software": "DOUBAO_IMG/model"}
+	 * @throws Exception 写入失败
 	 */
 	public static void writeMetadata(String imgPath, java.util.Map<String, String> metadata) throws Exception {
+		if (metadata == null || metadata.isEmpty()) {
+			return;
+		}
+		if (checkExiftool()) {
+			writeMetadataByExiftool(imgPath, toExiftoolTags(metadata));
+			return;
+		}
+		LOGGER.warn("exiftool not available, fall back to ImageMagick. "
+				+ "The image will be re-encoded and webp EXIF can NOT be written.");
+		writeMetadataByImageMagick(imgPath, metadata);
+	}
+
+	/**
+	 * 把 ImageMagick 风格的键名转换为 exiftool 可写的标签名。<br>
+	 * ImageMagick 的 PNG 专用前缀 tEXt/zTXt/iTXt 在 exiftool 中不可写，需要去掉前缀
+	 * 交由 exiftool 按格式自动选择存储位置。
+	 *
+	 * @param metadata 原始键值对
+	 * @return 转换后的键值对
+	 */
+	private static java.util.Map<String, String> toExiftoolTags(java.util.Map<String, String> metadata) {
+		java.util.Map<String, String> rst = new java.util.LinkedHashMap<>();
+		for (java.util.Map.Entry<String, String> e : metadata.entrySet()) {
+			String key = e.getKey();
+			if (key == null || key.trim().length() == 0) {
+				continue;
+			}
+			key = key.trim();
+			String lower = key.toLowerCase();
+			if (lower.startsWith("text:") || lower.startsWith("ztxt:") || lower.startsWith("itxt:")) {
+				key = key.substring(key.indexOf(':') + 1);
+			}
+			rst.put(key, e.getValue());
+		}
+		return rst;
+	}
+
+	/**
+	 * 向图片写入元数据（EXIF/XMP/tEXt，由 ImageMagick 根据格式自动选择）。
+	 * 使用 ProcessBuilder 参数数组方式执行，不经 shell，避免特殊字符转义问题。
+	 * <p>
+	 * 该方法会重新编码图片，有损格式（jpg/webp）画质会下降；且 ImageMagick 的 -set
+	 * 对 webp 的 EXIF 无效（静默失败）。推荐使用
+	 * {@link #writeMetadataByExiftool(String, java.util.Map)}。
+	 *
+	 * @param imgPath  图片绝对路径（原地覆盖）
+	 * @param metadata 键值对，如 {"UserComment": "提示词", "Artist": "adm=123", "Software": "DOUBAO_IMG/model"}
+	 * @throws Exception 写入失败
+	 */
+	public static void writeMetadataByImageMagick(String imgPath, java.util.Map<String, String> metadata)
+			throws Exception {
 		if (metadata == null || metadata.isEmpty()) return;
 		String commandLine = getImageMagick();
 
@@ -999,7 +1055,7 @@ public class UImages {
 		String tmpOut = imgPath + ".meta_tmp";
 		args.add(tmpOut);
 
-		LOGGER.info("writeMetadata: {}", String.join(" ", args));
+		LOGGER.info("writeMetadataByImageMagick: {}", String.join(" ", args));
 		ProcessBuilder pb = new ProcessBuilder(args);
 		pb.redirectErrorStream(true);
 		Process process = pb.start();
@@ -1008,15 +1064,348 @@ public class UImages {
 		if (!finished) {
 			process.destroyForcibly();
 			new File(tmpOut).delete();
-			throw new Exception("writeMetadata 超时");
+			throw new Exception("writeMetadataByImageMagick timed out after 30 seconds");
 		}
 		int exitCode = process.exitValue();
 		if (exitCode != 0 && exitCode != 1) {
 			new File(tmpOut).delete();
-			throw new Exception("writeMetadata 失败 exit=" + exitCode + ": " + new String(output));
+			throw new Exception("writeMetadataByImageMagick failed exit=" + exitCode + ": " + new String(output));
 		}
 		// 替换原文件
 		java.nio.file.Files.move(java.nio.file.Path.of(tmpOut), java.nio.file.Path.of(imgPath),
 				java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+	}
+
+	/**
+	 * 向图片写入元数据（使用 exiftool），支持 webp/jpg/png/avif/heic/tiff/gif 等。
+	 * <p>
+	 * 相比 {@link #writeMetadataByImageMagick(String, java.util.Map)} 的优势：
+	 * <ul>
+	 * <li>不重新编码图片，像素完全无损（ImageMagick 方案每次写入都会有损重编码）</li>
+	 * <li>webp 可以真正写入 EXIF（ImageMagick 的 -set 对 webp 完全无效）</li>
+	 * <li>标签名支持 EXIF/XMP/IPTC 全命名空间</li>
+	 * </ul>
+	 * <p>
+	 * 键名可带命名空间前缀，如 {@code EXIF:Artist}、{@code XMP:Description}、
+	 * {@code IPTC:By-line}；不带前缀时由 exiftool 按格式自动选择写入位置。<br>
+	 * 值为 null 或空字符串表示删除该标签。
+	 *
+	 * @param imgPath  图片绝对路径（原地覆盖）
+	 * @param metadata 键值对，如 {"EXIF:Artist": "adm=123", "EXIF:UserComment": "提示词"}
+	 * @throws Exception 写入失败
+	 */
+	public static void writeMetadataByExiftool(String imgPath, java.util.Map<String, String> metadata)
+			throws Exception {
+		if (metadata == null || metadata.isEmpty()) {
+			return;
+		}
+		File img = new File(imgPath);
+		if (!img.exists()) {
+			String err = "Not found the image [" + imgPath + "]";
+			LOGGER.error(err);
+			throw new Exception(err);
+		}
+
+		List<String> args = new ArrayList<>();
+		args.add(getExiftool());
+		// 统一使用 UTF-8 处理标签值和文件名，避免中文乱码
+		args.add("-charset");
+		args.add("utf8");
+		args.add("-charset");
+		args.add("filename=utf8");
+		// 原地覆盖，不生成 _original 备份，且保留原文件权限和属主
+		args.add("-overwrite_original_in_place");
+		for (java.util.Map.Entry<String, String> e : metadata.entrySet()) {
+			String key = e.getKey();
+			if (key == null || key.trim().length() == 0) {
+				continue;
+			}
+			String val = e.getValue() == null ? "" : e.getValue();
+			// -TAG=VALUE，值为空表示删除该标签
+			args.add("-" + key.trim() + "=" + val);
+		}
+		args.add(imgPath);
+
+		runExiftool(args);
+	}
+
+	/**
+	 * 读取图片的元数据（使用 exiftool）
+	 *
+	 * @param imgPath 图片绝对路径
+	 * @param keys    要读取的标签名，如 "EXIF:Artist"；为空则读取全部标签
+	 * @return 标签名（不含命名空间前缀）到值的映射，读不到返回空 Map
+	 * @throws Exception 读取失败
+	 */
+	public static java.util.Map<String, String> readMetadataByExiftool(String imgPath, String... keys)
+			throws Exception {
+		java.util.Map<String, String> rst = new java.util.LinkedHashMap<>();
+		File img = new File(imgPath);
+		if (!img.exists()) {
+			String err = "Not found the image [" + imgPath + "]";
+			LOGGER.error(err);
+			throw new Exception(err);
+		}
+
+		List<String> args = new ArrayList<>();
+		args.add(getExiftool());
+		args.add("-charset");
+		args.add("utf8");
+		args.add("-charset");
+		args.add("filename=utf8");
+		// -s -s 输出 "TAG: VALUE" 短标签名格式，一行一个
+		args.add("-s");
+		args.add("-s");
+		if (keys != null) {
+			for (String key : keys) {
+				if (key != null && key.trim().length() > 0) {
+					args.add("-" + key.trim());
+				}
+			}
+		}
+		args.add(imgPath);
+
+		String output = runExiftool(args);
+		for (String line : output.split("\n")) {
+			int p = line.indexOf(": ");
+			if (p > 0) {
+				rst.put(line.substring(0, p).trim(), line.substring(p + 2).trim());
+			}
+		}
+		return rst;
+	}
+
+	/**
+	 * Check whether exiftool is available (configured or in system PATH).
+	 * <p>
+	 * The result is cached and reused, and automatically invalidated when the
+	 * ewa_conf.xml configuration file changes.
+	 *
+	 * @return true if exiftool is available
+	 */
+	public static boolean checkExiftool() {
+		long currentPropTime = UPath.getPropTime();
+		if (EXIFTOOL_AVAILABLE != null && currentPropTime == EXIFTOOL_AVAILABLE_PROP_TIME) {
+			return EXIFTOOL_AVAILABLE.booleanValue();
+		}
+		boolean available;
+		try {
+			List<String> args = new ArrayList<>();
+			args.add(getExiftool());
+			args.add("-ver");
+			runExiftool(args);
+			available = true;
+		} catch (Exception e) {
+			LOGGER.warn("exiftool not available: {}", e.getMessage());
+			available = false;
+		}
+		// Re-read prop time: getExiftool may trigger UPath.initPath() which
+		// changes the prop time, so sync the stamp to avoid re-probing on the
+		// very next call.
+		EXIFTOOL_AVAILABLE_PROP_TIME = UPath.getPropTime();
+		EXIFTOOL_AVAILABLE = Boolean.valueOf(available);
+		return available;
+	}
+
+	/**
+	 * exiftool 可用性缓存
+	 */
+	private static Boolean EXIFTOOL_AVAILABLE = null;
+	/**
+	 * 可用性缓存对应的 ewa_conf.xml 修改时间
+	 */
+	private static long EXIFTOOL_AVAILABLE_PROP_TIME = 0;
+
+	/**
+	 * Get the exiftool executable path.
+	 * <p>
+	 * Resolution order:
+	 * <ol>
+	 * <li>Configured path in ewa_conf.xml ({@code <exiftool path="..." />})</li>
+	 * <li>{@code which} / {@code where} command lookup</li>
+	 * <li>Auto-detect in common installation paths for the current OS</li>
+	 * <li>System PATH (returns "exiftool")</li>
+	 * </ol>
+	 *
+	 * @return the exiftool executable path
+	 * @throws Exception if exiftool is configured but the executable is not found
+	 */
+	public static String getExiftool() throws Exception {
+		long currentPropTime = UPath.getPropTime();
+		if (currentPropTime != EXIFTOOL_CACHE_PROP_TIME) {
+			EXIFTOOL_PATH = null;
+			EXIFTOOL_CACHE_PROP_TIME = currentPropTime;
+		}
+		if (EXIFTOOL_PATH != null) {
+			return EXIFTOOL_PATH;
+		}
+
+		String result = resolveExiftool();
+
+		// Re-read prop time: resolveExiftool may trigger UPath.initPath() which
+		// changes the prop time, so sync the stamp to avoid clearing the cache
+		// on the very next call.
+		EXIFTOOL_CACHE_PROP_TIME = UPath.getPropTime();
+		EXIFTOOL_PATH = result;
+		return result;
+	}
+
+	/**
+	 * exiftool 可执行文件路径缓存
+	 */
+	private static String EXIFTOOL_PATH = null;
+	/**
+	 * 缓存对应的 ewa_conf.xml 修改时间
+	 */
+	private static long EXIFTOOL_CACHE_PROP_TIME = 0;
+
+	/**
+	 * Resolve the exiftool executable path (no caching).
+	 *
+	 * @return the full executable path
+	 * @throws Exception if exiftool is configured but the executable is not found
+	 */
+	private static String resolveExiftool() throws Exception {
+		String os = System.getProperty("os.name").toLowerCase();
+		boolean isWindows = os.startsWith("windows");
+		String exeName = isWindows ? "exiftool.exe" : "exiftool";
+
+		// 1. Check ConfExiftool configuration
+		ConfExiftool conf = ConfExiftool.getInstance();
+		if (conf != null && conf.getPath() != null && conf.getPath().trim().length() > 0) {
+			String confPath = conf.getPath().trim();
+			File pathFile = new File(confPath);
+			if (pathFile.isDirectory()) {
+				File exe = new File(pathFile, exeName);
+				if (!exe.exists()) {
+					String err = "exiftool not found at [" + exe.getAbsolutePath() + "]";
+					LOGGER.error(err);
+					throw new Exception(err);
+				}
+				return exe.getAbsolutePath();
+			} else if (pathFile.isFile()) {
+				return pathFile.getAbsolutePath();
+			} else {
+				String err = "exiftool path not found: [" + confPath + "]";
+				LOGGER.error(err);
+				throw new Exception(err);
+			}
+		}
+
+		// 2. Lookup via which (Unix) / where (Windows)
+		String found = findExiftoolByWhich(exeName, isWindows);
+		if (found != null) {
+			LOGGER.info("exiftool found via which/where at: {}", found);
+			return found;
+		}
+
+		// 3. Auto-detect in common installation paths
+		List<String> dirs = new ArrayList<>();
+		if (isWindows) {
+			dirs.add("C:\\exiftool");
+			dirs.add("C:\\Program Files\\exiftool");
+			dirs.add("C:\\Program Files (x86)\\exiftool");
+			dirs.add("C:\\ProgramData\\chocolatey\\bin");
+			String userProfile = System.getenv("USERPROFILE");
+			if (userProfile != null && userProfile.trim().length() > 0) {
+				dirs.add(userProfile + "\\scoop\\shims");
+			}
+		} else if (os.contains("mac")) {
+			dirs.add("/opt/homebrew/bin");
+			dirs.add("/usr/local/bin");
+			dirs.add("/opt/local/bin");
+			dirs.add("/usr/bin");
+		} else {
+			dirs.add("/usr/bin");
+			dirs.add("/usr/local/bin");
+			dirs.add("/snap/bin");
+		}
+		for (String dir : dirs) {
+			File exe = new File(dir, exeName);
+			if (exe.exists() && exe.canExecute()) {
+				LOGGER.info("exiftool auto-detected at: {}", exe.getAbsolutePath());
+				return exe.getAbsolutePath();
+			}
+		}
+
+		// 4. Fall back to system PATH
+		LOGGER.info("exiftool not found, relying on system PATH");
+		return "exiftool";
+	}
+
+	/**
+	 * Use the system {@code which} (Unix) or {@code where} (Windows) command to
+	 * locate exiftool in the system PATH.
+	 *
+	 * @param exeName   the platform-specific executable name
+	 * @param isWindows whether the current OS is Windows
+	 * @return the full path if found, or null
+	 */
+	private static String findExiftoolByWhich(String exeName, boolean isWindows) {
+		String finder = isWindows ? "where" : "which";
+		Process process = null;
+		try {
+			ProcessBuilder pb = new ProcessBuilder(finder, exeName);
+			pb.redirectErrorStream(true);
+			process = pb.start();
+			String firstLine = null;
+			try (java.io.BufferedReader reader = new java.io.BufferedReader(
+					new java.io.InputStreamReader(process.getInputStream(), "UTF-8"))) {
+				firstLine = reader.readLine();
+			}
+			int exitCode = process.waitFor();
+			if (exitCode != 0 || firstLine == null || firstLine.trim().length() == 0) {
+				return null;
+			}
+			firstLine = firstLine.trim();
+			if (firstLine.startsWith("\"") && firstLine.endsWith("\"") && firstLine.length() > 1) {
+				firstLine = firstLine.substring(1, firstLine.length() - 1);
+			}
+			File f = new File(firstLine);
+			if (f.exists() && f.canExecute()) {
+				return f.getAbsolutePath();
+			}
+		} catch (Exception e) {
+			LOGGER.debug("{} {} failed: {}", finder, exeName, e.getMessage());
+		} finally {
+			if (process != null) {
+				process.destroy();
+			}
+		}
+		return null;
+	}
+
+	/**
+	 * 执行 exiftool（参数数组方式，不经 shell，值中的特殊字符无需转义）
+	 *
+	 * @param args 命令及参数
+	 * @return 标准输出内容
+	 * @throws Exception 执行失败或超时
+	 */
+	private static String runExiftool(List<String> args) throws Exception {
+		LOGGER.info("runExiftool: {}", String.join(" ", args));
+		Process process = null;
+		try {
+			ProcessBuilder pb = new ProcessBuilder(args);
+			pb.redirectErrorStream(true);
+			process = pb.start();
+			byte[] output = process.getInputStream().readAllBytes();
+			boolean finished = process.waitFor(60, java.util.concurrent.TimeUnit.SECONDS);
+			if (!finished) {
+				process.destroyForcibly();
+				throw new Exception("exiftool timed out after 60 seconds");
+			}
+			String out = new String(output, "UTF-8");
+			if (process.exitValue() != 0) {
+				String err = "exiftool failed exit=" + process.exitValue() + ": " + out.trim();
+				LOGGER.error(err);
+				throw new Exception(err);
+			}
+			return out;
+		} finally {
+			if (process != null) {
+				process.destroy();
+			}
+		}
 	}
 }
