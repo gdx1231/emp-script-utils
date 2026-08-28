@@ -360,11 +360,10 @@ public class UVideo {
 	/**
 	 * Create a video cover by extracting the last frame at the specified seek offset.
 	 * <p>
-	 * The ffmpeg command used:
-	 *
-	 * <pre>
-	 * ffmpeg -y -sseof -&lt;offset&gt; -i &lt;input&gt; -vframes 1 [-q:v &lt;quality&gt;] [-vf scale=W:H] &lt;output&gt;
-	 * </pre>
+	 * Uses {@code -ss} with a negative offset (e.g. {@code -ss -0.05}) instead of
+	 * {@code -sseof} because some FFmpeg nightly builds (e.g. N-126000) fail to
+	 * extract frames too close to EOF with {@code -sseof}. The negative {@code -ss}
+	 * value is interpreted as "seek to this many seconds before the end".
 	 *
 	 * @param coverPath         the output cover image path, or null to auto-generate
 	 * @param seekOffsetSeconds the seek offset in seconds before the end (e.g. 0.5 for
@@ -375,7 +374,7 @@ public class UVideo {
 		if (seekOffsetSeconds <= 0) {
 			seekOffsetSeconds = 0.5;
 		}
-		return extractFrame(coverPath, new String[] { "-sseof", "-" + String.valueOf(seekOffsetSeconds) },
+		return extractFrame(coverPath, new String[] { "-ss", "-" + String.valueOf(seekOffsetSeconds) },
 				"Extracting last frame");
 	}
 
@@ -509,6 +508,10 @@ public class UVideo {
 			cmd.addArgument("-vf", false);
 			cmd.addArgument("scale=" + w + ":" + h, false);
 		}
+		// FFmpeg 7.x+ mjpeg encoder rejects limited-range YUV (e.g. yuv420p) unless
+		// strict_std_compliance is relaxed; harmless for other codecs
+		cmd.addArgument("-strict", false);
+		cmd.addArgument("unofficial", false);
 		cmd.addArgument(coverFile.getAbsolutePath(), false);
 
 		LOGGER.info("{}: {}", description, cmd.toString());
@@ -1674,11 +1677,11 @@ public class UVideo {
 	 * Per-input trim specification for {@link #mergeVideos(List, String, long, TrimSpec[])}.
 	 * Tells the filter graph to drop {@code startSec} from the head and
 	 * {@code endSec} from the tail of the corresponding input before
-	 * feeding it to the concat filter. Used to absorb the 0.5s overlap
-	 * baked into transition videos (Seedance I2V picks the from-last frame
-	 * at sseof -0.5 and the to-first frame at 0.5s, so the preceding shot
-	 * and following shot must each be trimmed by the same amount to avoid
-	 * a visible jump at the join).
+	 * feeding it to the concat filter.
+	 * <p>
+	 * 首尾帧 I2V 转场现直接使用真边界帧（from 镜头的真末帧、to 镜头的 0s 首帧），
+	 * 转场视频在两端与相邻镜头帧对齐，合成端无需再裁头裁尾补偿；
+	 * 因此常规合成只需 {@link #none()}（即 {@code 0,0}），不再有 0.5s 重叠裁补。
 	 */
 	public static class TrimSpec {
 		/** Seconds to drop from the head of the input. 0 = no head trim. */
