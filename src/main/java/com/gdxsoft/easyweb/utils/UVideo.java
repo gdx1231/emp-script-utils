@@ -1398,6 +1398,10 @@ public class UVideo {
 				// VAAPI encoder is built-in but no render node exists; skip.
 				continue;
 			}
+			if ("h264_nvenc".equals(enc) && !hasNvidiaGpu()) {
+				// NVENC encoder is compiled in but no NVIDIA GPU/driver; skip.
+				continue;
+			}
 			CACHED_H264_ENCODER = enc;
 			LOGGER.info("Selected H.264 encoder: {}", enc);
 			return enc;
@@ -1427,6 +1431,37 @@ public class UVideo {
 			}
 		}
 		return null;
+	}
+
+	/**
+	 * Check whether an NVIDIA GPU with working drivers is available.
+	 * NVENC requires both the GPU hardware and the NVIDIA driver
+	 * ({@code libcuda.so}). Checks: 1. {@code /dev/nvidia0} device,
+	 * 2. {@code nvidia-smi} command, 3. {@code libcuda.so} library.
+	 * Returns {@code true} if any indicator is found.
+	 */
+	static boolean hasNvidiaGpu() {
+		// Check for NVIDIA device files
+		if (new File("/dev/nvidia0").exists() || new File("/dev/nvidiactl").exists()) {
+			return true;
+		}
+		// Check for nvidia-smi command
+		try {
+			Process p = Runtime.getRuntime().exec(new String[] { "which", "nvidia-smi" });
+			if (p.waitFor() == 0) {
+				return true;
+			}
+		} catch (Exception e) {
+			// ignore
+		}
+		// Check for libcuda.so (NVIDIA driver library)
+		String[] libPaths = { "/usr/lib/x86_64-linux-gnu/libcuda.so", "/usr/lib64/libcuda.so", "/usr/local/cuda/lib64/libcuda.so" };
+		for (String lib : libPaths) {
+			if (new File(lib).exists()) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	/**
