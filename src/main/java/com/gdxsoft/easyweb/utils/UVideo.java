@@ -5,10 +5,15 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.nio.file.attribute.PosixFilePermission;
+import java.nio.file.attribute.PosixFilePermissions;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.LinkedHashMap;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.commons.exec.CommandLine;
@@ -519,6 +524,7 @@ public class UVideo {
 		ExecuteResult result = execute(cmd, this.timeout);
 		if (result.isSuccess()) {
 			if (coverFile.exists() && coverFile.length() > 0) {
+				setWorldReadable(coverFile);
 				LOGGER.info("{}: {}", description, coverFile.getAbsolutePath());
 				return coverFile.getAbsolutePath();
 			} else {
@@ -1115,6 +1121,7 @@ public class UVideo {
 			LOGGER.info("Merging videos (filter_complex): {}", cmd.toString());
 			ExecuteResult result = execute(cmd, timeout);
 			if (result.isSuccess() && outFile.exists() && outFile.length() > 0) {
+				setWorldReadable(outFile);
 				LOGGER.info("Videos merged: {}", outFile.getAbsolutePath());
 				JSONObject rst = UJSon.rstTrue();
 				rst.put("path", outFile.getAbsolutePath());
@@ -1143,6 +1150,20 @@ public class UVideo {
 					LOGGER.warn("Failed to delete temp file: {}", f.getAbsolutePath());
 				}
 			}
+		}
+	}
+
+	/**
+	 * Ensure the given file is readable by all users (rw-r--r--).
+	 * Nginx serves /aicuploads/ as a different OS user, so files created
+	 * with restrictive umask would otherwise return 403.
+	 */
+	private static void setWorldReadable(File file) {
+		try {
+			Set<PosixFilePermission> perms = PosixFilePermissions.fromString("rw-r--r--");
+			Files.setPosixFilePermissions(Paths.get(file.getAbsolutePath()), perms);
+		} catch (Exception e) {
+			LOGGER.warn("Failed to set world-readable on {}: {}", file.getAbsolutePath(), e.getMessage());
 		}
 	}
 
