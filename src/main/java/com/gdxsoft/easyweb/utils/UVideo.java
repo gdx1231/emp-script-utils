@@ -369,8 +369,10 @@ public class UVideo {
 	 * (ffprobe) instead of {@code -sseof} or a negative {@code -ss} offset: some
 	 * FFmpeg nightly builds (e.g. N-126000) fail to extract frames with
 	 * {@code -sseof} near EOF, and a negative {@code -ss} silently clamps to the
-	 * FIRST frame instead of seeking before the end. An absolute position within the
-	 * stream (at least 0.5s from EOF) is reliable across builds.
+	 * FIRST frame instead of seeking before the end. The requested offset is tried
+	 * first (clamped to at least 0.1s from start); if the frame cannot be extracted
+	 * (e.g. frames too close to EOF fail on some builds), progressively larger
+	 * offsets are tried to return the last extractable frame.
 	 *
 	 * @param coverPath         the output cover image path, or null to auto-generate
 	 * @param seekOffsetSeconds the seek offset in seconds before the end (e.g. 0.5 for
@@ -388,12 +390,21 @@ public class UVideo {
 				return extractFrame(coverPath, new String[] { "-sseof", "-" + String.valueOf(seekOffsetSeconds) },
 						"Extracting last frame");
 			}
-			// Clamp: at least 0.1s from start, at least 0.5s before EOF (frames too
-			// close to EOF fail on some nightly FFmpeg builds).
-			double seekPos = Math.max(0.1, Math.min(duration - seekOffsetSeconds, duration - 0.5));
-			return extractFrame(coverPath, new String[] { "-ss", String.valueOf(seekPos) },
-					"Extracting last frame at " + String.format("%.2f", seekPos) + "s/"
-							+ String.format("%.2f", duration) + "s");
+			// 先试请求的偏移（尽量贴近真末帧）；失败再逐步增大偏移，
+			// 覆盖"距 EOF 太近导致该 FFmpeg 构建无法抽帧"的情况。
+			double[] offsets = { seekOffsetSeconds, 0.5, 1.0, 2.0 };
+			for (double offset : offsets) {
+				double seekPos = Math.max(0.1, duration - offset);
+				String result = extractFrame(coverPath, new String[] { "-ss", String.valueOf(seekPos) },
+						"Extracting last frame at " + String.format("%.2f", seekPos) + "s/"
+								+ String.format("%.2f", duration) + "s (offset=" + offset + "s)");
+				if (result != null) {
+					return result;
+				}
+				LOGGER.warn("Frame extraction failed at offset {}s, trying larger offset", offset);
+			}
+			LOGGER.error("Failed to extract last frame with all offsets");
+			return null;
 		} catch (Exception e) {
 			LOGGER.error("Failed to get duration for last frame extraction, using -sseof fallback", e);
 			return extractFrame(coverPath, new String[] { "-sseof", "-" + String.valueOf(seekOffsetSeconds) },
