@@ -365,14 +365,17 @@ public class UVideo {
 	/**
 	 * Create a video cover by extracting the last frame at the specified seek offset.
 	 * <p>
-	 * Uses {@code -ss} with an absolute position calculated from the video duration
-	 * (ffprobe) instead of {@code -sseof} or a negative {@code -ss} offset: some
-	 * FFmpeg nightly builds (e.g. N-126000) fail to extract frames with
-	 * {@code -sseof} near EOF, and a negative {@code -ss} silently clamps to the
-	 * FIRST frame instead of seeking before the end. The requested offset is tried
-	 * first (clamped to at least 0.1s from start); if the frame cannot be extracted
-	 * (e.g. frames too close to EOF fail on some builds), progressively larger
-	 * offsets are tried to return the last extractable frame.
+	 * Primary approach: {@code -sseof -N -update 1} — seek backwards from EOF and
+	 * let the image2 muxer overwrite the output for every decoded frame, so the
+	 * final file is the TRUE last frame. The offset is at least 3s to cover a
+	 * typical GOP (larger offsets decode more tail frames and still end on the
+	 * last frame; short videos clamp to the start and decode the whole file).
+	 * <p>
+	 * Fallback (if {@code -sseof} fails on damaged/stream-index-less files):
+	 * {@code -ss} with an absolute position from ffprobe duration, trying
+	 * progressively larger offsets (e.g. 0.5/1.0/2.0s before EOF). A negative
+	 * {@code -ss} is NOT used — some nightly builds (e.g. N-126000) silently
+	 * clamp it to the FIRST frame.
 	 *
 	 * @param coverPath         the output cover image path, or null to auto-generate
 	 * @param seekOffsetSeconds the seek offset in seconds before the end (e.g. 0.5 for
@@ -383,33 +386,100 @@ public class UVideo {
 		if (seekOffsetSeconds <= 0) {
 			seekOffsetSeconds = 0.5;
 		}
+		// 主方案：-sseof 反向 seek + -update 1（解码到 EOF，保留最后一个解码帧）
+		String result = extractLastFrameBySseof(coverPath, Math.max(3.0, seekOffsetSeconds));
+		if (result != null) {
+			return result;
+		}
+		// 兜底：ffprobe 取时长 + 绝对位置（-sseof 失败：损坏文件/无索引的流式文件）
 		try {
 			double duration = getVideoDuration();
 			if (duration <= 0) {
-				LOGGER.warn("Cannot get video duration, falling back to -sseof");
-				return extractFrame(coverPath, new String[] { "-sseof", "-" + String.valueOf(seekOffsetSeconds) },
-						"Extracting last frame");
+				LOGGER.warn("Cannot get video duration after -sseof failure, giving up");
+				return null;
 			}
-			// 先试请求的偏移（尽量贴近真末帧）；失败再逐步增大偏移，
-			// 覆盖"距 EOF 太近导致该 FFmpeg 构建无法抽帧"的情况。
 			double[] offsets = { seekOffsetSeconds, 0.5, 1.0, 2.0 };
 			for (double offset : offsets) {
 				double seekPos = Math.max(0.1, duration - offset);
-				String result = extractFrame(coverPath, new String[] { "-ss", String.valueOf(seekPos) },
+				String r = extractFrame(coverPath, new String[] { "-ss", String.valueOf(seekPos) },
 						"Extracting last frame at " + String.format("%.2f", seekPos) + "s/"
-								+ String.format("%.2f", duration) + "s (offset=" + offset + "s)");
-				if (result != null) {
-					return result;
+								+ String.format("%.2f", duration) + "s (offset=" + offset + "s, fallback)");
+				if (r != null) {
+					return r;
 				}
-				LOGGER.warn("Frame extraction failed at offset {}s, trying larger offset", offset);
 			}
-			LOGGER.error("Failed to extract last frame with all offsets");
+			LOGGER.error("Failed to extract last frame with all fallback offsets");
 			return null;
 		} catch (Exception e) {
-			LOGGER.error("Failed to get duration for last frame extraction, using -sseof fallback", e);
-			return extractFrame(coverPath, new String[] { "-sseof", "-" + String.valueOf(seekOffsetSeconds) },
-					"Extracting last frame");
+			LOGGER.error("Failed to get duration for last frame fallback extraction", e);
+			return null;
 		}
+	}
+
+	/**
+	 * Extract the true last frame using {@code -sseof -N -update 1} (no
+	 * {@code -vframes}): decode from N seconds before EOF and let the image2
+	 * muxer overwrite the output per frame, keeping only the last one.
+	 */
+	private String extractLastFrameBySseof(String coverPath, double offsetSeconds) {
+		File videoFile = new File(this.videoPath);
+		if (!videoFile.exists() || !videoFile.isFile()) {
+			LOGGER.error("Video file not found: {}", this.videoPath);
+			return null;
+		}
+		if (StringUtils.isBlank(coverPath)) {
+			coverPath = this.videoPath + ".cover." + this.coverExt;
+		}
+		File coverFile = new File(coverPath);
+		File parentDir = coverFile.getParentFile();
+		if (parentDir != null && !parentDir.exists()) {
+			parentDir.mkdirs();
+		}
+		String ffmpeg;
+		try {
+			ffmpeg = getFfmpeg();
+		} catch (Exception e) {
+			LOGGER.error(e.getMessage());
+			return null;
+		}
+		CommandLine cmd = new CommandLine(ffmpeg);
+		cmd.addArgument("-y", false);
+		cmd.addArgument("-sseof", false);
+		cmd.addArgument("-" + String.valueOf(offsetSeconds), false);
+		cmd.addArgument("-i", false);
+		cmd.addArgument(videoFile.getAbsolutePath(), false);
+		cmd.addArgument("-update", false);
+		cmd.addArgument("1", false);
+		if (this.quality > 0) {
+			cmd.addArgument("-q:v", false);
+			cmd.addArgument(String.valueOf(this.quality), false);
+		}
+		if (this.width > 0 && this.height > 0) {
+			cmd.addArgument("-vf", false);
+			cmd.addArgument("scale=" + this.width + ":" + this.height
+					+ ":force_original_aspect_ratio=decrease", false);
+		} else if (this.width > 0 || this.height > 0) {
+			int w = this.width > 0 ? this.width : -1;
+			int h = this.height > 0 ? this.height : -1;
+			cmd.addArgument("-vf", false);
+			cmd.addArgument("scale=" + w + ":" + h, false);
+		}
+		// FFmpeg 7.x+ mjpeg encoder rejects limited-range YUV unless relaxed
+		cmd.addArgument("-strict", false);
+		cmd.addArgument("unofficial", false);
+		cmd.addArgument(coverFile.getAbsolutePath(), false);
+
+		LOGGER.info("Extracting last frame (-sseof -{} -update 1): {}", offsetSeconds, cmd);
+		ExecuteResult result = execute(cmd, this.timeout);
+		if (result.isSuccess() && coverFile.exists() && coverFile.length() > 0) {
+			setWorldReadable(coverFile);
+			LOGGER.info("Last frame extracted: {}", coverFile.getAbsolutePath());
+			return coverFile.getAbsolutePath();
+		}
+		if (!result.isSuccess()) {
+			LOGGER.warn("Last frame extraction via -sseof failed (exit {}), trying fallback", result.exitCode);
+		}
+		return null;
 	}
 
 	/**
