@@ -1402,6 +1402,14 @@ public class UVideo {
 				// NVENC encoder is compiled in but no NVIDIA GPU/driver; skip.
 				continue;
 			}
+			if ("h264_qsv".equals(enc) && resolveVaapiDevice() == null) {
+				// QSV requires Intel GPU (uses same /dev/dri/renderD* device).
+				continue;
+			}
+			if ("h264_amf".equals(enc) && !hasAmdGpu()) {
+				// AMF requires AMD GPU; skip if not present.
+				continue;
+			}
 			CACHED_H264_ENCODER = enc;
 			LOGGER.info("Selected H.264 encoder: {}", enc);
 			return enc;
@@ -1459,6 +1467,39 @@ public class UVideo {
 		for (String lib : libPaths) {
 			if (new File(lib).exists()) {
 				return true;
+			}
+		}
+		return false;
+	}
+
+	/**
+	 * Check whether an AMD GPU with working drivers is available.
+	 * AMF (AMD Media Framework) requires AMD GPU with amdgpu driver.
+	 * Checks for {@code /dev/dri/renderD*} with amdgpu driver or
+	 * {@code /dev/kfd} (AMD compute device).
+	 */
+	static boolean hasAmdGpu() {
+		// Check for AMD compute device
+		if (new File("/dev/kfd").exists()) {
+			return true;
+		}
+		// Check for amdgpu driver in /sys
+		File amdGpuDir = new File("/sys/class/drm");
+		if (amdGpuDir.isDirectory()) {
+			File[] files = amdGpuDir.listFiles();
+			if (files != null) {
+				for (File f : files) {
+					if (f.getName().startsWith("card") && new File(f, "device/driver").exists()) {
+						try {
+							String driverLink = java.nio.file.Files.readSymbolicLink(new File(f, "device/driver").toPath()).getFileName().toString();
+							if (driverLink.contains("amdgpu")) {
+								return true;
+							}
+						} catch (Exception e) {
+							// ignore
+						}
+					}
+				}
 			}
 		}
 		return false;
