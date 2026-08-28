@@ -987,7 +987,7 @@ public class UVideo {
 	 * ffmpeg -y -i in0 -i in1 ... -filter_complex
 	 *   "[0:v][0:a][1:v][1:a]...concat=n=N:v=1:a=1[v][a]"
 	 *   -map [v] -map [a] -c:v libx264 -crf 18 -preset fast
-	 *   -c:a aac -ar 48000 -ac 2 -vsync cfr &lt;output&gt;
+	 *   -c:a aac -ar 48000 -ac 2 &lt;output&gt;
 	 * </pre>
 	 *
 	 * Forces re-encode with unified codec/parameters (libx264 video, AAC 48kHz
@@ -1289,14 +1289,8 @@ public class UVideo {
 		addVideoEncoderArgs(cmd, encoder, bitrate);
 		cmd.addArgument("-pix_fmt", false);
 		cmd.addArgument("yuv420p", false);
-		if (isVaapi) {
-			// VAAPI filter graph already produced yuv420p-compat surfaces; skip -vsync.
-		} else if ("h264_videotoolbox".equals(encoder)) {
-			// VideoToolbox ignores -vsync; skip to avoid "encoder setup failed" warnings.
-		} else {
-			cmd.addArgument("-vsync", false);
-			cmd.addArgument("cfr", false);
-		}
+		// Note: -vsync was removed in FFmpeg 7.x; CFR is the default for libx264/aac.
+		// VAAPI/VideoToolbox also don't need it.
 
 		// Audio: unified across platforms (aac 48kHz stereo 192k).
 		cmd.addArgument("-c:a", false);
