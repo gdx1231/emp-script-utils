@@ -986,7 +986,7 @@ public class UVideo {
 	 * <pre>
 	 * ffmpeg -y -i in0 -i in1 ... -filter_complex
 	 *   "[0:v][0:a][1:v][1:a]...concat=n=N:v=1:a=1[v][a]"
-	 *   -map [v] -map [a] -c:v libx264 -crf 18 -preset fast
+	 *   -map [v] -map [a] -c:v libx264 -crf 18 -preset veryfast -threads 2
 	 *   -c:a aac -ar 48000 -ac 2 &lt;output&gt;
 	 * </pre>
 	 *
@@ -1696,9 +1696,11 @@ public class UVideo {
 		case "libx264":
 		default:
 			cmd.addArgument("-preset", false);
-			cmd.addArgument("fast", false);
+			cmd.addArgument("veryfast", false);
 			cmd.addArgument("-crf", false);
 			cmd.addArgument("18", false);
+			cmd.addArgument("-threads", false);
+			cmd.addArgument("2", false);
 			break;
 		}
 	}
