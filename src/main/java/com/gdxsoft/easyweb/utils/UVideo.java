@@ -365,10 +365,12 @@ public class UVideo {
 	/**
 	 * Create a video cover by extracting the last frame at the specified seek offset.
 	 * <p>
-	 * Uses {@code -ss} with a negative offset (e.g. {@code -ss -0.05}) instead of
-	 * {@code -sseof} because some FFmpeg nightly builds (e.g. N-126000) fail to
-	 * extract frames too close to EOF with {@code -sseof}. The negative {@code -ss}
-	 * value is interpreted as "seek to this many seconds before the end".
+	 * Uses {@code -ss} with an absolute position calculated from the video duration
+	 * (ffprobe) instead of {@code -sseof} or a negative {@code -ss} offset: some
+	 * FFmpeg nightly builds (e.g. N-126000) fail to extract frames with
+	 * {@code -sseof} near EOF, and a negative {@code -ss} silently clamps to the
+	 * FIRST frame instead of seeking before the end. An absolute position within the
+	 * stream (at least 0.5s from EOF) is reliable across builds.
 	 *
 	 * @param coverPath         the output cover image path, or null to auto-generate
 	 * @param seekOffsetSeconds the seek offset in seconds before the end (e.g. 0.5 for
@@ -379,8 +381,24 @@ public class UVideo {
 		if (seekOffsetSeconds <= 0) {
 			seekOffsetSeconds = 0.5;
 		}
-		return extractFrame(coverPath, new String[] { "-ss", "-" + String.valueOf(seekOffsetSeconds) },
-				"Extracting last frame");
+		try {
+			double duration = getVideoDuration();
+			if (duration <= 0) {
+				LOGGER.warn("Cannot get video duration, falling back to -sseof");
+				return extractFrame(coverPath, new String[] { "-sseof", "-" + String.valueOf(seekOffsetSeconds) },
+						"Extracting last frame");
+			}
+			// Clamp: at least 0.1s from start, at least 0.5s before EOF (frames too
+			// close to EOF fail on some nightly FFmpeg builds).
+			double seekPos = Math.max(0.1, Math.min(duration - seekOffsetSeconds, duration - 0.5));
+			return extractFrame(coverPath, new String[] { "-ss", String.valueOf(seekPos) },
+					"Extracting last frame at " + String.format("%.2f", seekPos) + "s/"
+							+ String.format("%.2f", duration) + "s");
+		} catch (Exception e) {
+			LOGGER.error("Failed to get duration for last frame extraction, using -sseof fallback", e);
+			return extractFrame(coverPath, new String[] { "-sseof", "-" + String.valueOf(seekOffsetSeconds) },
+					"Extracting last frame");
+		}
 	}
 
 	/**
